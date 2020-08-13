@@ -1,0 +1,596 @@
+/*
+ * c7seq.hpp
+ *
+ * Copyright (c) 2019 ccldaout@gmail.com
+ *
+ * This software is released under the MIT License.
+ * http://opensource.org/licenses/mit-license.php
+ */
+#ifndef __C7_SEQ_HPP_LOADED__
+#define __C7_SEQ_HPP_LOADED__
+#include "c7common.hpp"
+
+
+#include <cstdio>
+#include <functional>
+#include <iterator>	// std::iterator_traits
+#include <stdexcept>
+#include <tuple>
+#include <type_traits>
+
+
+namespace c7 {
+namespace seq {
+
+
+/*----------------------------------------------------------------------------
+                                    range
+----------------------------------------------------------------------------*/
+
+template <typename T>
+class range_seq {
+private:
+    typedef typename std::remove_const<T>::type V;
+
+    const size_t n_;
+    const V init_, step_;
+
+public:
+    class iterator {
+	const range_seq<T>& seq_;
+	size_t idx_;
+	V val_;
+
+	V calc() {
+	    return seq_.init_ + seq_.step_ * idx_;
+	};
+
+    public:
+	typedef ptrdiff_t difference_type;
+	typedef V value_type;
+	typedef V* pointer;
+	typedef V& reference;
+	typedef std::input_iterator_tag iterator_category;
+
+	iterator(const range_seq<T>& seq, size_t idx):
+	    seq_(seq), idx_(idx) {
+	    val_ = calc();
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return idx_ == rhs.idx_;
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    if (idx_ < seq_.n_) {
+		idx_++;
+		if (std::is_floating_point<T>::value)
+		    val_ = calc();
+		else
+		    val_ += seq_.step_;
+	    }
+	    return *this;
+	}
+
+	value_type operator*() {
+	    if (idx_ >= seq_.n_)
+		throw std::out_of_range("Maybe end iterator.");
+	    return val_;
+	}
+    };
+
+    typedef iterator const_iterator;
+
+    explicit range_seq(size_t n, T init=0, T step=1):
+	n_(n), init_(init), step_(step) {
+    }
+
+    iterator begin() noexcept {
+	return iterator(*this, 0);
+    }
+    
+    iterator end() noexcept {
+	return iterator(*this, n_);
+    }
+};
+
+template <typename T>
+range_seq<T> range(size_t n, T init=T(0), T step=T(1))
+{
+    return range_seq<T>(n, init, step);
+}
+
+
+/*----------------------------------------------------------------------------
+                                     head
+----------------------------------------------------------------------------*/
+
+template <typename C>
+class head_seq {
+private:
+    typedef std::remove_reference_t<C> C_;
+    typedef typename std::conditional_t<std::is_rvalue_reference_v<C>, C_, C_&> S;
+    typedef typename std::conditional_t<std::is_rvalue_reference_v<C>, C_&&, C_&> A;
+
+    S c;
+    size_t len;
+
+public:
+    class iterator {
+    private:
+	typedef decltype(std::declval<C>().begin()) item_iterator;
+	item_iterator it_;
+	size_t idx_;
+	bool terminator_;
+
+    public:
+	typedef ptrdiff_t difference_type;
+	typedef typename std::iterator_traits<item_iterator>::value_type value_type;
+	typedef typename std::iterator_traits<item_iterator>::pointer pointer;
+	typedef typename std::iterator_traits<item_iterator>::reference reference;
+	typedef std::input_iterator_tag iterator_category;
+
+	iterator(C_& c, size_t idx):
+	    it_(c.begin()), idx_(idx), terminator_(idx != 0) {
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return idx_ == rhs.idx_;
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    if (terminator_)
+		throw std::runtime_error("end iterator refuse operator++");
+	    ++it_;
+	    ++idx_;
+	    return *this;
+	}
+
+	decltype(*it_) operator*() {
+	    if (terminator_)
+		throw std::out_of_range("Maybe end iterator.");
+	    return *it_;
+	}
+    };
+
+    typedef iterator const_iterator;
+
+    head_seq(A c, size_t len): c(std::forward<C>(c)), len(len) {
+    }
+
+    head_seq(head_seq<C>&& h): c(std::forward<C>(h.c)), len(h.len) {
+    }
+
+    head_seq(head_seq<C>& h): c(h.c), len(h.len) {
+    }
+
+    head_seq(const head_seq<C>& h): c(h.c), len(h.len) {
+    }
+
+    iterator begin() noexcept {
+	return iterator(c, 0);
+    }
+
+    iterator end() noexcept {
+	return iterator(c, len);
+    }
+};
+
+template <typename C>
+head_seq<C&&> head(C&& c, size_t len)
+{
+    return head_seq<C&&>(std::forward<C>(c), len);
+}
+
+
+/*----------------------------------------------------------------------------
+                                     tail
+----------------------------------------------------------------------------*/
+
+template <typename C>
+class tail_seq {
+public:
+    typedef decltype(std::declval<C>().begin()) iterator;
+    typedef iterator const_iterator;
+
+private:
+    typedef std::remove_reference_t<C> C_;
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+
+    S c;
+    size_t off;
+
+    iterator begin_impl(std::input_iterator_tag) noexcept {
+	auto it = c.begin();
+	while (off-- > 0)
+	    ++it;
+	return it;
+    }
+    iterator begin_impl(std::random_access_iterator_tag) noexcept {
+	return c.begin() + off;
+    }
+
+public:
+    tail_seq(A c, size_t off): c(std::forward<C>(c)), off(off) {
+    }
+
+    tail_seq(tail_seq<C>&& h): c(std::forward<C>(h.c)), off(h.off) {
+    }
+
+    tail_seq(tail_seq<C>& h): c(h.c), off(h.off) {
+    }
+
+    tail_seq(const tail_seq<C>& h): c(h.c), off(h.off) {
+    }
+
+    iterator begin() noexcept {
+	return begin_impl(typename std::iterator_traits<iterator>::iterator_category());
+    }
+
+    iterator end() noexcept {
+	return c.end();
+    }
+};
+
+template <typename C>
+tail_seq<C&&> tail(C&& c, size_t len)
+{
+    return tail_seq<C&&>(std::forward<C>(c), len);
+}
+
+
+/*----------------------------------------------------------------------------
+                                   reverse
+----------------------------------------------------------------------------*/
+
+template <typename C>
+class reverse_seq {
+private:
+    typedef typename std::remove_reference_t<C> C_;
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+
+    S c;
+
+public:
+    typedef decltype(c.rbegin()) iterator;
+    typedef iterator const_iterator;
+
+    explicit reverse_seq(A c): c(std::forward<C>(c)) {
+    }
+
+    reverse_seq(reverse_seq<C>&& h): c(std::forward<C>(h.c)) {
+    }
+
+    reverse_seq(reverse_seq<C>& h): c(h.c) {
+    }
+
+    reverse_seq(const reverse_seq<C>& h): c(h.c) {
+    }
+
+    iterator begin() noexcept {
+	return c.rbegin();
+    }
+
+    iterator end() noexcept {
+	return c.rend();
+    }
+};
+
+template <typename C>
+reverse_seq<C&&> reverse(C&& c)
+{
+    return reverse_seq<C&&>(std::forward<C>(c));
+}
+
+
+/*----------------------------------------------------------------------------
+                                  enumerate
+----------------------------------------------------------------------------*/
+
+template <typename C>
+class enumerate_seq {
+private:
+    typedef typename std::remove_reference_t<C> C_;
+    typedef typename std::conditional_t<std::is_rvalue_reference_v<C>, C_, C_&> S;
+    typedef typename std::conditional_t<std::is_rvalue_reference_v<C>, C_&&, C_&> A;
+
+    S c;
+    ssize_t start_idx;
+
+public:
+    class iterator {
+    private:
+	typedef decltype(std::declval<C>().begin()) item_iterator;
+	item_iterator it_;
+	ssize_t idx_;
+
+    public:
+	typedef ptrdiff_t difference_type;
+	typedef std::pair<ssize_t, decltype(*it_)> value_type;
+	typedef value_type* pointer;
+	typedef value_type& reference;
+	typedef std::input_iterator_tag iterator_category;
+
+	iterator(C_& c):
+	    it_(c.end()) {
+	}
+
+	iterator(C_& c, ssize_t idx):
+	    it_(c.begin()), idx_(idx) {
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return it_ == rhs.it_;
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    ++it_;
+	    ++idx_;
+	    return *this;
+	}
+
+	value_type operator*() {
+	    return { idx_, *it_ };	// c++17
+	}
+    };
+
+    typedef iterator const_iterator;
+
+public:
+    explicit enumerate_seq(A c, ssize_t index = 0):
+	c(std::forward<C>(c)), start_idx(index) {
+    }
+
+    enumerate_seq(enumerate_seq<C>&& h): c(std::forward<C>(h.c)), start_idx(h.start_idx) {
+    }
+
+    enumerate_seq(enumerate_seq<C>& h): c(h.c), start_idx(h.start_idx) {
+    }
+
+    enumerate_seq(const enumerate_seq<C>& h): c(h.c), start_idx(h.start_idx) {
+    }
+
+    iterator begin() noexcept {
+	return iterator(c, start_idx);
+    }
+
+    iterator end() noexcept {
+	return iterator(c);
+    }
+};
+
+template <typename C>
+enumerate_seq<C&&> enumerate(C&& c, ssize_t index = 0)
+{
+    return enumerate_seq<C&&>(std::forward<C>(c), index);
+}
+
+
+/*----------------------------------------------------------------------------
+                                    filter
+----------------------------------------------------------------------------*/
+
+template <typename C>
+class filter_seq {
+private:
+    typedef std::remove_reference_t<C> C_;
+
+public:
+    typedef decltype(std::declval<C>().begin()) item_iterator;
+    typedef typename std::iterator_traits<item_iterator>::value_type& item_reference;
+    typedef typename std::function<bool(item_reference)> predicate;
+
+    class iterator {
+    private:
+	item_iterator it_;
+	const item_iterator itend_;
+	predicate pred_;
+	bool terminator_;
+
+	void find() {
+	    for (; it_ != itend_; ++it_) {
+		if (pred_(*it_))
+		    return;
+	    }
+	    terminator_ = true;
+	}
+
+    public:
+	typedef ptrdiff_t difference_type;
+	typedef typename std::iterator_traits<item_iterator>::value_type value_type;
+	typedef typename std::iterator_traits<item_iterator>::pointer pointer;
+	typedef typename std::iterator_traits<item_iterator>::reference reference;
+	typedef std::input_iterator_tag iterator_category;
+
+	iterator(C_& c, predicate pred):
+	    it_(c.begin()), itend_(c.end()), pred_(pred), terminator_(false) {
+	    find();
+	}
+
+	explicit iterator(C_& c):
+	    it_(c.end()), itend_(c.end()), pred_(), terminator_(true) {
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return (it_ == rhs.it_ || (terminator_ && rhs.terminator_));
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    if (terminator_)
+		throw std::runtime_error("end iterator refuse operator++");
+	    if (it_ != itend_) {
+		++it_;
+		find();
+	    }
+	    return *this;
+	}
+
+	decltype(*it_) operator*() {
+	    if (terminator_)
+		throw std::out_of_range("Maybe end iterator.");
+	    return *it_;
+	}
+    };
+
+    typedef iterator const_iterator;
+
+private:
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+
+    S c;
+    predicate pred;
+
+public:
+    filter_seq(A c, predicate pred):
+	c(std::forward<C>(c)), pred(pred) {
+    }
+
+    filter_seq(filter_seq<C>&& h): c(std::forward<C>(h.c)), pred(h.pred) {
+    }
+
+    filter_seq(filter_seq<C>& h): c(h.c), pred(h.pred) {
+    }
+
+    filter_seq(const filter_seq<C>& h): c(h.c), pred(h.pred) {
+    }
+
+    iterator begin() noexcept {
+	return iterator(c, pred);
+    }
+
+    iterator end() noexcept {
+	return iterator(c);
+    }
+};
+
+template <typename C>
+filter_seq<C&&> filter(C&& c, typename filter_seq<C&&>::predicate pred)
+{
+    return filter_seq<C&&>(std::forward<C>(c), pred);
+}
+
+
+/*----------------------------------------------------------------------------
+                      null terminated array to sequence
+----------------------------------------------------------------------------*/
+
+template <typename PP, typename Conv>
+class c_parray_seq {
+public:
+    class iterator {
+    private:
+	PP array_;
+	Conv conv_;
+	ptrdiff_t index_;
+
+    public:
+	typedef ptrdiff_t difference_type;
+	typedef std::remove_reference_t<decltype(conv_(array_[0]))> value_type;
+	typedef std::remove_reference_t<value_type>* pointer;
+	typedef std::remove_reference_t<value_type>& reference;
+	typedef std::input_iterator_tag iterator_category;
+
+	iterator(PP array, Conv conv, bool is_terminator):
+	    array_(array), conv_(conv), index_(is_terminator ? -1 : 0) {
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return (index_ == rhs.index_);
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    if (index_ == -1)
+		throw std::runtime_error("end iterator refuse operator++");
+	    if (array_[++index_] == nullptr) {
+		index_ = -1;
+	    }
+	    return *this;
+	}
+
+	value_type operator*() {
+	    if (index_ == -1)
+		throw std::runtime_error("end iterator derefernce*");
+	    return conv_(array_[index_]);
+	}
+    };
+
+    typedef iterator const_iterator;
+
+private:
+    PP array_;
+    Conv conv_;
+
+public:
+    c_parray_seq(PP array, Conv conv): array_(array), conv_(conv) {}
+
+    c_parray_seq(c_parray_seq<PP, Conv>& o): array_(o.array_), conv_(o.conv_) {}
+
+    c_parray_seq(c_parray_seq<PP, Conv>&& o) = delete;
+
+    iterator begin() noexcept {
+	return iterator(array_, conv_, false);
+    }
+
+    iterator end() noexcept {
+	return iterator(array_, conv_, true);
+    }
+};
+
+template <typename PP>
+struct c_parray_traits {
+    typedef std::remove_reference_t<decltype(*std::declval<PP>())> value_type;
+};
+
+template <typename PP>
+auto c_parray(PP array)
+{
+    auto conv = [](typename c_parray_traits<PP>::value_type& p) { return p; };
+    return c_parray_seq<PP, decltype(conv)>(array, conv);
+}
+
+template <typename PP, typename Conv>
+c_parray_seq<PP, Conv> c_parray(PP array, Conv conv)
+{
+    return c_parray_seq<PP, Conv>(array, conv);
+}
+
+template <typename CharPP>
+auto charp_array(CharPP array)
+{
+    auto conv = [](typename c_parray_traits<CharPP>::value_type& p) { return std::string(p); };
+    return c_parray_seq<CharPP, decltype(conv)>(array, conv);
+}
+
+
+/*----------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+
+
+} // namespace seq
+} // namespace c7
+
+
+#endif // c7seq.hpp
