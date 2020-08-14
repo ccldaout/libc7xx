@@ -8,10 +8,10 @@
  */
 #ifndef __C7_PATH_HPP_LOADED__
 #define __C7_PATH_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7string.hpp"
+#include <c7string.hpp>
 
 
 namespace c7 {

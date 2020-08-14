@@ -8,10 +8,10 @@
  */
 #ifndef __C7_ANY_HPP_LOADED__
 #define __C7_ANY_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7typefunc.hpp"
+#include <c7typefunc.hpp>
 #include <functional>
 #include <memory>
 #include <stdexcept>

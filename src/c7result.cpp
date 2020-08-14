@@ -64,14 +64,24 @@ void format_traits<result_base>::convert(std::ostream& out, const std::string& f
 
 	if (e.what != 0) {
 	    if (translate_what(out, e.what)) {
+		if (e.msg.empty()) {
+		    continue;
+		}
 		out << "\n";
 		putprefix(out, fn, e.line);
 	    } else {
-		out << "what:" << std::showbase << std::dec << e.what << ": ";
+		out << "what:" << std::showbase << std::dec << e.what;
+		if (e.msg.empty()) {
+		    continue;
+		}
+		out << ": ";
 	    }
+	    out << e.msg;
+	} else if (e.msg.empty()) {
+	    out << "(pass through ...)";
+	} else {
+	    out << e.msg;
 	}
-
-	out << e.msg;
     }
 };
 

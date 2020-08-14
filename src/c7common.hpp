@@ -73,40 +73,25 @@ namespace c7 {
 
 
 /*----------------------------------------------------------------------------
-                                  basic type
+                              basic definitions
 ----------------------------------------------------------------------------*/
 
-typedef int64_t usec_t;		// microsecond
+// micorsecond
+typedef int64_t usec_t;
 
+// left hand operand for dummy assignment to suppress unused-warning
 struct drop {
     template <typename T>
     void operator=(const T&) {}
 };
-
 extern struct drop drop;
 
-
-/*----------------------------------------------------------------------------
-                               special pointer
-----------------------------------------------------------------------------*/
-
-extern void * const eof_marker;
-extern void * const abort_marker;
-
-
-/*----------------------------------------------------------------------------
-                              special constants
-----------------------------------------------------------------------------*/
-
+// communication status
 enum class com_status {
     OK, CLOSED, TIMEOUT, ERROR, ABORT,
 };
 
-
-/*----------------------------------------------------------------------------
-                        format traits primary template
-----------------------------------------------------------------------------*/
-
+// format traits primary template
 template <typename T>
 struct format_traits {};
 

@@ -155,7 +155,7 @@ static void test_channel2()
 int main()
 {
     test_fpipe();
-    test_fpipe(5);
+    test_fpipe(1);
     test_channel1();
     test_channel2();
 

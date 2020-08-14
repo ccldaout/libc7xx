@@ -8,11 +8,11 @@
  */
 #ifndef __C7_THREAD_HPP_LOADED__
 #define __C7_THREAD_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7delegate.hpp"
-#include "c7utils.hpp"
+#include <c7delegate.hpp>
+#include <c7utils.hpp>
 #include <functional>
 #include <system_error>
 #include <string>
@@ -53,13 +53,13 @@ public:
     [[nodiscard]]
     c7::defer lock() {
 	_lock();
-	return c7::defer([&](){ unlock(); });
+	return c7::defer([this](){ unlock(); });
     }
 
     [[nodiscard]]
     c7::defer trylock() {
 	if (_trylock()) {
-	    return c7::defer([&](){ unlock(); });
+	    return c7::defer([this](){ unlock(); });
 	}
 	return c7::defer();
     }
@@ -122,13 +122,13 @@ public:
     [[nodiscard]]
     c7::defer lock() {
 	_lock();
-	return c7::defer([&](){ unlock(); });
+	return c7::defer([this](){ unlock(); });
     }
 
     [[nodiscard]]
     c7::defer trylock() {
 	if (_trylock()) {
-	    return c7::defer([&](){ unlock(); });
+	    return c7::defer([this](){ unlock(); });
 	}
 	return c7::defer();
     }
@@ -193,13 +193,13 @@ public:
     [[nodiscard]]
     c7::defer lock() {
 	_lock();
-	return c7::defer([&](){ unlock(); });
+	return c7::defer([this](){ unlock(); });
     }
 
     [[nodiscard]]
     c7::defer trylock() {
 	if (_trylock()) {
-	    return c7::defer([&](){ unlock(); });
+	    return c7::defer([this](){ unlock(); });
 	}
 	return c7::defer();
     }
@@ -292,7 +292,11 @@ private:
 
 public:
     enum exit_type {
-	NOT, RETURN, EXIT, ABORT, CANCEL, CRASH,
+	NA_IDLE,	// thread is not started yet.
+	NA_RUNNING,	// thread is running.
+	EXIT,		// thread call self::exit() or return from target function.
+	ABORT,		// thread call self::abort()
+	CRASH,		// thread is terminated by exception.
     };
 
     c7::delegate<void, proxy>::proxy on_start;
@@ -305,6 +309,7 @@ public:
     thread(thread&&);
     thread& operator=(thread&&);
     ~thread();
+    void reuse();
 
     bool set_stacksize(size_t stack_b);
     void set_name(const std::string& name);
@@ -319,24 +324,25 @@ public:
 	set_finalize([=](){ func(args...); });
     }
 
-    result<void> start();
+    c7::result<void> start();
 
     bool join(c7::usec_t timeout = -1);
     exit_type status() const;
+    c7::result<void>& terminate_result();
+
     bool is_alive() const;
     bool is_self() const;
     const char *name() const;
     uint64_t id() const;
     void signal(int sig);
-    void cancel();
 };
 
 struct self {
     static const char *name();
     static uint64_t id();
-    static bool in_canceling();
     [[noreturn]] static void exit();
     [[noreturn]] static void abort();
+    [[noreturn]] static void abort(c7::result<void>&&);
 };
 
 class proxy {

@@ -35,15 +35,35 @@ static result<void> func1()
 	return c7result_err(std::move(r), 111, "func1");
 }
 
+static result<void> func0()
+{
+    auto r = func1();
+    p_("func0: result: %{}", r);
+    if (r) 
+	return result<void>(std::move(r));
+    else
+	return c7result_err(std::move(r), ENOSPC);
+}
+
 int main()
 {
     for (int i = 0; i < 2; i++) {
 	p_("--- #%{} ---", i);
-	auto r = func1();
+	auto r = func0();
 	if (!r) {
 	    p_("main: has error");
+	    //r.clear();
 	}
 	p_("main: result: %{}", r);
     }
+
+    {
+	result<std::string> res = c7result_err(EINVAL, "error");
+	p_("res.value: '%{}'", res.value("this is default"));
+
+	res = c7result_ok<std::string>("success");
+	p_("res.value: '%{}'", res.value("this is default"));
+    }
+
     return 0;
 }

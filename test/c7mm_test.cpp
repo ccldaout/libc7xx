@@ -10,8 +10,8 @@ struct data_t {
     char s[1024-sizeof(size_t)];
 };
 
-#define INI	( 128L *1024*1024)
-#define THR	(1024L *1024*1024)
+#define INI	( 1L *1024*1024)
+#define THR	(32L *1024*1024)
 
 template <typename C>
 static void tail(const C& mmv)
@@ -35,7 +35,6 @@ int main()
     std::vector<data_t> mmv;
 #endif
     int n = 4*1024*1024;
-    n = 100;
     for (int i = 0; i < n; i++) {
 	data_t d;
 	d.v = i;

@@ -8,11 +8,12 @@
  */
 #ifndef __C7_FORMAT_HPP_LOADED__
 #define __C7_FORMAT_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7defer.hpp"
-#include "c7delegate.hpp"
+#include <c7defer.hpp>
+#include <c7delegate.hpp>
+#include <c7typefunc.hpp>
 #include <iomanip>
 #include <iostream>	// cout
 #include <string>
@@ -73,7 +74,6 @@ inline constexpr bool is_formattable_v = is_formattable<T>::value;
 
 struct formatter_int_tag {};
 struct formatter_float_tag {};
-struct formatter_string_tag {};
 struct formatter_pointer_tag {};
 struct formatter_formattable_tag {};
 struct formatter_enum_tag {};
@@ -97,45 +97,35 @@ struct formatter_tag {
 		    formatter_other_tag>>>
 	> type;
 
-    static constexpr type value() {
-	return type();
-    }
+    static constexpr type value{};
 };
 
 template <typename T>
 struct formatter_tag<T*> {
     typedef formatter_pointer_tag type;
 
-    static constexpr type value() {
-	return type();
-    }
+    static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<std::string> {
-    typedef formatter_string_tag type;
+    typedef formatter_other_tag type;
 
-    static constexpr type value() {
-	return type();
-    }
+    static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<const char*> {
-    typedef formatter_string_tag type;
+    typedef formatter_other_tag type;
 
-    static constexpr type value() {
-	return type();
-    }
+    static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<char*> {
-    typedef formatter_string_tag type;
+    typedef formatter_other_tag type;
 
-    static constexpr type value() {
-	return type();
-    }
+    static constexpr type value{};
 };
 
 
@@ -149,11 +139,7 @@ private:
 	FINISH, REQ_WIDTH, REQ_PREC, FORMAT_ARG,
     };
 
-    enum result_t {
-	OK, ERR_TOOFEW, ERR_TOOMANY, ERR_REQUIRE_INT,
-    };
-
-    std::ostream* out_;
+    std::ostream& out_;
 
     // following members are updated by next_format();
     const char *top_;		// point to top of format specification (leading '%')
@@ -161,175 +147,57 @@ private:
     std::string ext_;		// hold extension if %{xxx[[:]extenstion]} is specified.
     bool require_precision_;	// set true iff '*' is specified as precision.
 
-    state_t next_format();
+    state_t next_format(state_t prev_state, bool no_args);
 
     template <typename T>
-    inline result_t handle_arg(state_t s, const T& arg, formatter_enum_tag) {
-	*out_ << ssize_t(arg);
-	return OK;
-    }
-
-    template <typename T>
-    result_t handle_arg(state_t s, T arg, formatter_int_tag) {
-	switch (s) {
-	  case REQ_WIDTH:
-	    *out_ << std::setw(arg);
-	    return OK;
-
-	  case REQ_PREC:
-	    *out_ << std::setprecision(arg);
-	    return OK;
-
-	  default:
-	    switch (ext_[0]) {
-	      case 'o':
-		*out_ << std::oct;
-		break;
-	      case 'x':
-		*out_ << std::hex;
-		break;
-	      case 0:
-	      case 'd':
-		*out_ << std::dec;
-		break;
-	      default:
-		format_traits<ssize_t>::convert(*out_, ext_, static_cast<ssize_t>(arg));
-		return OK;
-	    }
-	    *out_ << arg;
-	    return OK;
-	}
+    inline void handle_arg(state_t s, const T& arg, formatter_enum_tag) noexcept {
+	out_ << ssize_t(arg);
     }
 
     template <typename T>
-    result_t handle_arg(state_t s, T arg, formatter_float_tag) {
-	switch (ext_[0]) {
-	  case 'e':
-	    *out_ << std::scientific;
-	    break;
-	  case 'f':
-	    *out_ << std::fixed;
-	    break;
-	  default:
-	    *out_ << std::defaultfloat;
-	}
-	*out_ << arg;
-	return OK;
+    void handle_arg(state_t s, T arg, formatter_int_tag) noexcept;
+
+    template <typename T>
+    void handle_arg(state_t s, T arg, formatter_float_tag) noexcept;
+
+    template <typename T>
+    inline void handle_arg(state_t s, T arg, formatter_pointer_tag) noexcept {
+	out_ << arg;
     }
 
     template <typename T>
-    inline result_t handle_arg(state_t s, const T& arg, formatter_string_tag) {
-	*out_ << arg;
-	return OK;
+    void handle_arg(state_t s, const T& arg, formatter_formattable_tag) noexcept {
+	format_traits<T>::convert(out_, ext_, arg);
     }
 
     template <typename T>
-    inline result_t handle_arg(state_t s, T arg, formatter_pointer_tag) {
-	*out_ << arg;
-	return OK;
+    inline void handle_arg(state_t s, const T& arg, formatter_other_tag) noexcept {
+	out_ << arg;
     }
 
-    template <typename T>
-    result_t handle_arg(state_t s, const T& arg, formatter_formattable_tag) {
-	// User defined format_traits<T>::convert() may call c7::format
-	safe_call([&](auto& ext){
-		auto out_save = out_;
-		std::stringstream tmpout;
-		format_traits<T>::convert(tmpout, ext, arg);
-		out_ = out_save;
-		*out_ << tmpout.str();
-	    });
-	return OK;
-    }
-
-    template <typename T>
-    inline result_t handle_arg(state_t s, const T& arg, formatter_other_tag) {
-	// User defined operator<<() may call c7::format
-	safe_call([&](auto){ *out_ << arg; });
-	return OK;
-    }
-
-    void safe_call(std::function<void(std::string&)> f) {
-	auto cur_save = cur_;
-	auto top_save = top_;
-	auto ext_save = std::move(ext_);
-	f(ext_save);
-	cur_ = cur_save;
-	top_ = top_save;
-	ext_ = std::move(ext_save);
-    }
-
-    std::tuple<int, result_t>
-    format_impl(state_t s, int prm_num) {
-	return { prm_num, (s == FINISH) ? OK : ERR_TOOFEW };
-    }
+    void format_impl(state_t s) noexcept {}
 
     template <typename Thead, typename... Tbody>
-    std::tuple<int, result_t>
-    format_impl(state_t s, int prm_pos, Thead& head, Tbody&... tail) {
-	if (s == FINISH)
-	    return { prm_pos, ERR_TOOMANY };
-
-	if (s != FORMAT_ARG && !std::is_integral_v<Thead>)
-	    return { prm_pos, ERR_REQUIRE_INT };
-
+    void format_impl(state_t s, Thead& head, Tbody&... tail) noexcept {
 	typedef std::remove_reference_t<std::remove_cv_t<Thead>> U;
-	auto r = handle_arg<U>(s, head, formatter_tag<U>::value());
-	if (r != OK)
-	    return { prm_pos, r };
-
-	if (s == REQ_WIDTH)
-	    s = (require_precision_ ? REQ_PREC : FORMAT_ARG);
-	else if (s == REQ_PREC)
-	    s = FORMAT_ARG;
-	else
-	    s = next_format();
-
-	return format_impl(s, prm_pos+1, tail...);
+	handle_arg<U>(s, head, formatter_tag<U>::value);
+	s = next_format(s, c7::typefunc::is_empty_v<Tbody...>);
+	format_impl(s, tail...);
     }
 
-    void put_error(int prm_pos, result_t err);
-
 public:
+    explicit formatter(std::ostream& out): out_(out) {}
+
     template <typename... Args>
-    void parse(std::ostream& out, const std::string& fmt, Args&... args) {
-	out_ = &out;
-	cur_ = fmt.c_str();
+    void parse(const char *fmt, Args&... args) noexcept {
+	cur_ = fmt;
 	require_precision_ = false;
-	auto s = next_format();
-	auto [prm_pos, err] = format_impl(s, 1, args...);
-	if (err != OK)
-	    put_error(prm_pos, err);
+	auto s = next_format(FORMAT_ARG, c7::typefunc::is_empty_v<Args...>);
+	format_impl(s, args...);
     }
 
     static c7::defer lock();
 };
-
-
-#undef  __C7_EXTERN 
-#define __C7_EXTERN(T)							\
-    extern template formatter::result_t formatter::handle_arg<T>(state_t s, T arg, formatter_int_tag)
-__C7_EXTERN(bool);
-__C7_EXTERN(char);
-__C7_EXTERN(signed char);
-__C7_EXTERN(unsigned char);
-__C7_EXTERN(short int);
-__C7_EXTERN(unsigned short int);
-__C7_EXTERN(int);
-__C7_EXTERN(unsigned int);
-__C7_EXTERN(long);
-__C7_EXTERN(unsigned long);
-
-#undef  __C7_EXTERN 
-#define __C7_EXTERN(T)							\
-    extern template formatter::result_t formatter::handle_arg<T>(state_t s, T arg, formatter_float_tag)
-__C7_EXTERN(float);
-__C7_EXTERN(double);
-
-#undef __C7_EXTERN
-
-
-extern thread_local formatter __formatter;
 
 
 /*----------------------------------------------------------------------------
@@ -337,32 +205,60 @@ extern thread_local formatter __formatter;
 ----------------------------------------------------------------------------*/
 
 template <typename... Args>
-inline void format(std::ostream& out, const std::string& fmt, const Args&... args)
+inline void format(std::ostream& out, const char *fmt, const Args&... args) noexcept
 {
-    __formatter.parse(out, fmt, args...);
+    formatter formatter(out);
+    formatter.parse(fmt, args...);
 }
 
 template <typename... Args>
-inline std::string format(const std::string& fmt, const Args&... args)
+inline void format(std::ostream& out, const std::string& fmt, const Args&... args) noexcept
+{
+    format(out, fmt.c_str(), args...);
+}
+
+template <typename... Args>
+inline std::string format(const char *fmt, const Args&... args) noexcept
 {
     std::stringstream tmpout;
-    __formatter.parse(tmpout, fmt, args...);
+    formatter formatter(tmpout);
+    formatter.parse(fmt, args...);
     return tmpout.str();
 }
 
 template <typename... Args>
-inline void p_(const std::string& fmt, const Args&... args)
+inline std::string format(const std::string& fmt, const Args&... args) noexcept
+{
+    return format(fmt.c_str(), args...);
+}
+
+template <typename... Args>
+inline void p_(const char *fmt, const Args&... args) noexcept
 {
     auto defer = formatter::lock();
-    __formatter.parse(std::cout, fmt, args...);
+    formatter formatter(std::cout);
+    formatter.parse(fmt, args...);
     std::cout << std::endl;
 }
 
 template <typename... Args>
-inline void p__(const std::string& fmt, const Args&... args)
+inline void p_(const std::string& fmt, const Args&... args) noexcept
+{
+    p_(fmt.c_str(), args...);
+}
+
+template <typename... Args>
+inline void p__(const char *fmt, const Args&... args) noexcept
 {
     auto defer = formatter::lock();
-    __formatter.parse(std::cout, fmt, args...);
+    formatter formatter(std::cout);
+    formatter.parse(fmt, args...);
+}
+
+template <typename... Args>
+inline void p__(const std::string& fmt, const Args&... args) noexcept
+{
+    p__(fmt.c_str(), args...);
 }
 
 

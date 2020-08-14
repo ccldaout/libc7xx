@@ -46,8 +46,8 @@ int main()
     p_("int & {}: %{:o}", 123);
 
     auto tv = std::time(nullptr);
-    p_("tv(s) : %{T}", tv);
-    p_("tv(us): %{t%m/%d %H:%M.%S}", c7::time_us());
+    p_("tv(s) : %{T} !!", tv);
+    p_("tv(us): %{t%m/%d %H:%M.%S} !!!", c7::time_us());
 
     old_enum oldenum = WORLD;
     p_("old enum %{}", oldenum);
@@ -58,8 +58,11 @@ int main()
     c7::com_status ios = c7::com_status::TIMEOUT;
     p_("com_status (new enum) %{}", ios);
 
-    uint8_t u8 = 12;
+    uint8_t u8 = 33;
     p_("<%{}> <%{d}>", u8, u8);
+
+    p_("too few %{}_%{}_%{}_data", 1);
+    p_("too many %{} data", 1, 2, 3);
 
     return 0;
 }

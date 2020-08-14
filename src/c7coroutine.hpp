@@ -8,11 +8,12 @@
  */
 #ifndef __C7_COROUTINE_HPP_LOADED__
 #define __C7_COROUTINE_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7any.hpp"
-#include <functional>
+#include <c7delegate.hpp>
+#include <memory>
+#include <type_traits>
 #include <ucontext.h>
 
 
@@ -23,67 +24,27 @@ namespace c7 {
 //                                coroutine
 //----------------------------------------------------------------------------
 
-class coroutine;
-
 class coroutine {
 public:
-    enum yield_status {
-	SUCCESS, EXIT, ABORT, TYPE_ERR
-    };
-
-    template <typename T>
-    struct result {
-	yield_status status;
-	coroutine *from;
-	std::remove_reference_t<T> value;
-
-	result(yield_status status, coroutine *from,
-	       std::remove_reference_t<T>&& value):
-	    status(status), from(from), value(std::move(value)) {
-	}
-
-	result(yield_status status, coroutine *from):
-	    status(status), from(from) {
-	}
-
-	bool is_success() {
-	    return (status == SUCCESS);
-	}
-
-	bool is_exit() {
-	    return (status == EXIT);
-	}
+    enum status_t {
+	ALIVE, EXIT, ABORT
     };
 
 private:
-    std::function<void()> func_;
-    std::unique_ptr<char> stack_;
+    std::unique_ptr<char[]> stack_;
+    std::function<void()> target_;
     ucontext_t context_;
-    yield_status yield_status_;
-    coroutine* yield_from_;
-    c7::anydata yield_data_;
+    status_t status_ = ALIVE;
+    coroutine* from_ = nullptr;
 
     void setup_context();
     static void entry_point();
-    
-    void switch_this_from(coroutine *from);
-
-    template <typename RecvData>
-    result<RecvData> make_result(coroutine* co) {
-	if (co->yield_status_ != SUCCESS)
-	    return result<RecvData>(co->yield_status_, co->yield_from_);
-
-	if (co->yield_data_.has<RecvData>())
-	    return result<RecvData>(SUCCESS,
-				    co->yield_from_,
-				    co->yield_data_.move<RecvData>());
-
-	return result<RecvData>(TYPE_ERR, co->yield_from_);
-    }
-
-    void exit_with(yield_status);
+    void switch_to();
+    static void exit_with(status_t);
 
 public:
+    c7::delegate<void> restore;
+
     coroutine();
     explicit coroutine(size_t stack_b);
     ~coroutine();
@@ -93,102 +54,34 @@ public:
     coroutine& operator=(const coroutine&) = delete;
     coroutine& operator=(const coroutine&&) = delete;
 
-    template <typename ArgType>
-    void assign(coroutine& next,
-		const std::function<void(coroutine&, result<ArgType>)>& func) {
-	func_ = [&]() {
-	    auto current = coroutine::self();
-	    auto result = make_result<ArgType>(current);
-	    func(next, result);
-	};
+    void target(std::function<void()> target) {
+	target_ = target;
 	setup_context();
     }
 
-    template <typename ArgType>
-    void assign(coroutine& next,
-		std::function<void(coroutine&, result<ArgType>)>&& func) {
-	func_ = [&, func = std::move(func)]() {
-	    auto current = coroutine::self();
-	    auto result = make_result<ArgType>(current);
-	    func(next, result);
-	};
-	setup_context();
-    }
-
-    template <typename SendType>
-    coroutine& yield(SendType&& data) {
-	yield_status_ = SUCCESS;
-	yield_data_ = c7::anydata(std::forward<SendType>(data));
-	auto current = coroutine::self();
-	switch_this_from(current);	// control is switched to this coroutine.
-	return *this;
-    }
-
-    template <typename SendType>
-    coroutine& yield(const SendType& data) {
-	yield_status_ = SUCCESS;
-	yield_data_ = c7::anydata(data);
-	auto current = coroutine::self();
-	switch_this_from(current);	// control is switched to this coroutine.
-	return *this;
-    }
-
-    coroutine& yield() {
-	yield_status_ = SUCCESS;
-	yield_data_.empty();
-	auto current = coroutine::self();
-	switch_this_from(current);	// control is switched to this coroutine.
-	return *this;
-    }
-
-    template <typename RecvType>
-    result<RecvType> recv() {
-	auto current = coroutine::self();
-	return make_result<RecvType>(current);
+    status_t yield() {
+	switch_to();
+	return coroutine::self()->from_->status_;
     }
 
     static coroutine* self();
 
-    coroutine* from() {
-	return yield_from_;
+    status_t status() {
+	return status_;
     }
 
-    void exit() {
+    coroutine* from() {
+	return from_;
+    }
+
+    static void exit() {
 	exit_with(EXIT);
     }
 
-    void abort() {
+    static void abort() {
 	exit_with(ABORT);
     }
 };
-
-
-template <>
-struct coroutine::result<void> {
-    yield_status status;
-    coroutine *from;
-    result(yield_status status, coroutine *from):
-	status(status), from(from) {
-    }
-    bool is_success() {
-	return (status == SUCCESS);
-    }
-    bool is_exit() {
-	return (status == EXIT);
-    }
-};
-
-template <>
-inline coroutine::result<void> coroutine::make_result<void>(coroutine* co)
-{
-    if (co->yield_status_ != SUCCESS)
-	return result<void>(co->yield_status_, co->yield_from_);
-
-    if (co->yield_data_.is_empty())
-	return result<void>(SUCCESS, co->yield_from_);
-
-    return result<void>(TYPE_ERR, co->yield_from_);
-}
 
 
 //----------------------------------------------------------------------------
@@ -196,30 +89,94 @@ inline coroutine::result<void> coroutine::make_result<void>(coroutine* co)
 //----------------------------------------------------------------------------
 
 template <typename T>
-class generator {
+struct generator_scalar_traits {
+    typedef T store_type;
+    typedef T arg_type;
+    typedef T value_type;
+    typedef T* pointer;
+    typedef T& reference;
+    static inline store_type save(arg_type d) {
+	return d;
+    }
+    static inline reference deref(store_type& d) {
+	return d;
+    }
+};
+
+template <typename T>
+struct generator_reference_traits {
+    typedef std::remove_reference_t<T> V;
+    typedef V* store_type;
+    typedef T arg_type;
+    typedef T value_type;
+    typedef V* pointer;
+    typedef T reference;
+    static inline store_type save(arg_type d) {
+	return &d;
+    }
+    static inline reference deref(store_type d) {
+	return *d;
+    }
+};
+
+template <typename T>
+struct generator_other_traits {
+    typedef const T* store_type;
+    typedef const T& arg_type;
+    typedef T value_type;
+    typedef const T* pointer;
+    typedef const T& reference;
+    static inline store_type save(arg_type d) {
+	return &d;
+    }
+    static inline reference deref(store_type d) {
+	return *d;
+    }
+};
+
+class generator_base {
+protected:
+    static thread_local void *generator_;
+};
+
+template <typename T>
+class generator: public generator_base {
+public:
+    typedef typename
+    std::conditional_t<std::is_scalar_v<T>,
+		       generator_scalar_traits<T>,
+		       std::conditional_t<std::is_reference_v<T>,
+					  generator_reference_traits<T>,
+					  generator_other_traits<T>>> traits;
+
+private:
+    std::unique_ptr<coroutine> co_;
+    typename traits::store_type data_;
+    
 public:
     class iterator {
     private:
-	coroutine::result<T>& result_;
+	generator<T>& gen_;
 	bool terminated_;
 
     public:
 	typedef ptrdiff_t difference_type;
-	typedef T value_type;
-	typedef T* pointer;
-	typedef T& reference;
+	typedef typename traits::value_type  value_type;
+	typedef typename traits::pointer pointer;
+	typedef typename traits::reference reference;
 	typedef std::input_iterator_tag iterator_categroy;
 
-	iterator(coroutine::result<T>& result, bool terminated):
-	    result_(result), terminated_(terminated) {
+	iterator(generator<T>& gen, bool terminated):
+	    gen_(gen), terminated_(terminated) {
+	    if (!terminated) {
+		if (gen_.co_->yield() != coroutine::ALIVE) {
+		    terminated_ = true;
+		}
+	    }
 	}
 
 	bool operator==(const iterator& rhs) const {
-	    if (&result_ != &rhs.result_)
-		return false;
-	    if (terminated_ && rhs.terminated_)
-		return true;
-	    return false;
+	    return (terminated_ && rhs.terminated_);
 	}
 
 	bool operator!=(const iterator& rhs) const {
@@ -228,62 +185,46 @@ public:
 
 	iterator& operator++() {
 	    if (!terminated_) {
-		result_ = result_.from->yield().template recv<T>();
-		if (!result_.is_success())
+		if (gen_.co_->yield() != coroutine::ALIVE) {
 		    terminated_ = true;
+		}
 	    }
 	    return *this;
 	}
 
-	T& operator*() const {
-	    if (terminated_)
+	reference operator*() const {
+	    if (terminated_) {
 		throw std::out_of_range("Maybe end iterator.");
-	    return result_.value;
+	    }
+	    return traits::deref(gen_.data_);
 	}
     };
 
-private:
-    coroutine::result<T> result_;
-    std::unique_ptr<coroutine> co_;
-    
 public:
-    enum exit_status {
-	END, BROKEN, ERROR
-    };
-
-    generator(size_t stack_b,
-	      std::function<void()> func):
-	result_(coroutine::SUCCESS, nullptr), co_(new coroutine(stack_b)) {
-	co_->assign<void>(*coroutine::self(),
-			 [&](coroutine&, coroutine::result<void>) { func(); });
-	result_ = co_->yield().recv<T>();
+    generator(size_t stack_b, std::function<void()> func) {
+	co_ = decltype(co_)(new coroutine(stack_b));
+	co_->target(func);
+	co_->restore += [this](){ generator_ = static_cast<void*>(this); };
     }
 
-    ~generator() {
-    }
+    ~generator() {}
 
-    static void yield(T&& data) {	// This function msut be called in generator function
-	coroutine::self()->from()->yield(std::move(data));
-    }
-
-    static void yield(const T& data) {	// This function msut be called in generator function
-	coroutine::self()->from()->yield(data);
+    static void yield(typename traits::arg_type data) {
+	auto gen = static_cast<generator<T>*>(generator_);
+	gen->data_ = traits::save(data);
+	gen->co_->from()->yield();
     }
 
     iterator begin() noexcept {
-	return iterator(result_, !result_.is_success());
+	return iterator(*this, false);
     }
     
     iterator end() noexcept {
-	return iterator(result_, true);
+	return iterator(*this, true);
     }
 
-    exit_status status() {
-	if (result_.is_exit())
-	    return END;
-	if (result_.is_success())
-	    return BROKEN;
-	return ERROR;
+    bool is_success() {
+	return (co_->status() != coroutine::ABORT);
     }
 };
 

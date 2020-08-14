@@ -8,7 +8,7 @@
  */
 #ifndef __C7_MM_HPP_LOADED__
 #define __C7_MM_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <c7fd.hpp>
@@ -44,13 +44,14 @@ public:
     mmobj& operator=(const mmobj&) = delete;
     
     mmobj(): top_(nullptr), size_(0), threshold_(0), path_(), fd_() {}
-
     ~mmobj();
-    mmobj(mmobj&& o);
 
+    mmobj(mmobj&& o);
     mmobj& operator=(mmobj&& o);
+
     result<void> init(size_t size, size_t threshold = -1UL, const std::string& path = "");
     result<void> resize(size_t new_size);
+    void reset();
     std::pair<void*, size_t> operator()();
 };
 
@@ -71,28 +72,10 @@ public:
     typedef c_array_iterator<T> iterator;
     typedef c_array_iterator<const T> const_iterator;
 
-    result<void> extend() {
-	auto req = capa_ * 2 * sizeof(T);
-	if (auto res = mm_.resize(req); !res) {
-	    return res;
-	}
-	auto [p, z] = mm_();
-	top_  = static_cast<T*>(p);
-	capa_ = z / sizeof(T);
-	return c7result_ok();
-    }
-
-    void extend_exc() {
-	if (auto res = extend(); !res) {
-	    throw std::runtime_error(c7::format("%{}", res));
-	}
-    }
-
-public:
-    mmvec(): top_(nullptr), capa_(), n_(), mm_() {}
-
     mmvec(const mmvec&) = delete;
     mmvec& operator=(const mmvec&) = delete;
+
+    mmvec(): top_(nullptr), capa_(), n_(), mm_() {}
 
     mmvec(mmvec&& o) {
 	top_  = o.top_;
@@ -126,6 +109,27 @@ public:
 	capa_ = z / sizeof(T);
 	return c7result_ok();
     }	
+
+    void reset() {
+	*this = std::move(mmvec<T>());
+    }
+
+    result<void> extend() {
+	auto req = capa_ * 2 * sizeof(T);
+	if (auto res = mm_.resize(req); !res) {
+	    return res;
+	}
+	auto [p, z] = mm_();
+	top_  = static_cast<T*>(p);
+	capa_ = z / sizeof(T);
+	return c7result_ok();
+    }
+
+    void extend_exc() {
+	if (auto res = extend(); !res) {
+	    throw std::runtime_error(c7::format("%{}", res));
+	}
+    }
 
     void push_back(const T& item) {
 	if (n_ == capa_) {
@@ -188,19 +192,19 @@ public:
     }
 
     iterator begin() {
-	return iterator(&top_, 0);
+	return iterator(top_, 0);
     }
 
     iterator end() {
-	return iterator(&top_, n_);
+	return iterator(top_, n_);
     }
 
     const_iterator begin() const {
-	return const_iterator(const_cast<const T**>(&top_), 0);
+	return const_iterator(const_cast<const T*>(top_), 0);
     }
 
     const_iterator end() const {
-	return const_iterator(const_cast<const T**>(&top_), n_);
+	return const_iterator(const_cast<const T*>(top_), n_);
     }
 
     auto rbegin() {
@@ -213,12 +217,12 @@ public:
 
     auto rbegin() const {
 	return std::reverse_iterator<const_iterator>(
-	    const_iterator(const_cast<const T**>(&top_), n_));
+	    const_iterator(const_cast<const T*>(top_), n_));
     }
 
     auto rend() const {
 	return std::reverse_iterator<const_iterator>(
-	    const_iterator(const_cast<const T**>(&top_), 0));
+	    const_iterator(const_cast<const T*>(top_), 0));
     }
 };
 

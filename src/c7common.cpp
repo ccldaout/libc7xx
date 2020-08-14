@@ -14,10 +14,6 @@
 namespace c7 {
 
 
-char __dummy[2];
-void * const eof_marker = static_cast<void*>(&__dummy[0]);
-void * const abort_marker = static_cast<void*>(&__dummy[1]);
-
 struct drop drop;
 
 

@@ -8,7 +8,7 @@
  */
 #ifndef __C7_RING_HPP_LOADED__
 #define __C7_RING_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <memory>

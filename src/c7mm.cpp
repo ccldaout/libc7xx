@@ -144,6 +144,7 @@ mmobj& mmobj::operator=(mmobj&& o)
 
 result<void> mmobj::init(size_t size, size_t threshold, const std::string& path)
 {
+    reset();
     threshold_ = threshold;
     path_ = path;
     return resize(size);
@@ -158,6 +159,11 @@ result<void> mmobj::resize(size_t new_size)
 	return switch_to_file_mm(new_size);
     }
     return resize_anon_mm(new_size);
+}
+
+void mmobj::reset()
+{
+    *this = std::move(mmobj());
 }
 
 std::pair<void*, size_t> mmobj::operator()()

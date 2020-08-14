@@ -86,6 +86,15 @@ static void defer_test2()
     }
 }
 
+static void defer_test3()
+{
+    p_("--------------------------------------");
+
+    auto on_return = defer([](){ p_("defer test3 #1"); });
+    on_return += [](){ p_("defer test3 #2"); };
+    on_return += [](){ p_("defer test3 #3"); };
+}
+
 
 int main()
 {
@@ -94,5 +103,6 @@ int main()
 	defer_test2();
     } catch (...) {
     }
+    defer_test3();
     return 0;
 }

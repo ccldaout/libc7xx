@@ -8,10 +8,10 @@
  */
 #ifndef __C7_SOCKET_HPP_LOADED__
 #define __C7_SOCKET_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7fd.hpp"
+#include <c7fd.hpp>
 #include <netinet/in.h>
 #include <sys/un.h>		// sockaddr_un
 #include <utility>

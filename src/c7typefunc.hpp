@@ -8,7 +8,7 @@
  */
 #ifndef __C7_TYPEFUNC_HPP_LOADED__
 #define __C7_TYPEFUNC_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <functional>
@@ -143,6 +143,21 @@ struct apply<T, std::tuple<Ts...>> {
 
 template <template <typename...> class T, typename... Ts>
 using apply_t = typename apply<T, Ts...>::type;
+
+
+// -- is_empty : 
+template <typename... Args>
+struct is_empty {
+    static constexpr bool value = true;
+};
+
+template <typename Head, typename... Tail>
+struct is_empty<Head, Tail...> {
+    static constexpr bool value = false;
+};
+
+template <typename... Args>
+inline constexpr bool is_empty_v = is_empty<Args...>::value;
 
 
 /*----------------------------------------------------------------------------

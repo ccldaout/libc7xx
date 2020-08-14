@@ -8,7 +8,7 @@
  */
 #ifndef __C7_DELEGATE_HPP_LOADED__
 #define __C7_DELEGATE_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <algorithm>	// find_if
@@ -168,7 +168,7 @@ public:
 
     void remove(id target_id) {
 	auto it = std::find_if(funcs_.begin(), funcs_.end(),
-			       [&](func_item& p) { return p.first == target_id; });
+			       [target_id](func_item& p) { return p.first == target_id; });
 	if (it != funcs_.end())
 	    funcs_.erase(it);
     }
@@ -187,7 +187,7 @@ public:
 
     //  true: some function  return true  (loop is breaked)
     // false:  all functions return false (loop is completed) OR empty loop
-    bool operator()(Args... args) {
+    bool operator()(Args... args) const {
 	for (auto& [_, f]: funcs_) {
 	    if (traits::apply(f, args...)) {
 		return true;

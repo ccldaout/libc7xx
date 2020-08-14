@@ -69,8 +69,8 @@ public:
 	if (flag_ == ABORT) {
 	    return c7result_err("Already aborted: some thread cannot be started previously.");
 	}
-	th.on_start  += [&](proxy p) { return on_start(p); };
-	th.on_finish += [&](proxy p) { return on_finish(p); };
+	th.on_start  += [this](proxy p) { return on_start(p); };
+	th.on_finish += [this](proxy p) { return on_finish(p); };
 	if (auto res = th.start(); !res) {
 	    flag_ = ABORT;
 	    cv_.notify_all();
@@ -93,7 +93,7 @@ public:
 
     void wait() {
 	auto defer = cv_.lock();
-	cv_.wait_for([&](){ return unfinished_ == 0; });
+	cv_.wait_for([this](){ return unfinished_ == 0; });
     }
 
     size_t size() {
@@ -239,12 +239,12 @@ bool event::is_set()
 
 void event::set()
 {
-    c_.lock_notify_all([&](){ event_ = true; on_set(); });
+    c_.lock_notify_all([this](){ event_ = true; on_set(); });
 }
 
 void event::clear()
 {
-    c_.lock_notify_all([&](){ event_ = false; });
+    c_.lock_notify_all([this](){ event_ = false; });
 }
     
 bool event::wait_unified(c7::usec_t timeout, bool clear)
@@ -271,17 +271,17 @@ uint64_t mask::get()
 
 void mask::clear()
 {
-    c_.lock_notify_all([&](){ mask_ = 0; });
+    c_.lock_notify_all([this](){ mask_ = 0; });
 }
 
 void mask::on(uint64_t on_mask)
 {
-    c_.lock_notify_all([&](){ mask_ |= on_mask; });
+    c_.lock_notify_all([this, on_mask](){ mask_ |= on_mask; });
 }
 
 void mask::off(uint64_t off_mask)
 {
-    c_.lock_notify_all([&](){ mask_ &= ~off_mask; });
+    c_.lock_notify_all([this, off_mask](){ mask_ &= ~off_mask; });
 }
 
 bool mask::change(std::function<void(uint64_t& in_out)> func)

@@ -96,7 +96,7 @@ public:
 	char *ubuf = static_cast<char*>(__ubuf);
 	char *rbuf = top_ + (addr % size_);
 	raddr_t rrest = end_ - rbuf;
-	
+
 	while (size > 0) {
 	    raddr_t cpsize = std::min(size, rrest);
 
@@ -115,7 +115,7 @@ public:
 	const char *ubuf = static_cast<const char*>(__ubuf);
 	char *rbuf = top_ + (addr % size_);
 	raddr_t rrest = end_ - rbuf;
-	
+
 	while (size > 0) {
 	    raddr_t cpsize = (size < rrest) ? size : rrest;
 
@@ -426,6 +426,30 @@ bool mlog_writer::put(c7::usec_t time_us, const char *src_name, int src_line,
     return pimpl->put(time_us, src_name, src_line,
 		      level, category, minidata,
 		      logaddr, logsize_b);
+}
+
+bool mlog_writer::put(const char *src_name, int src_line,
+		      uint32_t level, uint32_t category, uint64_t minidata,
+		      const void *logaddr, size_t logsize_b)
+{
+    return put(c7::time_us(), src_name, src_line, level, category, minidata,
+	       logaddr, logsize_b);
+}
+
+bool mlog_writer::put(const char *src_name, int src_line,
+		      uint32_t level, uint32_t category, uint64_t minidata,
+		      const std::string& s)
+{
+    return put(c7::time_us(), src_name, src_line, level, category, minidata,
+	       static_cast<const void *>(s.c_str()), s.size()+1);
+}
+
+bool mlog_writer::put(const char *src_name, int src_line,
+		      uint32_t level, uint32_t category, uint64_t minidata,
+		      const char *s)
+{
+    return put(c7::time_us(), src_name, src_line, level, category, minidata,
+	       static_cast<const void *>(s), strlen(s)+1);
 }
     
 

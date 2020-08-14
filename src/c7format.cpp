@@ -18,7 +18,6 @@
 namespace c7 {
 
 
-thread_local formatter __formatter;
 static c7::thread::spinlock __global_lock;
 
 
@@ -146,9 +145,24 @@ static inline auto alternative(bool a)
     return a ? std::showbase : std::noshowbase;
 }
 
-formatter::state_t formatter::next_format()
+formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 {
-    auto& out = *out_;
+    if (no_args) {
+	out_ << cur_;
+	return FINISH;
+    }
+
+    switch (prev_state) {
+    case FINISH:
+	out_ << ' ';
+	return FINISH;
+    case REQ_WIDTH:
+	return (require_precision_ ? REQ_PREC : FORMAT_ARG);
+    case REQ_PREC:
+	return FORMAT_ARG;
+    default:
+	break;
+    }
 
     // reset characteristics
     format_info fm;
@@ -159,17 +173,20 @@ formatter::state_t formatter::next_format()
     for (;;) {
 	auto p = std::strchr(cur_, '%');
 	if (p == nullptr) {
-	    out << cur_;
-	    top_ = cur_;
+	    out_ << cur_;
+	    top_ = cur_ = std::strchr(cur_, 0);
+	    if (!no_args) {
+		out_ << " ... Too many args: ";
+	    }
 	    return FINISH;
 	}
-	out.write(cur_, p - cur_);	// exclude 1st '%' 
+	out_.write(cur_, p - cur_);	// exclude 1st '%' 
 	cur_ = p + 1;
 	if (*cur_ == '{')
 	    break;
 	if (*cur_ == '%')		// 2nd '%'
 	    cur_++;
-	out << '%';			// put only one '%'
+	out_ << '%';			// put only one '%'
 	cur_++;
     }
     top_ = cur_ - 1;			// cur_ posint '{', top_ point '%'
@@ -178,7 +195,7 @@ formatter::state_t formatter::next_format()
     for (cur_++;; cur_++) {
 	switch (*cur_) {
 	  case 0:
-	    out << "... Invalid format <" << top_ << ">\n";
+	    out_ << "... Invalid format <" << top_ << ">\n";
 	    return FINISH;
 
 	  case '<':
@@ -248,7 +265,7 @@ formatter::state_t formatter::next_format()
     
     auto q = std::strchr(cur_, '}');
     if (q == nullptr) {
-	out << "... Invalid type specification ('}' is not found) <" << top_ << ">\n";
+	out_ << "... Invalid type specification ('}' is not found) <" << top_ << ">\n";
 	return FINISH;
     }
     ext_.append(cur_, q - cur_);
@@ -257,15 +274,15 @@ formatter::state_t formatter::next_format()
     cur_ = q + 1;		// next position
 
     // apply format_info to io manipulations.
-    out << std::boolalpha;
-    out << position(fm.pos);
-    out << sign(fm.sign);
-    out << std::setfill(fm.padding);
-    out << alternative(fm.alt);
+    out_ << std::boolalpha;
+    out_ << position(fm.pos);
+    out_ << sign(fm.sign);
+    out_ << std::setfill(fm.padding);
+    out_ << alternative(fm.alt);
     if (fm.width != -1)
-	out << std::setw(fm.width);
+	out_ << std::setw(fm.width);
     if (fm.prec != -1)
-	out << std::setprecision(fm.prec);
+	out_ << std::setprecision(fm.prec);
 
     // determine next action
     if (fm.width == -1)
@@ -274,29 +291,6 @@ formatter::state_t formatter::next_format()
 	return REQ_PREC;
     return FORMAT_ARG;
 }
-
-void formatter::put_error(int prm_pos, formatter::result_t err)
-{
-    struct table_t {
-	formatter::result_t err;
-	const char *str;
-    } table[] = {
-	{ ERR_TOOFEW, "Too few parameters" },
-	{ ERR_TOOMANY, "Too many parameters" },
-	{ ERR_REQUIRE_INT, "Integer is requirted here" },
-    };
-
-    for (int i = 0; i < c7_numberof(table); i++) {
-	if (table[i].err == err) {
-	    *out_ << "\nERROR: " << prm_pos << "th parameter: "
-		  << table[i].str << ": " << std::string(top_, cur_ - top_) << std::endl;
-	    return;
-	}
-    }
-
-    *out_ << "\nERROR: " << prm_pos << "th parameter: error:" << err << std::endl;
-}
-
 
 c7::defer formatter::lock()
 {
@@ -307,9 +301,59 @@ c7::defer formatter::lock()
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
 
+template <typename T>
+void formatter::handle_arg(state_t s, T arg, formatter_int_tag) noexcept
+{
+    switch (s) {
+    case REQ_WIDTH:
+	out_ << std::setw(arg);
+	return;
+
+    case REQ_PREC:
+	out_ << std::setprecision(arg);
+	return;
+
+    default:
+	switch (ext_[0]) {
+	case 'o':
+	    out_ << std::oct;
+	    break;
+	case 'x':
+	    out_ << std::hex;
+	    break;
+	case 0:
+	case 'd':
+	    out_ << std::dec;
+	    break;
+	default:
+	    format_traits<ssize_t>::convert(out_, ext_, static_cast<ssize_t>(arg));
+	    return;
+	}
+	out_ << arg;
+    }
+}
+
+template <typename T>
+void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
+{
+    switch (ext_[0]) {
+    case 'e':
+	out_ << std::scientific;
+	break;
+    case 'f':
+	out_ << std::fixed;
+	break;
+    case 'g':
+    default:
+	out_ << std::defaultfloat;
+    }
+    out_ << arg;
+}
+
+
 #undef  __C7_EXTERN 
 #define __C7_EXTERN(T)							\
-    template formatter::result_t formatter::handle_arg<T>(state_t s, T arg, formatter_int_tag)
+    template void formatter::handle_arg<T>(state_t s, T arg, formatter_int_tag)
 __C7_EXTERN(bool);
 __C7_EXTERN(char);
 __C7_EXTERN(signed char);
@@ -323,7 +367,7 @@ __C7_EXTERN(unsigned long);
 
 #undef  __C7_EXTERN 
 #define __C7_EXTERN(T)							\
-    template formatter::result_t formatter::handle_arg<T>(state_t s, T arg, formatter_float_tag)
+    template void formatter::handle_arg<T>(state_t s, T arg, formatter_float_tag)
 __C7_EXTERN(float);
 __C7_EXTERN(double);
 

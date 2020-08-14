@@ -44,7 +44,7 @@ result<void> fchstat(int fd, const std::string& ref_path)
 
 c7::result<void> inherit_owner(const std::string& path)
 {
-    std::string dir(path, c7path_name(path.c_str()) - path.c_str());
+    std::string dir(path, 0, c7path_name(path.c_str()) - path.c_str());
 
     struct ::stat st;
     if (::stat(dir.c_str(), &st) == C7_SYSERR)
@@ -167,7 +167,7 @@ static result<std::string> trytmp(const std::string& ref_path, Action action)
 static result<std::string> reservetmp(const std::string& ref_path)
 {
     return trytmp(ref_path,
-		  [&](const std::string& candidate) {
+		  [&ref_path](const std::string& candidate) {
 		      int fd = ::open(candidate.c_str(), O_WRONLY|O_CREAT|O_EXCL, 0600);
 		      if (fd == C7_SYSERR)
 			  return errno;
@@ -180,7 +180,7 @@ static result<std::string> reservetmp(const std::string& ref_path)
 static result<std::string> linktmp(const std::string& ref_path)
 {
     return trytmp(ref_path,
-		  [&](const std::string& candidate) {
+		  [&ref_path](const std::string& candidate) {
 		      if (::link(ref_path.c_str(), candidate.c_str()) == C7_SYSERR)
 			  return errno;
 		      return 0;
@@ -308,7 +308,7 @@ static result<char*> rx_repeat(int fd, size_t& size)
     char *cp = tp;
 
     // tp will be changed at realloc, so it must be captured by reference.
-    auto free_on_error = c7::defer([&](){ std::free(tp); });
+    auto free_on_error = c7::defer([tp](){ std::free(tp); });
 
     for (;;) {
 	if (ep == cp) {

@@ -8,7 +8,7 @@
  */
 #ifndef __C7_DEFER_HPP_LOADED__
 #define __C7_DEFER_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <functional>
@@ -56,6 +56,24 @@ public:
 	return *this;
     }
 
+    defer& operator+=(const std::function<void()>& f) {
+	if (func_) {
+	    func_ = [of=std::move(func_), nf=f]() { nf(); of(); };
+	} else {
+	    func_ = f;
+	}
+	return *this;
+    }
+
+    defer& operator+=(std::function<void()>&& f) {
+	if (func_) {
+	    func_ = [of=std::move(func_), nf=std::move(f)]() { nf(); of(); };
+	} else {
+	    func_ = std::move(f);
+	}
+	return *this;
+    }
+
     void operator()() {
 	auto f = func_;
 	func_ = nullptr;
@@ -71,8 +89,9 @@ public:
     }
 
     ~defer() {
-	if (func_)
+	if (func_) {
 	    func_();
+	}
     }
 };
 

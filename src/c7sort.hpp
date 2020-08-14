@@ -9,7 +9,7 @@
 
 #ifndef __C7_SORT_HPP_LOADED__
 #define __C7_SORT_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <any>		// std::swap
@@ -654,9 +654,10 @@ void rsort_st(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
 {
     Masktype tstmask = ((Masktype)1) << (sizeof(Masktype)*8 - 1);
     rsort_st_main(left, left + n -1, keymask, tstmask, getkey,
-		  [&](const decltype(*left)& p,
-		      const decltype(*left)& q) { return ((getkey(p) & keymask) <
-							  (getkey(q) & keymask)); },
+		  [&getkey, keymask](const decltype(*left)& p,
+				     const decltype(*left)& q) {
+		      return ((getkey(p) & keymask) < (getkey(q) & keymask));
+		  },
 		  rsort_threshold);
 }
 
@@ -751,9 +752,10 @@ void rsort_mt(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
     rs.keymask = keymask;
     rs.tstmask = tstmask;
     rsort_mt_main(&rs, getkey,
-		  [&](const decltype(*left)& p,
-		      const decltype(*left)& q) { return ((getkey(p) & keymask) <
-							  (getkey(q) & keymask)); });
+		  [&getkey, keymask](const decltype(*left)& p,
+				     const decltype(*left)& q) {
+		      return ((getkey(p) & keymask) < (getkey(q) & keymask));
+		  });
 }
 
 

@@ -8,11 +8,11 @@
  */
 #ifndef __C7_SIGNAL_HPP_LOADED__
 #define __C7_SIGNAL_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7defer.hpp"
-#include "c7result.hpp"
+#include <c7defer.hpp>
+#include <c7result.hpp>
 #include <signal.h>
 
 

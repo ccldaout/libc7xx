@@ -398,7 +398,7 @@ result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size, int back
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(inaddr); !res) {
 	return res;
@@ -438,7 +438,7 @@ result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size)
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (rcvbuf_size > 0) {
 	if (auto res = sock.set_rcvbuf(rcvbuf_size); !res) {
@@ -475,7 +475,7 @@ result<socket> udp_server(const ::sockaddr_in& inaddr)
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(inaddr); !res) {
 	return res;
@@ -507,7 +507,7 @@ result<socket> udp_client(const ::sockaddr_in& inaddr)
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.connect(inaddr); !res) {
 	return res;
@@ -539,7 +539,7 @@ result<socket> unix_server(const std::string& path, int backlog)
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     (void)::unlink(path.c_str());
     if (auto res = sock.bind(path); !res) {
@@ -561,7 +561,7 @@ result<socket> unix_client(const std::string& path)
     }
 
     auto sock = std::move(res.value());
-    auto defer = c7::defer([&](){ sock.close(); });
+    auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.connect(path); !res) {
 	return res;

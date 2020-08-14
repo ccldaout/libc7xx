@@ -8,10 +8,10 @@
  */
 #ifndef __C7_DCONF_HPP_LOADED__
 #define __C7_DCONF_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7file.hpp"
+#include <c7file.hpp>
 #include <string>
 #include <vector>
 
@@ -25,10 +25,11 @@
 #define C7_DCONF_VERSION		(2)	// C7_INDEX_LIM:100, C7_DCONF_USER_INDEX_LIM:90
 
 enum c7_dconf_reserve_t {
-    C7_DCONF_ECHO = C7_DCONF_USER_INDEX_LIM,
+    C7_DCONF_rsv_90 = C7_DCONF_USER_INDEX_LIM,
     C7_DCONF_MLOG,
-    C7_DCONF_PREF,
-    C7_DCONF_STSSCN_MAX,
+    C7_DCONF_rsv_91,
+    C7_DCONF_rsv_92,
+    C7_DCONF_MLOG_CATMASK,
     C7_DCONF_numof
 };
 

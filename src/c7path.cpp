@@ -103,7 +103,7 @@ std::string ortho(const std::string& path)
 {
     std::vector<std::string> dirv;
 
-    c7::str::split_for(path, '/', [&](const std::string& dir) {
+    c7::str::split_for(path, '/', [&dirv](const std::string& dir) {
 	    if (dir.empty())
 		return;
 	    if (dir == "..") {
@@ -224,7 +224,7 @@ std::string init_c7spec(const std::string& name,
     if (auto dir = home + "/.c7"; is_valid_dir(dir))
 	return dir + '/' + n;
 
-    return home + '/' + n;
+    return home + "/." + n;
 }
 
 std::string find_c7spec(const std::string& name,
@@ -253,7 +253,7 @@ std::string find_c7spec(const std::string& name,
     if (is_exists(n2))
 	return n2;
 
-    return home + '/' + n;
+    return home + "/." + n;
 }
 
 

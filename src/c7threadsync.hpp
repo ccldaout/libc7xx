@@ -8,10 +8,10 @@
  */
 #ifndef __C7_THREADSYNC_HPP_LOADED__
 #define __C7_THREADSYNC_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7thread.hpp"
+#include <c7thread.hpp>
 
 
 namespace c7 {
@@ -136,13 +136,13 @@ public:
     uint64_t wait(std::function<uint64_t(uint64_t& in_out)> func, c7::usec_t timeout = -1);
 
     void change(uint64_t on_mask, uint64_t off_mask) {
-	change([&](uint64_t& in_out){
+	change([on_mask,off_mask](uint64_t& in_out){
 		in_out = (in_out|on_mask) & ~off_mask;
 	    });
     }
 
     uint64_t wait_all(uint64_t expect_all, uint64_t clear, c7::usec_t timeout = -1) {
-	return wait([&](uint64_t& in_out){
+	return wait([expect_all,clear](uint64_t& in_out){
 		if ((expect_all & in_out) == expect_all) {
 		    in_out &= ~clear;
 		    return expect_all;
@@ -152,7 +152,7 @@ public:
     }
 
     uint64_t wait_any(uint64_t expect_any, uint64_t clear, c7::usec_t timeout = -1) {
-	return wait([&](uint64_t& in_out){
+	return wait([expect_any,clear](uint64_t& in_out){
 		uint64_t ret = (expect_any & in_out);
 		if (ret != 0)
 		    in_out &= ~clear;

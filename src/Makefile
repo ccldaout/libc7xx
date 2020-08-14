@@ -1,102 +1,42 @@
-TMPDIR = $(HOME)/tmp
-OBJDIR = $(TMPDIR)/obj
-DBGDIR = $(TMPDIR)/gdb
-BINDIR = $(TMPDIR)/bin
-LIBDIR = $(TMPDIR)/lib
+#
+# Makefile
+#
+# Copyright (c) 2019 ccldaout@gmail.com
+#
+# This software is released under the MIT License.
+# http://opensource.org/licenses/mit-license.php
+#
 
-MAKE_JOBS ?= 4
 
-CPP_STD ?= c++17
-CPPFLAGS_ = -std=$(CPP_STD) -fPIC -I. -I$(HOME)/.ccldaout/include -Wall -Werror
- LDFLAGS_ = -L$(LIBDIR) -Wl,-rpath,$(LIBDIR)
-  LDLIBS_ = -lc7++ -lpthread
+C7_TARGET_BASE = libc7++
+C7_CC_IPATH = .
 
-ifeq "$(wildcard .DEBUG)" ""
-  CPPFLAGS_ += -O3
-  ECHO_BEG = "\\x1b[32m"
-  ECHO_END = "\\x1b[0m"
-else
-  CPPFLAGS_ += -O0 -g2 -D__C7_DEBUG
-  OBJDIR = $(DBGDIR)
-  LIBDIR = $(DBGDIR)
-  BINSFX = .g
-  ECHO_BEG = "\\x1b[33m"
-  ECHO_END = "\\x1b[0m"
-endif
+include ../Makefile.common
 
-CPPFLAGS_ += $(CPPFLAGS)
+CPPFLAGS += -fPIC
+C7_LD_LPATH =
+C7_LD_RPATH =
+C7_NOLIBC7 = y
 
-ifeq (,$(findstring s,$(MAKEFLAGS)))
-  ECHO = /bin/echo -e
-else
-  ECHO = :
-endif
-
-define cmd
-  @$(ECHO) $(ECHO_BEG)$1$(ECHO_END)
-  @$1
-endef
-
-$(OBJDIR)/%.o: %.cpp
-	$(call cmd,c++ -c $(CPPFLAGS_) -o $@ $<)
-
-$(BINDIR)/%: $(OBJDIR)/%_test.o
-	$(call cmd,c++ -g $(LDFLAGS_) -o $@ $(filter %.o,$^) $(LDLIBS_))
-
-$(BINDIR)/%$(BINSFX): $(OBJDIR)/%_test.o
-	$(call cmd,c++ -g $(LDFLAGS_) -o $@ $(filter %.o,$^) $(LDLIBS_))
-
-LIBSRC = $(filter-out %_test.cpp,$(wildcard *.cpp))
-LIBOBJ = $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(LIBSRC)))
- PROGS = $(addsuffix $(BINSFX),$(addprefix $(BINDIR)/,$(subst _test.cpp,,$(wildcard *_test.cpp))))
+SRCS := $(wildcard *.cpp)
+OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.cpp,%.o,$(SRCS)))
 
 .PHONY: build
-build:
-	@make -j$(MAKE_JOBS) --no-print-directory lib
-	@make -j$(MAKE_JOBS) --no-print-directory progs
+build: init headers $(C7_TARGET_LIB)
 
-.PHONY: lib
-lib: $(LIBDIR)/libc7++.so
-$(LIBDIR)/libc7++.so: $(LIBOBJ)
-	$(call cmd,c++ -shared -g -o $@ $^ -lpthread)
+$(C7_TARGET_LIB): $(OBJS) .
+	$(call cmd_o,c++ -shared $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS))
 
-.PHONY: progs
-progs: $(PROGS)
-
-.PHONY: debug
-debug:
-	@mkdir -p .DEBUG
-	@make --no-print-directory
-
-.PHONY: nodebug
-nodebug:
-	@rm -fr .DEBUG
-	@make --no-print-directory
+.PHONY: headers
+headers:
+	@mkdir -p $(C7_OUT_INCDIR) >/dev/null 2>&1
+	@cp -p c7*.hpp $(C7_OUT_INCDIR)/
 
 .PHONY: depend
 depend:
-	@rm -f $(OBJDIR)/Makefile.dep
+	@rm -f Makefile.dep
 	@for cpp in *.cpp; do \
-	  c++ -c $(CPPFLAGS_) -MM -MT '$$(OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> $(OBJDIR)/Makefile.dep; \
+	  c++ -c $(C7_CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
 	done
-	@mv -f $(OBJDIR)/Makefile.dep Makefile.dep
-
-.PHONY: init
-init:
-	mkdir -p $(TMPDIR) $(OBJDIR) $(DBGDIR) $(LIBDIR) $(BINDIR)
-
-.PHONY: clean
-clean:
-	rm -f $(PROGS) $(LIBDIR)/*.so
-	rm -f $(OBJDIR)/*.o
-
-.PHONY: export
-export:
-	@chmod u+w $(HOME)/lib
-	cp -p $(LIBSRC) *.hpp $(HOME)/prog/libc7xx/src/
-	cp -p *_test.cpp $(HOME)/prog/libc7xx/test/
-	cp -p *.hpp $(HOME)/h/
-	cp -p $(LIBDIR)/libc7++.so $(HOME)/lib/
-
 
 include Makefile.dep

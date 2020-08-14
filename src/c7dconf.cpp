@@ -50,10 +50,8 @@ static const dconf_def *finddef(const std::vector<dconf_def>& defv, int index)
 static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& defv)
 {
     std::vector<dconf_def> c7defv{
-	C7_DCONF_DEF_I(C7_DCONF_ECHO, "echo level (default:3)"),
 	C7_DCONF_DEF_I(C7_DCONF_MLOG, "mlog level (default:5)"),
-	C7_DCONF_DEF_I(C7_DCONF_PREF, "echo/status prefix type (default:0)"),
-	C7_DCONF_DEF_I(C7_DCONF_STSSCN_MAX, "statsu scan limitation (default:10)"),
+	C7_DCONF_DEF_I(C7_DCONF_MLOG_CATMASK, "mlog categroy bit mask (default:0)"),
     };
 
     for (auto [i, d]: c7::seq::enumerate(defv)) {
@@ -112,8 +110,6 @@ void dconf::init(const std::string& name, const std::vector<dconf_def>& user_def
     storage_ = mapdconf(name, defv);
 
     auto& self = *this;
-    if (self[C7_DCONF_ECHO].i == 0)
-	self[C7_DCONF_ECHO].i = C7_LOG_INF;
     if (self[C7_DCONF_MLOG].i == 0)
 	self[C7_DCONF_MLOG].i = C7_LOG_DTL;
 
@@ -198,9 +194,8 @@ dconf::dconf()
     storage_ = c7::file::unique_mmap<c7_dconf_head_t>((c7_dconf_head_t*)(p), std::free);
 
     auto& self = *this;
-    self[C7_DCONF_ECHO].i = get_i("C7_DCONF_ECHO", C7_LOG_INF);
-    self[C7_DCONF_MLOG].i = get_i("C7_DCONF_MLOG", C7_LOG_DTL);
-    self[C7_DCONF_PREF].i = get_i("C7_DCONF_PREF", 0);
+    self[C7_DCONF_MLOG].i         = get_i("C7_DCONF_MLOG", C7_LOG_DTL);
+    self[C7_DCONF_MLOG_CATMASK].i = get_i("C7_DCONF_MLOG_CATMASK", 0);
 }
 
 

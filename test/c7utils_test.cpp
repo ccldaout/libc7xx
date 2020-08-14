@@ -33,9 +33,53 @@ static void pwd_test()
 }
 
 
+struct data_t {
+    int data[10];
+    typedef c7::c_array_iterator<int> iterator;
+    typedef c7::c_array_iterator<const int> const_iterator;
+
+    data_t() {
+	for (int i = 0; i < c7_numberof(data); i++) {
+	    data[i] = i;
+	}
+    }
+
+    iterator begin() {
+	return iterator(data, 0);
+    }
+    iterator end() {
+	return iterator(data, c7_numberof(data));
+    }
+    const_iterator begin() const {
+	p_("const_iterator");
+	return const_iterator(data, 0);
+    }
+    const_iterator end() const {
+	return const_iterator(data, c7_numberof(data));
+    }
+};
+
+static void c_array_test()
+{
+    data_t data;
+    for (auto& d: data) {
+	p_("%{} ", d);
+    }
+    p_("");
+    
+    p_("--");
+
+    const data_t& cdata = data;
+    for (auto& d: cdata) {
+	p_("%{} ", d);
+    }
+    p_("");
+}
+
+
 int main()
 {
     pwd_test();
-
+    c_array_test();
     return 0;
 }

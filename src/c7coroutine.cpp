@@ -33,14 +33,13 @@ static void inline init_by_thread()
     }
 }
 
-coroutine::coroutine():
-    yield_from_(nullptr)
+coroutine::coroutine()
 {
     init_by_thread();
 }
 
 coroutine::coroutine(size_t stack_b):
-    stack_(new char[stack_b + _STACK_MIN_b]), yield_from_(nullptr)
+    stack_(new char[stack_b + _STACK_MIN_b])
 {
     init_by_thread();
     if (::getcontext(&context_) != C7_SYSOK) {
@@ -55,7 +54,6 @@ coroutine::coroutine(size_t stack_b):
 	
 coroutine::~coroutine()
 {
-    yield_data_.empty();
     stack_.reset();
 }
     
@@ -66,15 +64,16 @@ void coroutine::setup_context()
 
 void coroutine::entry_point()		// static member
 {
-    current->func_();
-    current->exit();
+    current->target_();
+    coroutine::exit();
 }
 
-void coroutine::switch_this_from(coroutine* from)
+void coroutine::switch_to()
 {
+    from_ = current;
     current = this;
-    yield_from_ = from;
-    ::swapcontext(&from->context_, &context_);
+    restore();
+    ::swapcontext(&from_->context_, &context_);
 }
 
 coroutine* coroutine::self()		// static member
@@ -83,15 +82,19 @@ coroutine* coroutine::self()		// static member
     return current;
 }
 
-void coroutine::exit_with(yield_status status)
+void coroutine::exit_with(status_t s)	// static member
 {
     for (;;) {
-	auto next = yield_from_;
-	next->yield_status_ = status;
-	next->yield_data_.empty();
-	next->switch_this_from(this);
+	current->status_ = s;
+	current->from_->switch_to();
     }
 }
+
+
+/*----------------------------------------------------------------------------
+----------------------------------------------------------------------------*/
+
+thread_local void *generator_base::generator_;
 
 
 /*----------------------------------------------------------------------------

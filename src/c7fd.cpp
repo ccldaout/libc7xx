@@ -88,6 +88,7 @@ fd::fd(fd&& o):
 fd& fd::operator=(fd&& o)
 {
     if (this != &o) {
+	close();
 	fdnum_   = o.fdnum_;
 	name_    = std::move(o.name_);
 	str_     = std::move(o.str_);
@@ -454,7 +455,12 @@ result<fd> opentmp(const std::string& dir, ::mode_t mode)
     }	
     return c7result_ok(fd(ret, dir + "/<tmporary>"));
 #else
-    int dirfd = ::open(dir.c_str(), O_PATH);
+# if defined(O_PATH)
+    int oflag = O_PATH;
+# else
+    int oflag = O_RDONLY;
+# endif
+    int dirfd = ::open(dir.c_str(), oflag);
     if (dirfd == C7_SYSERR) {
 	return c7result_err(errno, "open(%{}, O_PATH) failed", dir);
     }	
@@ -473,6 +479,7 @@ result<fd> opentmp(const std::string& dir, ::mode_t mode)
 	}
     }
     return c7result_err(errno, "opentmp(%{}) failed", dir);
+
 #endif
 }
 

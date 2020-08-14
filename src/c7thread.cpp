@@ -357,7 +357,6 @@ class thread::impl {
 private:
     class exit_thread: public std::exception {};
     class abort_thread: public std::exception {};
-    class cancel_thread: public std::exception {};
     class duplicate_start: public std::exception {};
 
     enum state_t {
@@ -381,6 +380,7 @@ private:
     pthread_attr_t attr_;
     pthread_t pthread_;
 
+    c7::result<void> term_result_;
     exit_type exit_;
     state_t state_;
     condvar cv_;
@@ -395,27 +395,28 @@ public:
     // ------------ functions ------------
 private:
     void thread() {
-	cv_.lock_notify_all([&](){ state_ = RUNNING; });
+	cv_.lock_notify_all([this](){ state_ = RUNNING; });
 
 	try {
+	    exit_ = thread::NA_RUNNING;
 	    on_start_(proxy(this));
 	    target_();
-	    exit_ = thread::RETURN;
+	    exit_ = thread::EXIT;
 	} catch (exit_thread&) {
 	    exit_ = thread::EXIT;
 	} catch (abort_thread&) {
 	    exit_ = thread::ABORT;
-	} catch (cancel_thread&) {
-	    exit_ = thread::CANCEL;
 	} catch (...) {
 	    exit_ = thread::CRASH;
+	    term_result_ = c7result_err(EFAULT, "thread is terminated by exception.");
 	}
 
-	if (finalize_)
+	if (finalize_) {
 	    finalize_();
+	}
 	on_finish_(proxy(this));
 
-	cv_.lock_notify_all([&](){ state_ = FINISHED; });
+	cv_.lock_notify_all([this](){ state_ = FINISHED; });
     }
 
     static void* entry_point(void *__arg) {
@@ -433,11 +434,12 @@ public:
 
     impl():
 	id_(id_counter_++), name_("thread<" + std::to_string(id_) + ">"),
-	exit_(thread::NOT), state_(IDLE), cv_(name_) {
+	exit_(thread::NA_IDLE), state_(IDLE), cv_(name_) {
 	(void)pthread_attr_init(&attr_);
 	(void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
-	if (this == &main_thread)
+	if (this == &main_thread) {
 	    current_thread = this;
+	}
     }
 
     ~impl() {
@@ -463,36 +465,44 @@ public:
     result<void> start() {
 	auto defer = cv_.lock();
 
-	if (state_ != IDLE)
+	if (state_ != IDLE) {
 	    return c7result_err(EEXIST, "thread already running: %{}", proxy(this));
-		
+	}
 	state_ = STARTING;
 
 	int ret = pthread_create(&pthread_, &attr_, entry_point,
 				 static_cast<void*>(this));
 	if (ret != C7_SYSOK) {
 	    state_ = START_FAILED;
-	    if (finalize_)
+	    if (finalize_) {
 		finalize_();
+	    }
 	    return c7result_err(ret, "cannot create thread: %{}", proxy(this));
 	}
 
-	cv_.wait_while([&](){ return state_ == STARTING; });
+	cv_.wait_while([this](){ return state_ == STARTING; });
 	return c7result_ok();
     }
 
     bool join(c7::usec_t timeout) {
 	::timespec *tmsp = c7::mktimespec(timeout);
 	auto defer = cv_.lock();
-	return cv_.wait_while(tmsp, [&](){ return state_ != FINISHED; });
+	if (state_ == IDLE) {
+	    return false;
+	}
+	return cv_.wait_while(tmsp, [this](){ return state_ != FINISHED; });
     }
 
     thread::exit_type status() {
 	return exit_;
     }
 
+    c7::result<void>& terminate_result() {
+	return term_result_;
+    }
+
     bool is_alive() {
-	return state_ != FINISHED;
+	return (state_ != IDLE && state_ != FINISHED);
     }
 
     bool is_running() {
@@ -512,15 +522,6 @@ public:
 	    ::pthread_kill(pthread_, sig);
     }
 
-    void cancel() {
-	// TODO
-    }
-
-    bool in_canceling() {
-	// TODO
-	return false;
-    }
-
     [[noreturn]]
     static void exit() {
 	throw exit_thread();
@@ -528,6 +529,12 @@ public:
 
     [[noreturn]]
     static void abort() {
+	throw abort_thread();
+    }
+
+    [[noreturn]]
+    static void abort(c7::result<void>&& res) {
+	current_thread->term_result_ = std::move(res);
 	throw abort_thread();
     }
 };
@@ -570,6 +577,16 @@ thread::~thread()
     pimpl = nullptr;
 }
 
+void thread::reuse()
+{
+    if (auto s = pimpl->status(); s != NA_IDLE) {
+	if (s == NA_RUNNING) {
+	    throw std::runtime_error("invalid reuse(): thread is running.");
+	}
+	*this = std::move(thread());
+    }
+}
+
 bool thread::set_stacksize(size_t stack_b)
 {
     return pimpl->set_stacksize(stack_b);
@@ -605,6 +622,11 @@ thread::exit_type thread::status() const
     return pimpl->status();
 }
 
+c7::result<void>& thread::terminate_result()
+{
+    return pimpl->terminate_result();
+}
+
 bool thread::is_alive() const
 {
     return pimpl->is_alive();
@@ -630,11 +652,6 @@ void thread::signal(int sig)
     pimpl->signal(sig);
 }
 
-void thread::cancel()
-{
-    return pimpl->cancel();
-}
-
 // self
 
 const char *self::name()
@@ -647,11 +664,6 @@ uint64_t self::id()
     return thread::impl::current_thread->id();
 }
 
-bool self::in_canceling()
-{
-    return thread::impl::current_thread->in_canceling();
-}
-
 void self::exit()
 {
     thread::impl::exit();
@@ -661,6 +673,12 @@ void self::abort()
 {
     thread::impl::abort();
 }
+
+void self::abort(c7::result<void>&& res)
+{
+    thread::impl::abort(std::move(res));
+}
+
 
 // proxy
 
@@ -700,7 +718,7 @@ void format_traits<thread::proxy>::convert(
     std::ostream& out, const std::string& format, const thread::proxy& th)
 {
     const char *exitv[] = {
-	"N/A", "RETURN", "EXIT", "ABORT", "CANCEL", "CRASH",
+	"N/A(idle)", "N/A(running)", "EXIT", "ABORT", "CRASH",
     };
     const char *exit_str = "?";
     if (0 <= th.status() && th.status() < c7_numberof(exitv))

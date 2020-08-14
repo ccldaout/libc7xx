@@ -8,12 +8,12 @@
  */
 #ifndef __C7_PROC_HPP_LOADED__
 #define __C7_PROC_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7result.hpp"
-#include "c7string.hpp"
-#include "c7thread.hpp"
+#include <c7result.hpp>
+#include <c7string.hpp>
+#include <c7thread.hpp>
 
 
 namespace c7 {
@@ -46,7 +46,7 @@ public:
     result<void> start(const std::string& program,
 		       const c7::strvec& argv,
 		       Preexec preexec, Args... args) {
-	return _start(program, argv, [&](){ return preexec(args...); });
+	return _start(program, argv, [&preexec, &args...](){ return preexec(args...); });
     }
 
     result<void> start(const std::string& program,

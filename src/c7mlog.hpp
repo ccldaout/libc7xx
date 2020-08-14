@@ -8,13 +8,13 @@
  */
 #ifndef __C7_MLOG_HPP_LOADED__
 #define __C7_MLOG_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7format.hpp"
-#include "c7result.hpp"
-#include "c7thread.hpp"
-#include "c7utils.hpp"
+#include <c7format.hpp>
+#include <c7result.hpp>
+#include <c7thread.hpp>
+#include <c7utils.hpp>
 #include <string>
 
 
@@ -68,14 +68,19 @@ public:
     bool put(c7::usec_t time_us, const char *src_name, int src_line,
 	     uint32_t level, uint32_t category, uint64_t minidata,
 	     const void *logaddr, size_t logsize_b);
-    
-    inline bool put(const char *src_name, int src_line,
-		    uint32_t level, uint32_t category, uint64_t minidata,
-		    const void *logaddr, size_t logsize_b) {
-	return put(c7::time_us(), src_name, src_line, level, category, minidata,
-		   logaddr, logsize_b);
-    }
-    
+
+    bool put(const char *src_name, int src_line,
+	     uint32_t level, uint32_t category, uint64_t minidata,
+	     const void *logaddr, size_t logsize_b);
+
+    bool put(const char *src_name, int src_line,
+	     uint32_t level, uint32_t category, uint64_t minidata,
+	     const std::string& s);
+
+    bool put(const char *src_name, int src_line,
+	     uint32_t level, uint32_t category, uint64_t minidata,
+	     const char *s);
+
     template <typename... Args>
     inline void format(c7::usec_t time_us, const char *src_name, int src_line,
 		       uint32_t level, uint32_t category, uint64_t minidata,

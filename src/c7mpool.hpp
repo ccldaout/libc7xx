@@ -8,7 +8,7 @@
  */
 #ifndef __C7_MPOOL_HPP_LOADED__
 #define __C7_MPOOL_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
 #include <c7thread.hpp>
@@ -26,11 +26,14 @@ namespace mpool {
 template <typename T>
 class mpool;
 
+template <typename T>
+class strategy;
+
 
 template <typename T>
 struct item {
     union {
-	mpool<T> *pool;
+	strategy<T> *pool;
 	item<T> *next;
     } link;
     T data;
@@ -134,51 +137,26 @@ public:
     strategy<T>& operator=(const strategy<T>&) = delete;
     strategy(strategy<T>&&) = delete;
     strategy<T>& operator=(strategy<T>&&) = delete;
+
     strategy() {}
-    virtual ~strategy() {};
-    virtual c7::defer lock() = 0;
-    virtual item<T> *alloc() = 0;		// lock() is already called by mpool
-    virtual void freeall(item<T>* root) = 0;	// lock() is already called by mpool
 
-    // next two functions are used under multithread, waitable strategy.
-    virtual void wait() {}
-    virtual void notify() {}
-};
-
-
-template <typename T>
-class mpool {
 private:
-    std::unique_ptr<strategy<T>> strategy_;
-    item<T> *free_;
+    friend class mpool<T>;
+    friend class pointer<T>;
 
-public:
-    typedef pointer<T> ptr;
-
-    mpool(const mpool<T>&) = delete;
-    mpool& operator=(const mpool<T>&) = delete;
-    mpool(mpool<T>&&) = delete;
-    mpool& operator=(mpool<T>&&) = delete;
-
-    ~mpool() {
-	auto defer = strategy_->lock();
-	strategy_->freeall(free_);
-	free_ = nullptr;
-	defer();
-    }
-
-    mpool(std::unique_ptr<strategy<T>> strategy):
-	strategy_(std::move(strategy)), free_(nullptr) {
-    }
+    item<T> *free_ = nullptr;
+    bool mpool_attached_ = false;
+    size_t lending_ = 0;
 
     pointer<T> get() {
-	auto defer = strategy_->lock();
+	auto defer = lock();
+	lending_++;
 	item<T> *s;
 	if (free_ == nullptr) {
-	    s = strategy_->alloc();
+	    s = alloc();
 	    if (s == nullptr) {
 		while (free_ == nullptr) {
-		    strategy_->wait();
+		    wait();
 		}
 		s = free_;
 	    }
@@ -191,10 +169,82 @@ public:
     }
 
     void back(item<T> *s) {
-	auto defer = strategy_->lock();
+	auto defer = lock();
 	s->link.next = free_;
 	free_ = s;
-	strategy_->notify();
+	lending_--;
+	notify();
+	if (lending_ == 0 && !mpool_attached_) {
+	    defer();
+	    delete this;
+	}
+    }
+
+    void attached() {
+	auto defer = lock();
+	mpool_attached_ = true;
+    }
+
+    void detached() {
+	auto defer = lock();
+	mpool_attached_ = false;
+	if (lending_ == 0 && !mpool_attached_) {
+	    defer();
+	    delete this;
+	}
+    }
+
+protected:
+    virtual ~strategy() {}
+    virtual c7::defer lock() = 0;
+    virtual item<T> *alloc() = 0;
+    virtual void wait() {}
+    virtual void notify() {}
+};
+
+
+template <typename T>
+class mpool {
+private:
+    strategy<T> *strategy_ = nullptr;
+
+public:
+    mpool(mpool<T>&& o): strategy_(o.strategy_) {
+	o.strategy_ = nullptr;
+    }
+
+    mpool& operator=(mpool<T>&& o) {
+	if (this != &o) {
+	    this->strategy_ = o.strategy_;
+	    o.strategy_ = nullptr;
+	}
+	return *this;
+    }
+
+    mpool(): strategy_(nullptr) {}
+
+    ~mpool() {
+	strategy_->detached();
+    }
+
+    
+    template <typename... Args>
+    mpool(strategy<T>*(*maker)(Args...), Args... args) {
+	strategy_ = maker(args...);
+	strategy_->attached();
+    }
+
+    template <typename... Args>
+    void set_strategy(strategy<T>*(*maker)(Args...), Args... args) {
+	if (strategy_ != nullptr) {
+	    strategy_->detached();
+	}
+	strategy_ = maker(args...);
+	strategy_->attached();
+    }
+
+    pointer<T> get() {
+	return strategy_->get();
     }
 };
 
@@ -211,38 +261,6 @@ public:
 };
 
 
-// one by one allocation, no wait
-
-template <typename T, typename Locker = c7::thread::spinlock>
-class single_strategy: public strategy<T> {
-private:
-    Locker lock_;
-    
-public:
-    single_strategy(): lock_() {}
-
-    virtual ~single_strategy() {}
-
-    virtual c7::defer lock() {
-	return lock_.lock();
-    }
-
-    virtual item<T> *alloc() {
-	auto s = new item<T>();
-	s->link.next = nullptr;
-	return s;
-    }
-
-    virtual void freeall(item<T>* root) {
-	while (root != nullptr) {
-	    auto next = root->link.next;
-	    delete root;
-	    root = next;
-	}
-    }
-};
-
-
 // multiple allocation, no wait
 
 template <typename T, typename Locker = c7::thread::spinlock>
@@ -251,19 +269,25 @@ private:
     Locker lock_;
     int chunk_size_;			// item count by one chunk
     std::vector<item<T>*> chunks_;
-    
-public:
+
     chunk_strategy(int chunk_size): chunk_size_(chunk_size) {}
 
-    virtual ~chunk_strategy() {
-	freeall(nullptr);
+    ~chunk_strategy() {
+	freeall();
     }
 
-    virtual c7::defer lock() {
+    void freeall() {
+	for (auto i: chunks_) {
+	    delete[] i;
+	}
+	chunks_.clear();
+    }
+
+    c7::defer lock() {
 	return lock_.lock();
     }
 
-    virtual item<T> *alloc() {
+    item<T> *alloc() {
 	auto s = new item<T>[chunk_size_];
 	for (int i = 1; i < chunk_size_; i++) {
 	    s[i-1].link.next = &s[i];
@@ -273,11 +297,10 @@ public:
 	return s;
     }
 
-    virtual void freeall(item<T>*) {
-	for (auto i: chunks_) {
-	    delete i;
-	}
-	chunks_.clear();
+public:
+    static strategy<T> *make(int chunk_size) {
+	auto s = new chunk_strategy<T, Locker>(chunk_size);
+	return static_cast<strategy<T>*>(s);
     }
 };
 
@@ -292,20 +315,26 @@ private:
     int chunk_limit_;
     std::vector<item<T>*> chunks_;
     
-public:
     waitable_strategy(int chunk_size, int chunk_limit):
 	chunk_size_(chunk_size), chunk_limit_(chunk_limit) {
     }
 
-    virtual ~waitable_strategy() {
-	freeall(nullptr);
+    ~waitable_strategy() {
+	freeall();
     }
 
-    virtual c7::defer lock() {
+    void freeall() {
+	for (auto i: chunks_) {
+	    delete[] i;
+	}
+	chunks_.clear();
+    }
+
+    c7::defer lock() {
 	return cv_.lock();
     }
 
-    virtual item<T> *alloc() {
+    item<T> *alloc() {
 	if (chunks_.size() == static_cast<size_t>(chunk_limit_)) {
 	    return nullptr;
 	}
@@ -318,19 +347,18 @@ public:
 	return s;
     }
 
-    virtual void freeall(item<T>*) {
-	for (auto i: chunks_) {
-	    delete i;
-	}
-	chunks_.clear();
-    }
-
-    virtual void wait() {
+    void wait() {
 	cv_.wait();
     }
 
-    virtual void notify() {
+    void notify() {
 	cv_.notify_all();
+    }
+
+public:
+    static strategy<T> *make(int chunk_size, int chunk_limit) {
+	auto s = new waitable_strategy<T>(chunk_size, chunk_limit);
+	return static_cast<strategy<T>*>(s);
     }
 };
 
@@ -349,34 +377,16 @@ public:
 template <typename T>
 using mpool_ptr = c7::mpool::pointer<T>;
 
-
-template <typename T, typename Locker = c7::thread::spinlock>
-mpool::mpool<T> mpool_1by1()
-{
-    using strategy_t = mpool::strategy<T>;
-    auto s = new mpool::single_strategy<T, Locker>();
-    auto bs = static_cast<strategy_t*>(s);
-    return mpool::mpool<T>(std::unique_ptr<strategy_t>(bs));
-}
-
-
 template <typename T, typename Locker = c7::thread::spinlock>
 mpool::mpool<T> mpool_chunk(int chunk_size)
 {
-    using strategy_t = mpool::strategy<T>;
-    auto s = new mpool::chunk_strategy<T, Locker>(chunk_size);
-    auto bs = static_cast<strategy_t*>(s);
-    return mpool::mpool<T>(std::unique_ptr<strategy_t>(bs));
+    return mpool::mpool<T>(mpool::chunk_strategy<T, Locker>::make, chunk_size);
 }
-
 
 template <typename T>
 mpool::mpool<T> mpool_waitable(int chunk_size, int chunk_limit)
 {
-    using strategy_t = mpool::strategy<T>;
-    auto s = new mpool::waitable_strategy<T>(chunk_size, chunk_limit);
-    auto bs = static_cast<strategy_t*>(s);
-    return mpool::mpool<T>(std::unique_ptr<strategy_t>(bs));
+    return mpool::mpool<T>(mpool::waitable_strategy<T>::make, chunk_size, chunk_limit);
 }
 
 

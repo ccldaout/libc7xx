@@ -8,12 +8,12 @@
  */
 #ifndef __C7_STRING_HPP_LOADED__
 #define __C7_STRING_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7coroutine.hpp"
-#include "c7result.hpp"
-#include "c7seq.hpp"
+#include <c7coroutine.hpp>
+#include <c7result.hpp>
+#include <c7seq.hpp>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -471,7 +471,7 @@ inline std::string transpose(const std::string& in, Trans trans)
 inline std::string transpose(const std::string& in, const std::string& cond, const std::string& trans)
 {
     auto last_trans = trans[trans.size()-1];
-    return transpose(in, [&](char ch) {
+    return transpose(in, [&cond, &trans, last_trans](char ch) {
 	    if (auto pos = cond.find(ch); pos != std::string::npos)
 		return (pos < trans.size()) ? trans[pos] : last_trans;
 	    return ch;
@@ -520,21 +520,9 @@ inline void split_for(const std::string& in, char sep, Func func)
 inline c7::generator<std::string>
 split_gen(const std::string& in, char sep)
 {
-    auto lambda = [&]() {
+    auto lambda = [in,sep]() {
 	split_for(in, sep, [](std::string&& s) {
-		c7::generator<std::string>::yield(std::move(s));
-	    });
-    };
-    return c7::generator<std::string>(1024, lambda);
-}
-
-inline c7::generator<std::string>
-split_gen(std::string&& in, char sep)
-{
-    auto lambda = [=, &in]() {
-	auto in2 = std::move(in);
-	split_for(in2, sep, [](std::string&& s) {
-		c7::generator<std::string>::yield(std::move(s));
+		c7::generator<std::string>::yield(s);
 	    });
     };
     return c7::generator<std::string>(1024, lambda);
@@ -545,7 +533,7 @@ inline std::vector<std::string>
 split(const std::string& in, char sep, Conv conv)
 {
     std::vector<std::string> sv;
-    split_for(in, sep, [&](const char *beg, const char *end) {
+    split_for(in, sep, [&sv, &conv](const char *beg, const char *end) {
 	    sv.push_back(conv(std::string(beg, end - beg)));
 	});
     return sv;
@@ -560,7 +548,7 @@ split(const std::string& in, char sep)
 inline std::vector<std::string>
 split_trim(const std::string& in, char sep, const std::string& removed_chars)
 {
-    return split(in, sep, [&](const std::string& s) {
+    return split(in, sep, [&removed_chars](const std::string& s) {
 	    return trim(s, removed_chars);
 	});
 }    

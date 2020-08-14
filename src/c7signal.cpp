@@ -90,7 +90,7 @@ private:
 	(void)::sigprocmask(SIG_SETMASK, &main_sigs, nullptr);
 
 	thread_.set_name("sigmanager");
-	thread_.target([&](){ monitor();});
+	thread_.target([this](){ monitor();});
 	if (!thread_.start()) {
 	    p_("pthread_create failure");
 	    abort();

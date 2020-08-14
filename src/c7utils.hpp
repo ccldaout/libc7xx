@@ -8,10 +8,10 @@
  */
 #ifndef __C7_UTILS_HPP_LOADED__
 #define __C7_UTILS_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7result.hpp"
+#include <c7result.hpp>
 #include <memory>
 #include <pwd.h>
 #include <sys/time.h>
@@ -107,7 +107,7 @@ public:
 template <typename T>
 class c_array_iterator {
 private:
-    T **tpp_;
+    T *top_;
     ptrdiff_t idx_;
 
 public:
@@ -117,25 +117,25 @@ public:
     typedef T& reference;
     typedef std::random_access_iterator_tag iterator_category;
 
-    c_array_iterator(): tpp_(nullptr), idx_(0) {}
-    c_array_iterator(T **tpp, size_t idx): tpp_(tpp), idx_((ptrdiff_t)idx) {}
-    c_array_iterator(const c_array_iterator& o): tpp_(o.tpp_), idx_(o.idx_) {}
+    c_array_iterator(): top_(nullptr), idx_(0) {}
+    c_array_iterator(T *top, size_t idx): top_(top), idx_((ptrdiff_t)idx) {}
+    c_array_iterator(const c_array_iterator& o): top_(o.top_), idx_(o.idx_) {}
     c_array_iterator& operator=(const c_array_iterator& o) {
-	tpp_ = o.tpp_;
+	top_ = o.top_;
 	idx_ = o.idx_;
 	return *this;
     }
 
     T& operator[](ptrdiff_t n) const {
-	return (*tpp_)[idx_ + n];
+	return top_[idx_ + n];
     }
 
     T& operator*() const {
-	return (*tpp_)[idx_];
+	return top_[idx_];
     }
 
     T* operator->() const {
-	return &(*tpp_)[idx_];
+	return &top_[idx_];
     }
 
     c_array_iterator<T>& operator++() {	// prefix
@@ -150,12 +150,12 @@ public:
 
     c_array_iterator<T> operator++(int) {	// postfix
 	size_t i = idx_++;
-	return c_array_iterator<T>(tpp_, i);
+	return c_array_iterator<T>(top_, i);
     }
 
     c_array_iterator<T> operator--(int) {	// postfix
 	size_t i = idx_--;
-	return c_array_iterator<T>(tpp_, i);
+	return c_array_iterator<T>(top_, i);
     }
 
     c_array_iterator<T>& operator+=(ptrdiff_t n) {
@@ -169,11 +169,11 @@ public:
     }
 
     c_array_iterator<T> operator+(ptrdiff_t n) const {
-	return c_array_iterator<T>(tpp_, idx_ + n);
+	return c_array_iterator<T>(top_, idx_ + n);
     }
 
     c_array_iterator<T> operator-(ptrdiff_t n) const {
-	return c_array_iterator<T>(tpp_, idx_ - n);
+	return c_array_iterator<T>(top_, idx_ - n);
     }
 
     ptrdiff_t operator-(const c_array_iterator<T>& o) const {

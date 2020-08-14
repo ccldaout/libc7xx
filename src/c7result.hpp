@@ -8,10 +8,10 @@
  */
 #ifndef __C7_RESULT_HPP_LOADED__
 #define __C7_RESULT_HPP_LOADED__
-#include "c7common.hpp"
+#include <c7common.hpp>
 
 
-#include "c7format.hpp"
+#include <c7format.hpp>
 #include <stdexcept>
 #include <vector>
 
@@ -52,11 +52,12 @@ public:
 	std::string msg;
 
 	template <typename... Args>
-	errinfo(const char *file, int line, int what, const std::string msg, const Args&... args):
-	    msg(c7::format(msg, args...)) {
-	    this->file = file;
-	    this->line = line;
-	    this->what = what;
+	errinfo(const char *f, int ln, int w, const std::string msg, const Args&... args):
+	    file(f), line(ln), what(w), msg(c7::format(msg, args...)) {
+	}
+
+	errinfo(const char *f, int ln, int w):
+	    file(f), line(ln), what(w), msg() {
 	}
     };
 
@@ -108,6 +109,21 @@ public:
 	infos_.push_back(errinfo(file, line, what, msg, args...));
     }
 
+    result_base(const char *file, int line, result_base&& base, int what):
+	is_success_(false), infos_(std::move(base.infos_)) {
+	infos_.push_back(errinfo(file, line, what));
+    }
+
+    result_base(const char *file, int line, result_base&& base):
+	is_success_(false), infos_(std::move(base.infos_)) {
+	infos_.push_back(errinfo(file, line, 0));
+    }
+
+    result_base(const char *file, int line, int what):
+	is_success_(false) {
+	infos_.push_back(errinfo(file, line, what));
+    }
+
     template <typename... Args>
     result_base&& set_error(const char *file, int line, const std::string& msg, const Args&... args) {
 	is_success_ = false;
@@ -130,12 +146,31 @@ public:
 	return std::move(*this);
     }
 
+    result_base&& set_error(const char *file, int line, result_base&& base, int what) {
+	is_success_ = false;
+	infos_ = std::move(base.infos_);
+	infos_.push_back(errinfo(file, line, what));
+	return std::move(*this);
+    }
+
+    result_base&& set_error(const char *file, int line, result_base&& base) {
+	is_success_ = false;
+	infos_ = std::move(base.infos_);
+	infos_.push_back(errinfo(file, line, 0));
+	return std::move(*this);
+    }
+
     explicit operator bool() const {
 	return is_success_;
     }
 
     const std::vector<errinfo>& error() const {
 	return infos_;
+    }
+
+    void clear() {
+	is_success_ = true;
+	infos_.clear();
     }
 };
 
@@ -165,37 +200,14 @@ public:
 
     result(R&& r): result_base(true), value_(std::move(r)) {}
 
-    result(result_base&& o): result_base(std::move(o)), value_(init_()) {
-	if (is_success_) {
-	    result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
-	}
-    }
-
     result(result<R, result_move_tag>&& o):
 	result_base(std::move(o)), value_(std::move(o.value_)) {
     }
 
-    template <typename R2>
-    result(result<R2>&& o): result_base(std::move(o)), value_() {}
-
-    template <typename... Args>
-    result(const char *file, int line, const std::string& msg, const Args&... args):
-	result_base(file, line, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, what, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), what, msg, args...) {
+    result(result_base&& o): result_base(std::move(o)), value_(init_()) {
+	if (is_success_) {
+	    result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
+	}
     }
 
     template <typename... Args>
@@ -207,10 +219,11 @@ public:
     result<R, result_move_tag>&& operator=(result<R, result_move_tag>&& o) {
 	if (this != &o) {
 	    is_success_ = o.is_success_;
-	    if (is_success_)
+	    if (is_success_) {
 		value_ = std::move(o.value_);
-	    else
+	    } else {
 		infos_ = std::move(o.infos_);
+	    }
 	}
 	return std::move(*this);
     }
@@ -228,8 +241,23 @@ public:
     }
 
     R& value() {
-	if (!is_success_)
+	if (!is_success_) {
 	    throw std::runtime_error("result has no value");
+	}
+	return value_;
+    }
+
+    R& value(const R& alt_value) {
+	if (!is_success_) {
+	    value_ = alt_value;
+	}
+	return value_;
+    }
+
+    R& value(R&& alt_value) {
+	if (!is_success_) {
+	    value_ = std::move(alt_value);
+	}
 	return value_;
     }
 };
@@ -247,35 +275,12 @@ public:
 
     explicit result(R r): result_base(true), value_(r) {}
 
+    result(result<R, result_copy_tag>&& o): result_base(std::move(o)), value_(o.value_) {}
+
     result(result_base&& o): result_base(std::move(o)), value_() {
 	if (is_success_) {
 	    result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
 	}
-    }
-
-    result(result<R, result_copy_tag>&& o): result_base(std::move(o)), value_(o.value_) {}
-
-    template <typename R2>
-    result(result<R2>&& o): result_base(std::move(o)), value_() {}
-
-    template <typename... Args>
-    result(const char *file, int line, const std::string& msg, const Args&... args):
-	result_base(file, line, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, what, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), what, msg, args...) {
     }
 
     template <typename... Args>
@@ -287,10 +292,11 @@ public:
     result<R, result_copy_tag>&& operator=(result<R, result_copy_tag>&& o) {
 	if (this != &o) {
 	    is_success_ = o.is_success_;
-	    if (is_success_)
+	    if (is_success_) {
 		value_ = o.value_;
-	    else
+	    } else {
 		infos_ = std::move(o.infos_);
+	    }
 	}
 	return std::move(*this);
     }
@@ -302,9 +308,14 @@ public:
     }
 
     R value() {
-	if (!is_success_)
+	if (!is_success_) {
 	    throw std::runtime_error("result has no value");
+	}
 	return value_;
+    }
+
+    R value(R alt_value) {
+	return is_success_ ? value_ : alt_value;
     }
 };
 
@@ -318,35 +329,12 @@ public:
 
     explicit result(bool b): result_base(b) {}
 
+    result(result<void, result_void_tag>&& o): result_base(std::move(o)) {}
+
     result(result_base&& o): result_base(std::move(o)) {
 	if (is_success_) {
 	    result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
 	}
-    }
-
-    result(result<void, result_void_tag>&& o): result_base(std::move(o)) {}
-
-    template <typename R2>
-    result(result<R2>&& o): result_base(std::move(o)) {}
-
-    template <typename... Args>
-    result(const char *file, int line, const std::string& msg, const Args&... args):
-	result_base(file, line, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, what, msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), msg, args...) {
-    }
-
-    template <typename... Args>
-    result(const char *file, int line, result_base&& base, int what, const std::string& msg, const Args&... args):
-	result_base(file, line, std::move(base), what, msg, args...) {
     }
 
     template <typename... Args>
@@ -355,12 +343,10 @@ public:
 	return std::move(*this);
     }
 
-    template <typename S, typename Tag>
-    result<void, result_void_tag>&& operator=(result<S, Tag>&& o) {
+    result<void, result_void_tag>&& operator=(result<void, result_void_tag>&& o) {
 	if (this != &o) {
 	    is_success_ = o.is_success_;
-	    if (!is_success_)
-		infos_ = std::move(o.infos_);
+	    infos_ = std::move(o.infos_);
 	}
 	return std::move(*this);
     }
