@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_MPOOL_HPP_LOADED__
-#define __C7_MPOOL_HPP_LOADED__
+#ifndef C7_MPOOL_HPP_LOADED__
+#define C7_MPOOL_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -224,7 +224,9 @@ public:
     mpool(): strategy_(nullptr) {}
 
     ~mpool() {
-	strategy_->detached();
+	if (strategy_ != nullptr) {
+	    strategy_->detached();
+	}
     }
 
     

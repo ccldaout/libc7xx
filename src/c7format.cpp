@@ -8,8 +8,8 @@
  */
 
 
-#include "c7format.hpp"
-#include "c7thread.hpp"
+#include <c7format.hpp>
+#include <c7thread.hpp>
 #include <cctype>
 #include <cstring>
 #include <time.h>	// ::localtime_r

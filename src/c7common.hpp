@@ -6,20 +6,13 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_COMMON_HPP_LOADED__
-#define __C7_COMMON_HPP_LOADED__
+#ifndef C7_COMMON_HPP_LOADED__
+#define C7_COMMON_HPP_LOADED__
 
 
 #include <limits.h>
 #include <stddef.h>
 #include <sys/types.h>
-
-#if defined(__C7_DEBUG)
-# define __C7_DEBUG_PR 1
-# include <iostream>
-# include <typeinfo>
-# include <cstring>
-#endif
 
 
 /*----------------------------------------------------------------------------
@@ -94,42 +87,6 @@ enum class com_status {
 // format traits primary template
 template <typename T>
 struct format_traits {};
-
-
-/*----------------------------------------------------------------------------
-                                debug printer
-----------------------------------------------------------------------------*/
-
-#if defined(__C7_DEBUG_PR)
-
-inline void debug_1()
-{
-    std::cout << std::endl;
-}
-
-template <typename Thead, typename... Tbody>
-inline void debug_1(Thead head, Tbody... tail)
-{
-    std::cout << " " << head;
-    debug_1(tail...);
-}
-
-template <typename Thead, typename... Tbody>
-inline void debug_0(const char *name, int line, Thead head, Tbody... tail)
-{
-    const char *n = std::strrchr(name, '/');
-    n = (n == nullptr) ? name : n+1;
-    std::cout << "[" << n << ":" << line << "] " << head;
-    debug_1(tail...);
-}
-
-# define debug(...)	c7::debug_0(__FILE__, __LINE__, __VA_ARGS__)
-
-#else
-
-# define debug(...)	
-
-#endif
 
 
 /*----------------------------------------------------------------------------

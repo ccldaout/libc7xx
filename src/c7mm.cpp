@@ -8,14 +8,71 @@
  */
 
 
-#include "c7mm.hpp"
-#include "c7path.hpp"
+#include <c7mm.hpp>
+#include <c7path.hpp>
 #include <sys/fcntl.h>
 #include <sys/mman.h>
 #include <cstring>
 
 
 namespace c7 {
+
+
+/*----------------------------------------------------------------------------
+                            anonymous mmap manager
+----------------------------------------------------------------------------*/
+
+anon_mmap_manager::anon_mmap_manager(anon_mmap_manager&& o):
+    map_size_(o.map_size_), map_addr_(o.map_addr_)
+{
+    o.map_size_ = 0;
+    o.map_addr_ = nullptr;
+}
+
+anon_mmap_manager&
+anon_mmap_manager::operator=(anon_mmap_manager&& o)
+{
+    if (this != &o) {
+	if (map_addr_ != nullptr) {
+	    ::munmap(map_addr_, map_size_);
+	}
+	map_size_ = o.map_size_;
+	map_addr_ = o.map_addr_;
+	o.map_size_ = 0;
+	o.map_addr_ = nullptr;
+    }
+    return *this;
+}
+
+c7::result<std::pair<void *, size_t>>
+anon_mmap_manager::reserve(size_t size)
+{
+    size = c7_align(size, PAGESIZE);
+    if (size <= map_size_) {
+	return c7result_ok();
+    }
+    void *addr = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if (addr == MAP_FAILED) {
+	return c7result_err(errno, "mmap(, %{}, ...) failed", size);
+    }
+    if (map_addr_ != nullptr) {
+	(void)std::memcpy(addr, map_addr_, map_size_);
+	(void)::munmap(map_addr_, map_size_);
+    }
+    map_addr_ = addr;
+    map_size_ = size;
+    return c7result_ok(std::make_pair(map_addr_, map_size_));
+}
+
+void
+anon_mmap_manager::reset()
+{
+    if (map_addr_ != nullptr) {
+	::munmap(map_addr_, map_size_);
+	map_addr_ = nullptr;
+	map_size_ = 0;
+    }
+}
 
 
 /*----------------------------------------------------------------------------

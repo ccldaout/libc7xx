@@ -8,8 +8,8 @@
  */
 
 
-#include "c7proc.hpp"
-#include "c7signal.hpp"
+#include <c7proc.hpp>
+#include <c7signal.hpp>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -195,7 +195,7 @@ static result<pid_t> forkexec(int conf_fd,
 			      const std::string& prog,
 			      const c7::strvec& argv)
 {
-    pid_t newpid;
+    pid_t newpid = -1;
     int chkpipe = -1;
     char errval;
 

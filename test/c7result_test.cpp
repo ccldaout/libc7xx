@@ -1,5 +1,5 @@
-#include "c7format.hpp"
-#include "c7result.hpp"
+#include <c7format.hpp>
+#include <c7result.hpp>
 
 using namespace std;
 using namespace c7;

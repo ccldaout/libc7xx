@@ -7,8 +7,8 @@
  * http://opensource.org/licenses/mit-license.php
  */
 
-#ifndef __C7_SORT_HPP_LOADED__
-#define __C7_SORT_HPP_LOADED__
+#ifndef C7_SORT_HPP_LOADED__
+#define C7_SORT_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -21,8 +21,8 @@
 namespace c7 {
 
 
-#define __C7_MSORT_MAX_DEPTH	64
-#define __C7_QSORT_MAX_DEPTH	48
+#define C7_MSORT_MAX_DEPTH	64
+#define C7_QSORT_MAX_DEPTH	48
 
 
 /*----------------------------------------------------------------------------
@@ -183,7 +183,7 @@ static void msort_st_main(int parity, Iterator out, Iterator in, ptrdiff_t n,
 	Iterator out;
 	Iterator in;
 	ptrdiff_t n;
-    } stack[__C7_MSORT_MAX_DEPTH * 2];
+    } stack[C7_MSORT_MAX_DEPTH * 2];
     int stack_idx = 0;
     auto op = OP_SORT;
 
@@ -388,7 +388,7 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
     struct {
 	Iterator left;
 	Iterator right;
-    } stack[__C7_QSORT_MAX_DEPTH];
+    } stack[C7_QSORT_MAX_DEPTH];
     int stack_idx = 0;
 
     for (;;) {
@@ -403,7 +403,7 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
 	    continue;
 	}
 
-	// right - left >= __C7_QSORT_THRESHOLD
+	// right - left >= C7_QSORT_THRESHOLD
 
 	typename std::iterator_traits<Iterator>::value_type s;
 	{
@@ -439,11 +439,11 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
 		p++;
 		q--;
 	    }
-	} while (p < q);
+	} while (p <= q);
 
 	if (stack_idx == c7_numberof(stack)) {
-	    hsort_st(left,  (q - left) + 1, lessthan);
-	    hsort_st(p,    (right - p) + 1, lessthan);
+	    hsort_st(left, p - left, lessthan);
+	    hsort_st(p, (right + 1) - p, lessthan);
 	    stack_idx--;
 	    left = stack[stack_idx].left;
 	    right = stack[stack_idx].right;
@@ -451,7 +451,7 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
 	    stack[stack_idx].left = p;
 	    stack[stack_idx].right = right;
 	    stack_idx++;
-	    right = q;
+	    right = p - 1;
 	}
     }
 }
@@ -495,7 +495,7 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	return;
     }
 
-    // right - left >= __C7_QSORT_THRESHOLD
+    // right - left >= C7_QSORT_THRESHOLD
 
     typename std::iterator_traits<Iterator>::value_type s;
     {
@@ -531,14 +531,14 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	    p++;
 	    q--;
 	}
-    } while (p < q);
+    } while (p <= q);
 
     std::thread th;
     qsort_param_t<Iterator> qs1, qs2;
 
-    if (qs->left < q) {
+    if (qs->left < (p - 1)) {
 	qs1.left = qs->left;
-	qs1.right = q;
+	qs1.right = p - 1;
 	qs1.threshold = qs->threshold;
 	qs1.level = qs->level - 1;
 	th = std::thread(qsort_mt_main<Iterator, Lessthan>, &qs1, lessthan);
@@ -550,8 +550,9 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	qs2.level = qs->level - 1;
 	qsort_mt_main(&qs2, lessthan);
     }
-    if (qs->left < q)
+    if (qs->left < (p - 1)) {
 	th.join();
+    }
 }
 
 template <typename Iterator, typename Lessthan>
@@ -613,9 +614,9 @@ static void rsort_st_main(Iterator left, Iterator right, Masktype keymask, Maskt
 
 	Iterator p = left;
 	Iterator q = right;
-	while ((getkey(*p) & tstmask) == 0 && p <= q)
+	while (p <= q && (getkey(*p) & tstmask) == 0)
 	    p++;
-	while ((getkey(*q) & tstmask) != 0 && p <= q)
+	while (p <= q && (getkey(*q) & tstmask) != 0)
 	    q--;
 	while (p < q) {
 	    std::swap(*p, *q);
@@ -690,9 +691,9 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs,
 	return;
     }
 
-    while ((getkey(*p) & tstmask) == 0 && p <= q)
+    while (p <= q && (getkey(*p) & tstmask) == 0)
 	p++;
-    while ((getkey(*q) & tstmask) != 0 && p <= q)
+    while (p <= q && (getkey(*q) & tstmask) != 0)
 	q--;
     while (p < q) {
 	std::swap(*p, *q);

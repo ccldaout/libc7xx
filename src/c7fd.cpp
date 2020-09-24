@@ -8,8 +8,8 @@
  */
 
 
-#include "c7fd.hpp"
-#include "c7utils.hpp"
+#include <c7fd.hpp>
+#include <c7utils.hpp>
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -252,6 +252,24 @@ result<fd::stat_t> fd::stat() const
 	return c7result_err(errno, "fstat(%{})", fdnum_);
     }
     return c7result_ok(st);
+}
+
+result<off_t> fd::seek_abs(off_t offset)
+{
+    off_t ret = ::lseek(fdnum_, offset, SEEK_SET);
+    if (ret == (off_t)C7_SYSERR) {
+	return c7result_err(errno, "lseek(%{}, %{}, SEEK_SET)", fdnum_, offset);
+    }
+    return c7result_ok(ret);
+}
+
+result<off_t> fd::seek_cur(off_t offset)
+{
+    off_t ret = ::lseek(fdnum_, offset, SEEK_CUR);
+    if (ret == (off_t)C7_SYSERR) {
+	return c7result_err(errno, "lseek(%{}, %{}, SEEK_CUR)", fdnum_, offset);
+    }
+    return c7result_ok(ret);
 }
 
 result<size_t> fd::read(void *bufaddr, size_t size)

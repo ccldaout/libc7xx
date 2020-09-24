@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_FD_HPP_LOADED__
-#define __C7_FD_HPP_LOADED__
+#ifndef C7_FD_HPP_LOADED__
+#define C7_FD_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -54,7 +54,7 @@ public:
 	return (status_ == status::OK);
     }
 
-    operator const c7::result_base&() const {
+    c7::result_base& get_result() {
 	return result_;
     }
 
@@ -133,6 +133,9 @@ public:
     result<void> chown(uid_t uid, gid_t gid);
     result<void> truncate(size_t size);
     result<stat_t> stat() const;
+
+    result<off_t> seek_abs(off_t offset);
+    result<off_t> seek_cur(off_t offset);
 
     result<size_t> read(void *bufaddr, size_t size);
     result<size_t> write(const void *bufaddr, size_t size);

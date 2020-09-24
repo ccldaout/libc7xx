@@ -8,10 +8,10 @@
  */
 
 
-#include "c7file.hpp"
-#include "c7mlog.hpp"
-#include "c7path.hpp"
-#include "c7thread.hpp"
+#include <c7file.hpp>
+#include <c7mlog.hpp>
+#include <c7path.hpp>
+#include <c7thread.hpp>
 #include <sys/mman.h>
 #include <algorithm>
 #include <cstdlib>

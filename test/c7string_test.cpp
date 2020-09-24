@@ -1,5 +1,5 @@
-#include "c7format.hpp"
-#include "c7string.hpp"
+#include <c7format.hpp>
+#include <c7string.hpp>
 
 using namespace std;
 #define f_ c7::format

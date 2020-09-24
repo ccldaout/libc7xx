@@ -1,5 +1,5 @@
-#include "c7dconf.hpp"
-#include "c7format.hpp"
+#include <c7dconf.hpp>
+#include <c7format.hpp>
 
 #define p_ 	c7::p_
 

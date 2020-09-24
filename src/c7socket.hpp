@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_SOCKET_HPP_LOADED__
-#define __C7_SOCKET_HPP_LOADED__
+#ifndef C7_SOCKET_HPP_LOADED__
+#define C7_SOCKET_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -78,9 +78,9 @@ public:
     result<void> set_sndtmo(c7::usec_t timeout);
     result<void> set_rcvtmo(c7::usec_t timeout);
 
-    result<void> shudown_r();
-    result<void> shudown_w();
-    result<void> shudown_rw();
+    result<void> shutdown_r();
+    result<void> shutdown_w();
+    result<void> shutdown_rw();
 
     result<ssize_t> recvfrom(void *buffer, size_t n,
 			     int flags, ::sockaddr& src_addr, socklen_t& addrlen);

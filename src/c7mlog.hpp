@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_MLOG_HPP_LOADED__
-#define __C7_MLOG_HPP_LOADED__
+#ifndef C7_MLOG_HPP_LOADED__
+#define C7_MLOG_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -84,7 +84,7 @@ public:
     template <typename... Args>
     inline void format(c7::usec_t time_us, const char *src_name, int src_line,
 		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const std::string& format, Args... args) {
+		       const std::string& format, const Args&... args) {
 	auto s = c7::format(format, args...);
 	(void)put(time_us, src_name, src_line, level, category, minidata,
 		  s.c_str(), s.size() + 1);
@@ -93,7 +93,7 @@ public:
     template <typename... Args>
     inline void format(const char *src_name, int src_line,
 		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const std::string& format, Args... args) {
+		       const std::string& format, const Args&... args) {
 	auto s = c7::format(format, args...);
 	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
 		  s.c_str(), s.size() + 1);

@@ -1,5 +1,5 @@
-#include "c7format.hpp"
-#include "c7thread.hpp"
+#include <c7format.hpp>
+#include <c7thread.hpp>
 
 using namespace std;
 

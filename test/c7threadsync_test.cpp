@@ -1,5 +1,5 @@
-#include "c7format.hpp"
-#include "c7threadsync.hpp"
+#include <c7format.hpp>
+#include <c7threadsync.hpp>
 
 using namespace std;
 

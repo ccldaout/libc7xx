@@ -36,7 +36,7 @@ headers:
 depend:
 	@rm -f Makefile.dep
 	@for cpp in *.cpp; do \
-	  c++ -c $(C7_CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
+	  c++ -c $(CPPFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
 	done
 
 include Makefile.dep

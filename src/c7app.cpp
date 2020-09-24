@@ -9,8 +9,9 @@
 
 
 #include <unistd.h>
-#include <c7string.hpp>
-#include "c7app.hpp"
+#include <cstdlib>
+#include <c7app.hpp>
+#include <c7path.hpp>
 
 
 namespace c7::app {
@@ -39,6 +40,60 @@ const std::string& progname = __program_attr.name;
 void set_progname(const std::string& name)
 {
     __program_attr.name = name;
+}
+
+
+static void echo_impl(continuation con, const char *file, int line,
+		      const c7::result_base *res,
+		      const char *s)
+{
+    c7::p_("%{}:%{} %{}", c7path_name(file), line, (s != nullptr) ? s : "...");
+    if (res != nullptr) {
+	c7::p_("%{}", *res);
+    }
+    switch (con) {
+    case continuation::keep:
+	return;
+    case continuation::exit_success:
+	std::exit(EXIT_SUCCESS);
+	return;
+    case continuation::exit_failure:
+	std::exit(EXIT_FAILURE);
+	return;
+    case continuation::abort:
+	std::abort();
+	return;
+    }
+}
+
+void echo(continuation con, const char *file, int line)
+{
+    echo_impl(con, file, line, nullptr, nullptr);
+}
+
+void echo(continuation con, const char *file, int line, const char *s)
+{
+    echo_impl(con, file, line, nullptr, s);
+}
+
+void echo(continuation con, const char *file, int line, const std::string& s)
+{
+    echo_impl(con, file, line, nullptr, s.c_str());
+}
+
+void echo(continuation con, const char *file, int line, const c7::result_base& res)
+{
+    echo_impl(con, file, line, &res, nullptr);
+}
+
+void echo(continuation con, const char *file, int line, const c7::result_base& res, const char *s)
+{
+    echo_impl(con, file, line, &res, s);
+}
+
+void echo(continuation con, const char *file, int line, const c7::result_base& res, const std::string& s)
+{
+    echo_impl(con, file, line, &res, s.c_str());
 }
 
 

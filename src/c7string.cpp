@@ -8,7 +8,7 @@
  */
 
 
-#include "c7string.hpp"
+#include <c7string.hpp>
 
 
 namespace c7 {

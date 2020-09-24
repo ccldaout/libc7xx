@@ -8,7 +8,7 @@
  */
 
 
-#include "c7threadsync.hpp"
+#include <c7threadsync.hpp>
 
 
 namespace c7 {

@@ -1,7 +1,7 @@
-#include "c7mlog.hpp"
-#include "c7seq.hpp"
-#include "c7threadsync.hpp"
-#include "c7utils.hpp"
+#include <c7mlog.hpp>
+#include <c7seq.hpp>
+#include <c7threadsync.hpp>
+#include <c7utils.hpp>
 #include <cstring>
 
 #define p_	c7::p_

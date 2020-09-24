@@ -1,5 +1,5 @@
-#include "c7delegate.hpp"
-#include "c7format.hpp"
+#include <c7delegate.hpp>
+#include <c7format.hpp>
 
 static bool func1_false(const int& v)
 {

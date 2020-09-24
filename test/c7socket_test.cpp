@@ -1,6 +1,6 @@
-#include "c7socket.hpp"
-#include "c7thread.hpp"
-#include "c7format.hpp"
+#include <c7socket.hpp>
+#include <c7thread.hpp>
+#include <c7format.hpp>
 
 #define p_	c7::p_
 

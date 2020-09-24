@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_PATH_HPP_LOADED__
-#define __C7_PATH_HPP_LOADED__
+#ifndef C7_PATH_HPP_LOADED__
+#define C7_PATH_HPP_LOADED__
 #include <c7common.hpp>
 
 

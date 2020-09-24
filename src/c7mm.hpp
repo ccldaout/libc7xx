@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_MM_HPP_LOADED__
-#define __C7_MM_HPP_LOADED__
+#ifndef C7_MM_HPP_LOADED__
+#define C7_MM_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -21,24 +21,38 @@ namespace c7 {
 
 
 /*----------------------------------------------------------------------------
+                            anonymous mmap manager
+----------------------------------------------------------------------------*/
+
+class anon_mmap_manager {
+public:
+    static constexpr size_t PAGESIZE = 8192;
+
+    anon_mmap_manager(const anon_mmap_manager&) = delete;
+    anon_mmap_manager& operator=(const anon_mmap_manager&) = delete;
+
+    anon_mmap_manager() {}
+    anon_mmap_manager(anon_mmap_manager&& o);
+    anon_mmap_manager& operator=(anon_mmap_manager&& o);
+
+    ~anon_mmap_manager() {
+	reset();
+    }
+
+    c7::result<std::pair<void *, size_t>> reserve(size_t size);
+    void reset();
+
+private:
+    size_t map_size_ = 0;
+    void *map_addr_ = nullptr;
+};
+
+
+/*----------------------------------------------------------------------------
                             switchable mmap object
 ----------------------------------------------------------------------------*/
 
 class mmobj {
-private:
-    void *top_;
-    size_t size_;
-    size_t threshold_;
-    std::string path_;
-    c7::fd fd_;
-
-    static const int PAGESIZE = 8192;
-
-    result<void> init_anon_mm(size_t size);
-    result<void> resize_anon_mm(size_t size);
-    result<void> switch_to_file_mm(size_t size);
-    result<void> resize_file_mm(size_t size);
-
 public:
     mmobj(const mmobj&) = delete;
     mmobj& operator=(const mmobj&) = delete;
@@ -53,6 +67,20 @@ public:
     result<void> resize(size_t new_size);
     void reset();
     std::pair<void*, size_t> operator()();
+
+private:
+    static constexpr size_t PAGESIZE = 8192;
+
+    void *top_;
+    size_t size_;
+    size_t threshold_;
+    std::string path_;
+    c7::fd fd_;
+
+    result<void> init_anon_mm(size_t size);
+    result<void> resize_anon_mm(size_t size);
+    result<void> switch_to_file_mm(size_t size);
+    result<void> resize_file_mm(size_t size);
 };
 
 

@@ -8,7 +8,7 @@
  */
 
 
-#include "c7result.hpp"
+#include <c7result.hpp>
 #include <cstring>
 #include <iomanip>
 
@@ -19,6 +19,45 @@ namespace c7 {
 static const int file_w = 16;
 static const int line_w = 3;
     
+
+const std::vector<result_base::errinfo> result_base::no_error_;
+
+
+void result_base::add_errinfo(const char *file, int line, int what)
+{
+    if (errors_ == nullptr) {
+	errors_.reset(new std::vector<errinfo>);
+    }
+    errors_->push_back(errinfo(file, line, what));
+}
+
+
+void result_base::add_errinfo(const char *file, int line, int what, const char *msg)
+{
+    if (errors_ == nullptr) {
+	errors_.reset(new std::vector<errinfo>);
+    }
+    errors_->push_back(errinfo(file, line, what, msg));
+}
+
+
+void result_base::add_errinfo(const char *file, int line, int what, std::string&& msg)
+{
+    if (errors_ == nullptr) {
+	errors_.reset(new std::vector<errinfo>);
+    }
+    errors_->push_back(errinfo(file, line, what, std::move(msg)));
+}
+
+
+void result_base::add_errinfo(const char *file, int line, int what, const std::string& msg)
+{
+    if (errors_ == nullptr) {
+	errors_.reset(new std::vector<errinfo>);
+    }
+    errors_->push_back(errinfo(file, line, what, msg));
+}
+
 
 static bool translate_errno(std::ostream& o, int err)
 {

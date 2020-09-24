@@ -8,7 +8,7 @@
  */
 
 
-#include "c7socket.hpp"
+#include <c7socket.hpp>
 #include <unistd.h>
 #include <cstring>
 #include <netdb.h>
@@ -345,7 +345,7 @@ result<void> socket::set_rcvtmo(c7::usec_t timeout)
     return socket::setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tmout, sizeof(tmout));
 }
 
-result<void> socket::shudown_r()
+result<void> socket::shutdown_r()
 {
     if (::shutdown(fdnum_, SHUT_RD) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, RD) failed", fdnum_);
@@ -353,7 +353,7 @@ result<void> socket::shudown_r()
     return c7result_ok();
 }
 
-result<void> socket::shudown_w()
+result<void> socket::shutdown_w()
 {
     if (::shutdown(fdnum_, SHUT_WR) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, WR) failed", fdnum_);
@@ -361,7 +361,7 @@ result<void> socket::shudown_w()
     return c7result_ok();
 }
 
-result<void> socket::shudown_rw()
+result<void> socket::shutdown_rw()
 {
     if (::shutdown(fdnum_, SHUT_RDWR) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, RDWR) failed", fdnum_);

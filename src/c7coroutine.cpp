@@ -8,7 +8,7 @@
  */
 
 
-#include "c7coroutine.hpp"
+#include <c7coroutine.hpp>
 #include <stdexcept>
 #include <signal.h>	// MINSIGSTKSZ
 

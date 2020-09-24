@@ -8,8 +8,8 @@
  */
 
 
-#include "c7dconf.hpp"
-#include "c7path.hpp"
+#include <c7dconf.hpp>
+#include <c7path.hpp>
 #include <cstring>
 #include <stdexcept>
 

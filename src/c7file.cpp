@@ -8,15 +8,15 @@
  */
 
 
-#include "c7file.hpp"
-#include "c7path.hpp"
-#include "c7signal.hpp"
-#include "c7string.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <cstring>
+#include <c7file.hpp>
+#include <c7path.hpp>
+#include <c7signal.hpp>
+#include <c7string.hpp>
 
 
 namespace c7 {
@@ -421,6 +421,15 @@ result<void*> mmap_impl(const std::string& path, size_t& size_io, int oflag)
 	prot |= PROT_WRITE;
 
     return dommap_fd(path, fd, prot, size_io);
+}
+
+result<void*> mmap_impl(int fd, size_t& size_io, int oflag)
+{
+    int prot = PROT_READ;
+    if ((oflag & O_RDWR) != 0) {
+	prot |= PROT_WRITE;
+    }
+    return dommap_fd(c7::format("<fd:%{}>", fd), fd, prot, size_io);
 }
 
 

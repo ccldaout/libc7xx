@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef __C7_FILE_HPP_LOADED__
-#define __C7_FILE_HPP_LOADED__
+#ifndef C7_FILE_HPP_LOADED__
+#define C7_FILE_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -56,7 +56,7 @@ c7::result<ssize_t> read_into(const std::string& path, void *buf, size_t size);
 template <typename T>
 c7::result<ssize_t> read_into(const std::string& path, T& buf)
 {
-    return read_info(path, &buf, sizeof(buf));
+    return read_into(path, &buf, sizeof(buf));
 }
 
 result<void*> read_impl(const std::string& path, size_t& size);
@@ -87,14 +87,26 @@ template <typename T = void>
 using unique_mmap = std::unique_ptr<T, std::function<void(void*)>>;
 
 result<void*> mmap_impl(const std::string& path, size_t& size_io, int oflag);
+result<void*> mmap_impl(int fd, size_t& size_io, int oflag);
 
 template <typename T = void>
 c7::result<unique_mmap<T>> mmap_r(const std::string& path, size_t& size_io)
 {
     auto res = mmap_impl(path, size_io, O_RDONLY);
-    if (!res)
+    if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_r failed");
+    }
+    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+				      [=](void *p){ (void)::munmap(p, size_io); }));
+}
 
+template <typename T = void>
+c7::result<unique_mmap<T>> mmap_r(int fd, size_t& size_io)
+{
+    auto res = mmap_impl(fd, size_io, O_RDONLY);
+    if (!res) {
+	return c7result_err(std::move(res), "c7::file::mmap_r failed");
+    }
     return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
 				      [=](void *p){ (void)::munmap(p, size_io); }));
 }
@@ -107,6 +119,13 @@ inline c7::result<unique_mmap<T>> mmap_r(const std::string& path)
     // if it is not specified, result<R>(result_base&&) constructor is called on 
     // next return statement, and after that unique_ptr destructor is called.
     return mmap_r<T>(path, size);
+}
+
+template <typename T = void>
+inline c7::result<unique_mmap<T>> mmap_r(int fd)
+{
+    size_t size = 0;
+    return mmap_r<T>(fd, size);
 }
 
 template <typename T = void>
@@ -124,12 +143,33 @@ c7::result<unique_mmap<T>> mmap_rw(const std::string& path, size_t& size_io, boo
 				      [=](void *p){ (void)::munmap(p, size_io); }));
 }
 
+template <typename T = void>
+c7::result<unique_mmap<T>> mmap_rw(int fd, size_t& size_io, bool create)
+{
+    int oflag = O_RDWR;
+    if (create) {
+	oflag |= O_CREAT;
+    }
+    auto res = mmap_impl(fd, size_io, oflag);
+    if (!res) {
+	return c7result_err(std::move(res), "c7::file::mmap_rw failed");
+    }
+    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+				      [=](void *p){ (void)::munmap(p, size_io); }));
+}
 
 template <typename T = void>
 c7::result<unique_mmap<T>> mmap_rw(const std::string& path)
 {
     size_t size = 0;
     return mmap_rw<T>(path, size, false);
+}
+
+template <typename T = void>
+c7::result<unique_mmap<T>> mmap_rw(int fd)
+{
+    size_t size = 0;
+    return mmap_rw<T>(fd, size, false);
 }
 
 

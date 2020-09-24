@@ -8,7 +8,7 @@
  */
 
 
-#include "c7thread.hpp"
+#include <c7thread.hpp>
 #include <atomic>
 #include <exception>
 #include <pthread.h>

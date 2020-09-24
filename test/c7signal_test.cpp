@@ -1,6 +1,6 @@
-#include "c7format.hpp"
-#include "c7signal.hpp"
-#include "c7threadsync.hpp"
+#include <c7format.hpp>
+#include <c7signal.hpp>
+#include <c7threadsync.hpp>
 #include <cstdlib>
 #include <iostream>
 

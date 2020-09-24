@@ -8,8 +8,8 @@
  */
 
 
-#include "c7signal.hpp"
-#include "c7threadsync.hpp"
+#include <c7signal.hpp>
+#include <c7threadsync.hpp>
 #include <atomic>
 #include <cstring>
 
