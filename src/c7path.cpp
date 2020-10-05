@@ -21,6 +21,62 @@ namespace c7 {
 namespace path {
 
 
+// path parts
+
+std::string dir(const std::string& path)
+{
+    auto n = path.rfind('/');
+    if (n == std::string::npos) {
+	return "";
+    }
+    return path.substr(0, n);
+}
+
+std::string dir_with_sep(const std::string& path)
+{
+    auto n = path.rfind('/');
+    if (n == std::string::npos) {
+	return "";
+    }
+    return path.substr(0, n+1);
+}
+
+std::string nondir(const std::string& path)
+{
+    return std::string(c7path_name(path.c_str()));
+}
+
+std::string name(const std::string& path)
+{
+    auto p = c7path_name(path.c_str());
+    auto q = c7path_suffix(p);
+    return std::string(p, q - p);
+}
+
+std::string suffix(const std::string& path)
+{
+    auto p = c7path_name(path.c_str());
+    auto q = c7path_suffix(p);
+    return std::string(q);
+}
+
+std::string nonsuffix(const std::string& path)
+{
+    auto p = c7path_name(path.c_str());
+    auto n = c7path_suffix(p) - path.c_str();
+    return path.substr(0, n);
+}
+
+bool has_dir(const std::string& path)
+{
+    return (path.find('/') != std::string::npos);
+}
+
+
+
+
+
+
 // is_xxx
 
 bool is_dir(const std::string& path)

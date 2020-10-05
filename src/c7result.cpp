@@ -1,13 +1,14 @@
 /*
  * c7result.cpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
 
 
+#include <c7path.hpp>
 #include <c7result.hpp>
 #include <cstring>
 #include <iomanip>
@@ -59,6 +60,36 @@ void result_base::add_errinfo(const char *file, int line, int what, const std::s
 }
 
 
+void result_base::copy_from(const result_base& src)
+{
+    if (this != &src) {
+	if (src.errors_ == nullptr) {
+	    errors_.reset();
+	} else {
+	    if (errors_ == nullptr) {
+		errors_.reset(new std::vector<errinfo>);
+	    }
+	    *errors_ = *src.errors_;
+	}
+    }
+}
+
+
+void result_base::merge_iferror(result_base&& src)
+{
+    if (this != &src && src.errors_ != nullptr) {
+	if (errors_ == nullptr) {
+	    errors_ = std::move(src.errors_);
+	} else {
+	    for (auto& e: *src.errors_) {
+		errors_->push_back(std::move(e));
+	    }
+	    src.errors_.reset();
+	}
+    }
+}
+
+
 static bool translate_errno(std::ostream& o, int err)
 {
     char buff[128];
@@ -91,11 +122,11 @@ void format_traits<result_base>::convert(std::ostream& out, const std::string& f
 	out << "error: <no information>";
 	return;
     }
-    out << infos.size() << " error information(s):";
+    out << "error information(s):";
 
     for (const auto& e: infos) {
 	out << "\n";
-	const char *fn = e.file;
+	const char *fn = c7path_name(e.file);
 	if (std::strlen(fn) > file_w)
 	    fn = std::strchr(fn, 0) - file_w;
 
@@ -117,7 +148,7 @@ void format_traits<result_base>::convert(std::ostream& out, const std::string& f
 	    }
 	    out << e.msg;
 	} else if (e.msg.empty()) {
-	    out << "(pass through ...)";
+	    out << "(no additional message)";
 	} else {
 	    out << e.msg;
 	}

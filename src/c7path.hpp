@@ -5,6 +5,9 @@
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1462755396
  */
 #ifndef C7_PATH_HPP_LOADED__
 #define C7_PATH_HPP_LOADED__
@@ -20,6 +23,20 @@ namespace path {
 
 #define c7path_name(p)		c7::strrchr_next(p, '/', p)
 #define c7path_suffix(p)	c7::strrchr_x(p, '.', 0)
+
+std::string dir(const std::string& path);		// without last '/'
+
+std::string dir_with_sep(const std::string& path);	// with last '/'
+
+std::string nondir(const std::string& path);		// name + siffix
+
+std::string name(const std::string& path);		// without suffix
+
+std::string suffix(const std::string& path);		// include leading '.'
+
+std::string nonsuffix(const std::string& path);		// dir + name
+
+bool has_dir(const std::string& path);
 
 bool is_dir(const std::string& path);
 

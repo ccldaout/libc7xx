@@ -79,12 +79,7 @@ anon_mmap_manager::reset()
                             switchable mmap object
 ----------------------------------------------------------------------------*/
 
-result<void> mmobj::init_anon_mm(size_t size)
-{
-    return resize_anon_mm(size);
-}
-
-result<void> mmobj::resize_anon_mm(size_t size)
+result<> mmobj::resize_anon_mm(size_t size)
 {
     size = c7_align(size, PAGESIZE);
     if (size == 0) {
@@ -98,7 +93,7 @@ result<void> mmobj::resize_anon_mm(size_t size)
 	return switch_to_file_mm(size);
     }
     if (top_ != nullptr) {
-	(void)std::memcpy(np, top_, size_);
+	(void)std::memcpy(np, top_, std::min(size_, size));
 	(void)::munmap(top_, size_);
     }
     top_  = np;
@@ -106,7 +101,7 @@ result<void> mmobj::resize_anon_mm(size_t size)
     return c7result_ok();
 }
 
-result<void> mmobj::switch_to_file_mm(size_t size)
+result<> mmobj::switch_to_file_mm(size_t size)
 {
     size = c7_align(size, PAGESIZE);
 
@@ -117,19 +112,20 @@ result<void> mmobj::switch_to_file_mm(size_t size)
 	res1 = c7::open(path_, O_RDWR|O_CREAT);
     }
     if (!res1) {
-	return res1;
+	return std::move(res1);
     }
     fd_ = std::move(res1.value());
 
     auto res2 = fd_.stat();
     if (!res2) {
-	return res2;
+	return std::move(res2);
     }
     auto fsize = res2.value().st_size;
 
     if (size > (size_t)fsize) {
-	if (auto res = fd_.truncate(size); !res)
+	if (auto res = fd_.truncate(size); !res) {
 	    return res;
+	}
     } else {
 	size = fsize;
     }
@@ -147,11 +143,12 @@ result<void> mmobj::switch_to_file_mm(size_t size)
     return c7result_ok();
 }
 
-result<void> mmobj::resize_file_mm(size_t size)
+result<> mmobj::resize_file_mm(size_t size)
 {
     size = c7_align(size, PAGESIZE);
-    if (auto res = fd_.truncate(size); !res)
+    if (auto res = fd_.truncate(size); !res) {
 	return res;
+    }
     void *np = ::mmap(top_, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd_, 0);
     if (np == MAP_FAILED) {
 	return c7result_err(errno, "mmap(%{}, %{}, ..., %{}, 0) failed", top_, size, fd_);
@@ -176,7 +173,7 @@ mmobj::mmobj(mmobj&& o)
 {
     top_  = o.top_;
     size_ = o.size_;
-    threshold_ = threshold_;
+    threshold_ = o.threshold_;
     path_      = std::move(o.path_);
     fd_        = std::move(o.fd_);
     o.top_  = nullptr;
@@ -199,7 +196,7 @@ mmobj& mmobj::operator=(mmobj&& o)
     return *this;
 }
 
-result<void> mmobj::init(size_t size, size_t threshold, const std::string& path)
+result<> mmobj::init(size_t size, size_t threshold, const std::string& path)
 {
     reset();
     threshold_ = threshold;
@@ -207,7 +204,7 @@ result<void> mmobj::init(size_t size, size_t threshold, const std::string& path)
     return resize(size);
 }
     
-result<void> mmobj::resize(size_t new_size)
+result<> mmobj::resize(size_t new_size)
 {
     if (fd_) {
 	return resize_file_mm(new_size);
@@ -220,7 +217,7 @@ result<void> mmobj::resize(size_t new_size)
 
 void mmobj::reset()
 {
-    *this = std::move(mmobj());
+    *this = mmobj();
 }
 
 std::pair<void*, size_t> mmobj::operator()()

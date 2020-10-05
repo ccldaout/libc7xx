@@ -129,8 +129,8 @@ static void test_counter()
     p_("th3.start ...");
     th3.start();
 
-    c.wait_zero();
-    p_("return from wait_zero");
+    c.wait_just(0);
+    p_("return from wait");
 
 }
 
@@ -203,8 +203,8 @@ static void test_counter_byref()
     p_("th3.start ...");
     th3.start();
 
-    c.wait_zero();
-    p_("return from wait_zero");
+    c.wait_just(0);
+    p_("return from wait");
 
 }
 

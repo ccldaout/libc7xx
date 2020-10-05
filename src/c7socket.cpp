@@ -61,7 +61,7 @@ result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port)
     } else {
 	::addrinfo hints = { .ai_family = AF_INET };
 	::addrinfo *result;
-	int err = ::getaddrinfo(host.c_str(), NULL, &hints, &result);
+	int err = ::getaddrinfo(host.c_str(), nullptr, &hints, &result);
 	if (err != C7_SYSOK) {
 	    return c7result_err(EINVAL,
 				"getaddrinfo(%{}) failed: %{}", host, gai_strerror(err));
@@ -122,11 +122,11 @@ void socket::setup_str(const std::string& state)
     ::sockaddr addr;
     socklen_t n = sizeof(addr);
     int ret = ::getsockname(fdnum_, &addr, &n);
-    if (ret == C7_SYSOK && addr.sa_family == AF_INET)
+    if (ret == C7_SYSOK && addr.sa_family == AF_INET) {
 	setup_ipv4_str(state);
-    else if (ret == C7_SYSOK && addr.sa_family == AF_UNIX)
+    } else if (ret == C7_SYSOK && addr.sa_family == AF_UNIX) {
 	setup_unix_str(state);
-    else {
+    } else {
 	str_ = c7::format("%{}<%{},?,%{}>", name_, fdnum_, state);
     }
 }
@@ -162,7 +162,7 @@ result<socket> socket::unix()
     return socket::make_socket(AF_UNIX, SOCK_STREAM, 0, "un");
 }
 
-result<void> socket::bind(const ::sockaddr_in& inaddr)
+result<> socket::bind(const ::sockaddr_in& inaddr)
 {
     int reuse = 1;
     (void)::setsockopt(fdnum_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
@@ -174,12 +174,12 @@ result<void> socket::bind(const ::sockaddr_in& inaddr)
     return c7result_ok();
 }
 
-result<void> socket::bind(uint32_t ipaddr, int port)
+result<> socket::bind(uint32_t ipaddr, int port)
 {
     return socket::bind(sockaddr_ipv4(ipaddr, port));
 }
 
-result<void> socket::bind(const std::string& host, int port)
+result<> socket::bind(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
@@ -190,7 +190,7 @@ result<void> socket::bind(const std::string& host, int port)
 
 }
 
-result<void> socket::bind(const std::string& path)	// UNIX domain
+result<> socket::bind(const std::string& path)	// UNIX domain
 {
     auto res = sockaddr_unix(path);
     if (!res) {
@@ -204,7 +204,7 @@ result<void> socket::bind(const std::string& path)	// UNIX domain
     return c7result_ok();
 }
 
-result<void> socket::connect(const ::sockaddr_in& inaddr)
+result<> socket::connect(const ::sockaddr_in& inaddr)
 {
     if (::connect(fdnum_, (::sockaddr *)&inaddr, sizeof(inaddr)) == C7_SYSERR) {
 	return c7result_err(errno,
@@ -215,12 +215,12 @@ result<void> socket::connect(const ::sockaddr_in& inaddr)
     return c7result_ok();
 }
 
-result<void> socket::connect(uint32_t ipaddr, int port)
+result<> socket::connect(uint32_t ipaddr, int port)
 {
     return socket::connect(sockaddr_ipv4(ipaddr, port));
 }
 
-result<void> socket::connect(const std::string& host, int port)
+result<> socket::connect(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
@@ -230,7 +230,7 @@ result<void> socket::connect(const std::string& host, int port)
     return socket::connect(res.value());
 }
 
-result<void> socket::connect(const std::string& path)	// UNIX domain
+result<> socket::connect(const std::string& path)	// UNIX domain
 {
     auto res = sockaddr_unix(path);
     if (!res) {
@@ -244,7 +244,7 @@ result<void> socket::connect(const std::string& path)	// UNIX domain
     return c7result_ok();
 }
 
-result<void> socket::listen(int backlog)
+result<> socket::listen(int backlog)
 {
     if (::listen(fdnum_, backlog) == C7_SYSERR) {
 	return c7result_err(errno, "listen(%{}, %{}) failed", fdnum_, backlog);
@@ -287,7 +287,7 @@ result<::sockaddr_in> socket::peer_ipv4()
     return c7result_ok(inaddr);
 }
 
-result<void> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen)
+result<> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen)
 {
     int ret = ::getsockopt(fdnum_, level, optname, optval, optlen);
     if (ret == C7_SYSERR) {
@@ -297,7 +297,7 @@ result<void> socket::getsockopt(int level, int optname, void *optval, socklen_t 
     return c7result_ok();
 }
 
-result<void> socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
+result<> socket::setsockopt(int level, int optname, const void *optval, socklen_t optlen)
 {
     int ret = ::setsockopt(fdnum_, level, optname, optval, optlen);
     if (ret == C7_SYSERR) {
@@ -307,29 +307,29 @@ result<void> socket::setsockopt(int level, int optname, const void *optval, sock
     return c7result_ok();
 }
 
-result<void> socket::tcp_keepalive(bool enable)
+result<> socket::tcp_keepalive(bool enable)
 {
     int avail = int(enable);
     return socket::setsockopt(SOL_SOCKET, SO_KEEPALIVE, &avail, sizeof(avail));
 }
 
-result<void> socket::tcp_nodelay(bool enable)
+result<> socket::tcp_nodelay(bool enable)
 {
     int avail = int(enable);
     return socket::setsockopt(IPPROTO_TCP, TCP_NODELAY, &avail, sizeof(avail));
 }
 
-result<void> socket::set_rcvbuf(int nbytes)	// server:before listen, client:before conenct
+result<> socket::set_rcvbuf(int nbytes)	// server:before listen, client:before conenct
 {
     return socket::setsockopt(SOL_SOCKET, SO_RCVBUF, &nbytes, sizeof(nbytes));
 }
     
-result<void> socket::set_sndbuf(int nbytes)
+result<> socket::set_sndbuf(int nbytes)
 {
     return socket::setsockopt(SOL_SOCKET, SO_SNDBUF, &nbytes, sizeof(nbytes));
 }
 
-result<void> socket::set_sndtmo(c7::usec_t timeout)
+result<> socket::set_sndtmo(c7::usec_t timeout)
 {
     ::timeval tmout;
     tmout.tv_sec  = timeout / C7_TIME_S_us;
@@ -337,7 +337,7 @@ result<void> socket::set_sndtmo(c7::usec_t timeout)
     return socket::setsockopt(SOL_SOCKET, SO_SNDTIMEO, &tmout, sizeof(tmout));
 }
 
-result<void> socket::set_rcvtmo(c7::usec_t timeout)
+result<> socket::set_rcvtmo(c7::usec_t timeout)
 {
     ::timeval tmout;
     tmout.tv_sec  = timeout / C7_TIME_S_us;
@@ -345,7 +345,7 @@ result<void> socket::set_rcvtmo(c7::usec_t timeout)
     return socket::setsockopt(SOL_SOCKET, SO_RCVTIMEO, &tmout, sizeof(tmout));
 }
 
-result<void> socket::shutdown_r()
+result<> socket::shutdown_r()
 {
     if (::shutdown(fdnum_, SHUT_RD) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, RD) failed", fdnum_);
@@ -353,7 +353,7 @@ result<void> socket::shutdown_r()
     return c7result_ok();
 }
 
-result<void> socket::shutdown_w()
+result<> socket::shutdown_w()
 {
     if (::shutdown(fdnum_, SHUT_WR) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, WR) failed", fdnum_);
@@ -361,7 +361,7 @@ result<void> socket::shutdown_w()
     return c7result_ok();
 }
 
-result<void> socket::shutdown_rw()
+result<> socket::shutdown_rw()
 {
     if (::shutdown(fdnum_, SHUT_RDWR) == C7_SYSERR) {
 	return c7result_err(errno, "shutdown(%{}, RDWR) failed", fdnum_);
@@ -401,15 +401,15 @@ result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size, int back
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(inaddr); !res) {
-	return res;
+	return std::move(res);
     }
     if (rcvbuf_size > 0) {
 	if (auto res = sock.set_rcvbuf(rcvbuf_size); !res) {
-	    return res;
+	    return std::move(res);
 	}
     }
     if (auto res = sock.listen(backlog); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();
@@ -425,7 +425,7 @@ result<socket> tcp_server(const std::string& host, int port, int rcvbuf_size, in
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     return tcp_server(res.value(), rcvbuf_size, backlog);
 }
@@ -442,11 +442,11 @@ result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size)
 
     if (rcvbuf_size > 0) {
 	if (auto res = sock.set_rcvbuf(rcvbuf_size); !res) {
-	    return res;
+	    return std::move(res);
 	}
     }
     if (auto res = sock.connect(inaddr); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();
@@ -462,7 +462,7 @@ result<socket> tcp_client(const std::string& host, int port, int rcvbuf_size)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     return tcp_client(res.value(), rcvbuf_size);
 }
@@ -478,7 +478,7 @@ result<socket> udp_server(const ::sockaddr_in& inaddr)
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(inaddr); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();
@@ -494,7 +494,7 @@ result<socket> udp_server(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     return udp_server(res.value());
 }
@@ -510,7 +510,7 @@ result<socket> udp_client(const ::sockaddr_in& inaddr)
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.connect(inaddr); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();
@@ -526,7 +526,7 @@ result<socket> udp_client(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     return udp_client(res.value());
 }
@@ -543,10 +543,10 @@ result<socket> unix_server(const std::string& path, int backlog)
 
     (void)::unlink(path.c_str());
     if (auto res = sock.bind(path); !res) {
-	return res;
+	return std::move(res);
     }
     if (auto res = sock.listen(backlog); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();
@@ -564,7 +564,7 @@ result<socket> unix_client(const std::string& path)
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.connect(path); !res) {
-	return res;
+	return std::move(res);
     }
 
     defer.cancel();

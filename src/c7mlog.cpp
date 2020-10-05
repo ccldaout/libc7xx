@@ -8,15 +8,15 @@
  */
 
 
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
 #include <c7file.hpp>
 #include <c7mlog.hpp>
 #include <c7path.hpp>
 #include <c7thread.hpp>
 #include <sys/mman.h>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <stdexcept>
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -147,7 +147,7 @@ private:
     char snbuf_[_SN_MAX + 1];
 
 private:
-    result<void> setup_storage(const char *path,
+    result<> setup_storage(const char *path,
 			       size_t hdrsize_b, size_t logsize_b);
     void setup_context(size_t hdrsize_b, size_t logsize_b, const char *hint_op);
     void free_storage();
@@ -167,12 +167,13 @@ public:
 	free_storage();
     }
 
-    result<void> init(const char *path,
+    result<> init(const char *path,
 		      size_t hdrsize_b, size_t logsize_b,
 		      uint32_t w_flags, const char *hint) {
 	auto res = setup_storage(path, hdrsize_b, logsize_b);
-	if (!res)
+	if (!res) {
 	    return res;
+	}
 	setup_context(hdrsize_b, logsize_b, hint);
 	flags_ = w_flags;
 	return c7result_ok();
@@ -185,8 +186,9 @@ public:
     void clear();
 
     void *hdraddr(size_t *hdrsize_b_op) {
-	if (hdrsize_b_op != NULL)
+	if (hdrsize_b_op != nullptr) {
 	    *hdrsize_b_op = hdr_->hdrsize_b;
+	}
 	return (char *)hdr_ + _IHDRSIZE;
     }
 };
@@ -198,15 +200,16 @@ void
 mlog_writer::impl::free_storage()
 {
     if (hdr_ != nullptr) {
-	if (mmapsize_b_ == 0)
+	if (mmapsize_b_ == 0) {
 	    std::free(hdr_);		// maybe allocated at default constructor
-	else
+	} else {
 	    ::munmap(hdr_, mmapsize_b_);
+	}
     }
     hdr_ = nullptr;
 }
 
-result<void>
+result<>
 mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logsize_b)
 {
     if (logsize_b < C7_MLOG_SIZE_MIN || logsize_b > C7_MLOG_SIZE_MAX) {
@@ -218,12 +221,14 @@ mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logs
     void *top;
     if (path == nullptr) {
 	top = std::calloc(mmapsize_b_, 1);
-	if (top == nullptr)
+	if (top == nullptr) {
 	    return c7result_err(errno, "cannot allocate storage");
+	}
     } else {
 	auto res = c7::file::mmap_rw(path, mmapsize_b_, true);
-	if (!res)
-	    return res;
+	if (!res) {
+	    return std::move(res);
+	}
 	top = res.value().release();
     }
 
@@ -244,8 +249,9 @@ mlog_writer::impl::setup_context(size_t hdrsize_b, size_t logsize_b, const char 
 	hdr_->rev       = _REVISION;
 	hdr_->hdrsize_b = hdrsize_b;
 	hdr_->logsize_b = logsize_b;
-	if (hint_op != nullptr)
+	if (hint_op != nullptr) {
 	    (void)std::strncat(hdr_->hint, hint_op, sizeof(hdr_->hint) - 1);
+	}
     }
 
     if (hdr_->cnt == 0 && hdr_->nextlnkaddr == 0) {
@@ -269,13 +275,11 @@ mlog_writer::impl::update_lnk(size_t logsize, size_t tn_size, size_t sn_size, in
     
     // null character is not counted for *_size, but it's put to rbuf.
     if (tn_size > 0) {
-	if (hdr_->max_tn_size < tn_size)
-	    hdr_->max_tn_size = tn_size;
+	hdr_->max_tn_size = std::max<size_t>(hdr_->max_tn_size, tn_size);
 	logsize += (tn_size + 1);
     }
     if (sn_size > 0) {
-	if (hdr_->max_sn_size < sn_size)
-	    hdr_->max_sn_size = sn_size;
+	hdr_->max_sn_size = std::max<size_t>(hdr_->max_sn_size, sn_size);
 	logsize += (sn_size + 1);
     }
 
@@ -317,8 +321,9 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 {
     // thread name size
     const char *th_name = nullptr;
-    if ((flags_ & C7_MLOG_F_THREAD_NAME) != 0)
+    if ((flags_ & C7_MLOG_F_THREAD_NAME) != 0) {
 	th_name = c7::thread::self::name();
+    }
     size_t tn_size = th_name ? strlen(th_name) : 0;
     if (tn_size > _TN_MAX) {
 	th_name += (tn_size - _TN_MAX);
@@ -327,8 +332,8 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 
     // source name size
     size_t sn_size;
-    if ((flags_ & C7_MLOG_F_SOURCE_NAME) == 0 || src_name == NULL) {
-	src_name = NULL;
+    if ((flags_ & C7_MLOG_F_SOURCE_NAME) == 0 || src_name == nullptr) {
+	src_name = nullptr;
 	sn_size = 0;
     } else {
 	src_name = c7path_name(src_name);
@@ -341,27 +346,30 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
     }
 
     // check size to be written
-    if ((logsize_b + tn_size + sn_size + 2) > maxdsize_b_)
+    if ((logsize_b + tn_size + sn_size + 2) > maxdsize_b_) {
 	return false;					// data size too large
+    }
 
-    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0)
+    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
 	lock_._lock();
+    }
 
     // write two links and data (log, [thread name], [source name])
     raddr_t addr = update_lnk(logsize_b, tn_size, sn_size, src_line,	// links
 			      time_us, level, category, minidata);
     addr = rbuf_.put(addr, logsize_b, logaddr);				// log data
-    if (tn_size > 0)
+    if (tn_size > 0) {
 	addr = rbuf_.put(addr, tn_size+1, th_name);			// +1 : null character
+    }
     if (sn_size > 0) {
 	(void)c7::strbcpy(snbuf_, src_name, src_name + sn_size);	// snbuf_ is used to exclude suffix.
 	addr = rbuf_.put(addr, sn_size+1, snbuf_);			// +1 : null character
     }
     hdr_->nextlnkaddr %= hdr_->logsize_b;
 
-    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0)
+    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
 	lock_.unlock();
-
+    }
     return true;
 }
 
@@ -405,7 +413,7 @@ mlog_writer& mlog_writer::operator=(mlog_writer&& o)
     return *this;
 }
 
-result<void>
+result<>
 mlog_writer::init(const std::string& name,
 		  size_t hdrsize_b, size_t logsize_b,
 		  uint32_t w_flags, const char *hint)
@@ -476,7 +484,7 @@ public:
 	std::free(hdr_);
     }
 
-    result<void> load(const std::string& path);
+    result<> load(const std::string& path);
 
     void scan(size_t maxcount,
 	      uint32_t order_min,
@@ -485,8 +493,9 @@ public:
 	      std::function<bool(const info_t&, void*)> access);
 
     void *hdraddr(size_t *hdrsize_b_op) {
-	if (hdrsize_b_op != NULL)
+	if (hdrsize_b_op != nullptr) {
 	    *hdrsize_b_op = hdr_->hdrsize_b;
+	}
 	return (char *)hdr_ + _IHDRSIZE;
     }
 
@@ -518,23 +527,25 @@ make_info(mlog_reader::info_t& info, const lnk_t& lnk, const char *data)
     if (lnk.sn_size > 0) {
 	info.size_b -= (lnk.sn_size + 1);
 	info.source_name = data + info.size_b;
-    } else
+    } else {
 	info.source_name = "";
+    }
 
     if (lnk.tn_size > 0) {
 	info.size_b -= (lnk.tn_size + 1);
 	info.thread_name = data + info.size_b;
-    } else
+    } else {
 	info.thread_name = "";
+    }
 }
 
-result<void>
+result<>
 mlog_reader::impl::load(const std::string& path)
 {
     auto res = c7::file::read(path);
-    if (!res)
-	return res;
-
+    if (!res) {
+	return std::move(res);
+    }
     void *top = res.value().release();
     hdr_ = static_cast<hdr_t*>(top);
     rbuf_ = rbuffer(static_cast<char*>(top) + _IHDRSIZE + hdr_->hdrsize_b,
@@ -553,8 +564,9 @@ mlog_reader::impl::find_origin(size_t maxcount,
     raddr_t lnkaddr = hdr_->nextlnkaddr + hdr_->logsize_b * 2;
     lnk_t lnk;
     
-    if (maxcount == 0)
+    if (maxcount == 0) {
 	maxcount = -1UL;
+    }
 
     rbuf_.get(lnkaddr, sizeof(lnk), &lnk);
     rewindsize += lnk.prevlnkoff;
@@ -576,14 +588,13 @@ mlog_reader::impl::find_origin(size_t maxcount,
 	}
 	(void)rbuf_.put(lnkaddr, sizeof(lnk), &lnk);	// IMPORTANT
 
-	if (maxcount == 0)
-	    break;
-	if (lnk.order < order_min || lnk.time_us < time_us_min)
-	    break;
-	if (rewindsize > hdr_->logsize_b)
-	    break;
-	if (lnk.prevlnkoff <= 0)
-	    break;				// might be broken
+	if (maxcount == 0 ||
+	    lnk.order < order_min ||
+	    lnk.time_us < time_us_min ||
+	    rewindsize > hdr_->logsize_b ||
+	    lnk.prevlnkoff <= 0) {		// might be broken
+	    break;		
+	}
 	lnkaddr -= lnk.prevlnkoff;
     }
 
@@ -602,16 +613,18 @@ mlog_reader::impl::scan(size_t maxcount,
     for (;;) {
 	lnk_t lnk;
 	rbuf_.get(addr, sizeof(lnk), &lnk);
-	if (lnk.nextlnkoff == 0)		// terminator
+	if (lnk.nextlnkoff == 0) {		// terminator
 	    break;
+	}
 	addr += sizeof(lnk);			// data address
 	if ((lnk.control & _LNK_CONTROL_CHOICE) != 0) {
 	    dbuf_.clear();		// data.capacity() is not changed.
 	    dbuf_.reserve(lnk.size);
 	    rbuf_.get(addr, lnk.size, dbuf_.data());
 	    make_info(info_, lnk, dbuf_.data());
-	    if (!access(info_, dbuf_.data()))
+	    if (!access(info_, dbuf_.data())) {
 		break;
+	    }
 	}
 	addr += lnk.size;			// next lnk address
     }
@@ -644,7 +657,7 @@ mlog_reader& mlog_reader::operator=(mlog_reader&& o)
     return *this;
 }
 
-result<void>
+result<>
 mlog_reader::load(const std::string& name)
 {
     auto path = c7::path::find_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);

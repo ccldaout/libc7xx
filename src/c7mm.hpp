@@ -1,10 +1,13 @@
 /*
  * c7mm.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1872940208
  */
 #ifndef C7_MM_HPP_LOADED__
 #define C7_MM_HPP_LOADED__
@@ -63,8 +66,8 @@ public:
     mmobj(mmobj&& o);
     mmobj& operator=(mmobj&& o);
 
-    result<void> init(size_t size, size_t threshold = -1UL, const std::string& path = "");
-    result<void> resize(size_t new_size);
+    result<> init(size_t size, size_t threshold = -1UL, const std::string& path = "");
+    result<> resize(size_t new_size);
     void reset();
     std::pair<void*, size_t> operator()();
 
@@ -77,10 +80,9 @@ private:
     std::string path_;
     c7::fd fd_;
 
-    result<void> init_anon_mm(size_t size);
-    result<void> resize_anon_mm(size_t size);
-    result<void> switch_to_file_mm(size_t size);
-    result<void> resize_file_mm(size_t size);
+    result<> resize_anon_mm(size_t size);
+    result<> switch_to_file_mm(size_t size);
+    result<> resize_file_mm(size_t size);
 };
 
 
@@ -128,7 +130,7 @@ public:
 	return *this;
     }
 
-    result<void> init(size_t size, size_t threshold, const std::string& path) {
+    result<> init(size_t size, size_t threshold, const std::string& path) {
 	if (auto res = mm_.init(size, threshold, path); !res) {
 	    return res;
 	}
@@ -142,7 +144,7 @@ public:
 	*this = std::move(mmvec<T>());
     }
 
-    result<void> extend() {
+    result<> extend() {
 	auto req = capa_ * 2 * sizeof(T);
 	if (auto res = mm_.resize(req); !res) {
 	    return res;
@@ -173,7 +175,7 @@ public:
 	top_[n_++] = std::move(item);
     }
 
-    result<void> append(const T& item) {
+    result<> append(const T& item) {
 	if (n_ == capa_) {
 	    if (auto res = extend(); !res) {
 		return res;
@@ -183,7 +185,7 @@ public:
 	return c7result_ok();
     }
 
-    result<void> append(T&& item) {
+    result<> append(T&& item) {
 	if (n_ == capa_) {
 	    if (auto res = extend(); !res) {
 		return res;
@@ -211,11 +213,19 @@ public:
 	return n_;
     }
 
-    T* data() const {
+    T* data() {
+	return top_;
+    }
+
+    const T* data() const {
 	return top_;
     }
 
     T& operator[](size_t n) {
+	return top_[n];
+    }
+
+    const T& operator[](size_t n) const {
 	return top_[n];
     }
 

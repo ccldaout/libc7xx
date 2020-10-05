@@ -19,10 +19,11 @@ namespace c7 {
 
 static std::string dconfpath(const std::string& path, bool exists)
 {
-    if (exists)
+    if (exists) {
 	return c7::path::find_c7spec(path, ".dconf", C7_DCONF_DIR_ENV);
-    else
+    } else {
 	return c7::path::init_c7spec(path, ".dconf", C7_DCONF_DIR_ENV);
+    }
 }
 
 
@@ -31,8 +32,9 @@ static std::string dconfpath(const std::string& path, bool exists)
 static size_t sizeofhelp(const std::vector<dconf_def>& defv)
 {
     size_t n = 0;
-    for (auto& d: defv)
+    for (auto& d: defv) {
 	n += d.ident.size() + d.descrip.size() + 1;	// + 1: ':'
+    }
     n += C7_DCONF_INDEX_LIM * 1;	 		// all index has '\a'.
     n++;						// last null
     return n;
@@ -41,8 +43,9 @@ static size_t sizeofhelp(const std::vector<dconf_def>& defv)
 static const dconf_def *finddef(const std::vector<dconf_def>& defv, int index)
 {
     for (auto& d: defv) {
-	if (d.index == index)
+	if (d.index == index) {
 	    return &d;
+	}
     }
     return nullptr;
 }
@@ -76,8 +79,9 @@ mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
     auto res = c7::file::mmap_rw<c7_dconf_head_t>(path, n, true);
     if (!res) {
 	auto p = std::calloc(n, 1);
-	if (p == nullptr)
+	if (p == nullptr) {
 	    throw std::runtime_error("cannot allocate dconf storage");
+	}
 	res = c7::file::unique_mmap<c7_dconf_head_t>((c7_dconf_head_t*)p, std::free);
     }
 
@@ -96,8 +100,9 @@ mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
 	    *p++ = ':';
 	    p = c7::strcpy(p, def->descrip.c_str());
 	    *p++ = '\a';
-	} else
+	} else {
 	    *p++ = '\a';
+	}
     }
     *p = 0;
 
@@ -110,11 +115,12 @@ void dconf::init(const std::string& name, const std::vector<dconf_def>& user_def
     storage_ = mapdconf(name, defv);
 
     auto& self = *this;
-    if (self[C7_DCONF_MLOG].i == 0)
+    if (self[C7_DCONF_MLOG].i == 0) {
 	self[C7_DCONF_MLOG].i = C7_LOG_DTL;
-
-    for (auto& d: defv)
+    }
+    for (auto& d: defv) {
 	storage_->types[d.index] = d.type;
+    }
 }
 
 
@@ -127,14 +133,15 @@ loaddconf(const std::string& name)
 
     size_t n = 0;
     auto res = c7::file::mmap_rw<c7_dconf_head_t>(path, n, false);
-    if (!res)
+    if (!res) {
 	return res;
+    }
 
     auto dh = res.value().get();
-    if (dh->version != C7_DCONF_VERSION)
+    if (dh->version != C7_DCONF_VERSION) {
 	return c7result_err("version mismatch: file:%{}, lib:%{}",
 			    dh->version, C7_DCONF_VERSION);
-
+    }
     return res;
 }
 
@@ -145,8 +152,9 @@ static std::vector<dconf_def> makedef(const c7_dconf_head_t *dh)
 
     char *p = (char *)(dh + 1);
     for (int index = 0; *p != 0; p++, index++) {
-	if (*p == '\a')
+	if (*p == '\a') {
 	    continue;
+	}
 	def.index = index;
 	def.type = dh->types[index];
 
@@ -169,7 +177,7 @@ c7::result<std::vector<dconf_def>> dconf::load(const std::string& name)
 {
     auto res = loaddconf(name);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     storage_ = std::move(res.value());
     return c7result_ok(makedef(storage_.get()));
@@ -181,16 +189,18 @@ c7::result<std::vector<dconf_def>> dconf::load(const std::string& name)
 static int get_i(const std::string &env, int defval)
 {
     auto v = ::getenv(env.c_str());
-    if (v == nullptr)
+    if (v == nullptr) {
 	return defval;
+    }
     return std::strtol(v, nullptr, 0);
 }
 
 dconf::dconf()
 {
     auto p = std::calloc(sizeof(c7_dconf_head_t), 1);
-    if (p == nullptr)
+    if (p == nullptr) {
 	throw std::runtime_error("cannot allocate dconf storage");
+    }
     storage_ = c7::file::unique_mmap<c7_dconf_head_t>((c7_dconf_head_t*)(p), std::free);
 
     auto& self = *this;

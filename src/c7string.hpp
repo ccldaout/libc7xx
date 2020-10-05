@@ -5,6 +5,9 @@
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=336895331
  */
 #ifndef C7_STRING_HPP_LOADED__
 #define C7_STRING_HPP_LOADED__
@@ -68,7 +71,7 @@ inline const char *strfind_ws(const char *s)
 
 inline const char *strskip_on(const char *s, const unsigned int *tab, unsigned int mask)
 {
-    for (; (tab[(unsigned)*s] & mask) != 0; s++) {
+    for (; *s != 0 && (tab[(unsigned)*s] & mask) != 0; s++) {
         ;
     }
     return s;
@@ -76,7 +79,7 @@ inline const char *strskip_on(const char *s, const unsigned int *tab, unsigned i
 
 inline const char *strfind_on(const char *s, const unsigned int *tab, unsigned int mask)
 {
-    for (; (tab[(unsigned)*s] & mask) == 0; s++) {
+    for (; *s != 0 && (tab[(unsigned)*s] & mask) == 0; s++) {
         ;
     }
     return s;
@@ -131,6 +134,58 @@ inline char *strbcpy(char *s, const char *b, const char *e)
     return &s[n];
 }
 
+// strmatch
+
+inline int strmatch_impl(const char *, int)
+{
+    return -1;
+}
+
+template <typename... Cands>
+inline int strmatch_impl(const char *s, int index, const char *c, Cands... cands)
+{
+    if (std::strcmp(s, c) == 0) {
+	return index;
+    }
+    return strmatch_impl(s, index+1, cands...);
+}
+
+template <typename... Cands>
+inline int strmatch_impl(const char *s, int index, const std::string& c, Cands... cands)
+{
+    return strmatch_impl(s, index+1, c.c_str(), cands...);
+}
+
+template <typename... Cands>
+inline int strmatch(const std::string& s, Cands... cands)
+{
+    return strmatch_impl(s.c_str(), 0, cands...);
+}    
+
+inline int strmatch(const std::string& s, const char *cand_v[], int cand_n = -1)
+{
+    if (cand_n == -1) {
+	for (cand_n = 0; cand_v[cand_n] != nullptr; cand_n++);
+    }
+    for (int i = 0; i < cand_n; i++) {
+	if (std::strcmp(s.c_str(), cand_v[i]) == 0) {
+	    return i;
+	}
+    }
+    return -1;
+}
+
+template <typename S>
+inline int strmatch(const std::string& s, const std::vector<S>& cands)
+{
+    for (const auto& [i, c]: c7::seq::enumerate(cands)) {
+	if (s == c) {
+	    return i;
+	}
+    }
+    return -1;
+}
+
 // strmatch_head
 
 inline int strmatch_head_impl(const char *, int)
@@ -141,8 +196,9 @@ inline int strmatch_head_impl(const char *, int)
 template <typename... Cands>
 inline int strmatch_head_impl(const char *s, int index, const char *c, Cands... cands)
 {
-    if (std::strncmp(s, c, std::strlen(c)) == 0)
+    if (std::strncmp(s, c, std::strlen(c)) == 0) {
 	return index;
+    }
     return strmatch_head_impl(s, index+1, cands...);
 }
 
@@ -160,11 +216,13 @@ inline int strmatch_head(const std::string& s, Cands... cands)
 
 inline int strmatch_head(const std::string& s, const char *cand_v[], int cand_n = -1)
 {
-    if (cand_n == -1)
+    if (cand_n == -1) {
 	for (cand_n = 0; cand_v[cand_n] != nullptr; cand_n++);
+    }
     for (int i = 0; i < cand_n; i++) {
-	if (std::strncmp(s.c_str(), cand_v[i], std::strlen(cand_v[i])) == 0)
+	if (std::strncmp(s.c_str(), cand_v[i], std::strlen(cand_v[i])) == 0) {
 	    return i;
+	}
     }
     return -1;
 }
@@ -173,8 +231,9 @@ template <typename S>
 inline int strmatch_head(const std::string& s, const std::vector<S>& cands)
 {
     for (const auto& [i, c]: c7::seq::enumerate(cands)) {
-	if (s.compare(0, c.size(), c) == 0)
+	if (s.compare(0, c.size(), c) == 0) {
 	    return i;
+	}
     }
     return -1;
 }
@@ -190,8 +249,9 @@ template <typename... Cands>
 inline int strmatch_tail_impl(const char *e, int en, int index, const char *c, Cands... cands)
 {
     int cn = std::strlen(c);
-    if (cn <= en && std::strcmp(e-cn, c) == 0)
+    if (cn <= en && std::strcmp(e-cn, c) == 0) {
 	return index;
+    }
     return strmatch_tail_impl(e, en, index+1, cands...);
 }
 
@@ -211,8 +271,9 @@ inline int strmatch_tail(const std::string& ss, Cands... cands)
 
 inline int strmatch_tail(const std::string& ss, const char *cand_v[], int cand_n = -1)
 {
-    if (cand_n == -1)
+    if (cand_n == -1) {
 	for (cand_n = 0; cand_v[cand_n] != nullptr; cand_n++);
+    }
 
     const char *s = ss.c_str();
     const char *e = std::strchr(s, 0);
@@ -220,8 +281,9 @@ inline int strmatch_tail(const std::string& ss, const char *cand_v[], int cand_n
 
     for (int i = 0; i < cand_n; i++, cand_v++) {
 	int cn = std::strlen(*cand_v);
-	if (cn <= en && std::strcmp(e-cn, *cand_v) == 0)
+	if (cn <= en && std::strcmp(e-cn, *cand_v) == 0) {
 	    return i;
+	}
     }
     return -1;
 }
@@ -230,8 +292,9 @@ template <typename S>
 inline int strmatch_tail(const std::string& s, const std::vector<S>& cands)
 {
     for (auto [i, c]: c7::seq::enumerate(cands)) {
-	if (s.size() >= c.size() && s.compare(s.size() - c.size(), c.size(), c) == 0)
+	if (s.size() >= c.size() && s.compare(s.size() - c.size(), c.size(), c) == 0) {
 	    return i;
+	}
     }
     return -1;
 }
@@ -282,8 +345,9 @@ public:
     }
 
     strvec& operator+=(const char **pv) {
-	for (auto&& s: c7::seq::charp_array(pv))
+	for (auto&& s: c7::seq::charp_array(pv)) {
 	    this->push_back(std::move(s));
+	}
 	return *this;
     }
 
@@ -304,15 +368,17 @@ public:
     
     strvec& operator+=(std::vector<std::string>&& sv) {
 	this->reserve(this->size() + sv.size());
-	for (auto&& s: std::move(sv))
+	for (auto&& s: std::move(sv)) {
 	    this->push_back(std::move(s));
+	}
 	return *this;
     }
 
     std::vector<char *> c_strv() const {
 	std::vector<char *> csv;
-	for (auto& s: *this)
+	for (auto& s: *this) {
 	    csv.push_back((char *)s.c_str());
+	}
 	csv.push_back(nullptr);
 	return csv;
     }
@@ -349,8 +415,9 @@ inline std::stringstream& operator+=(std::stringstream& out, const char in)
 template <typename S>
 inline S& upper(S& out, const std::string& s, int n)
 {
-    for (auto p = s.c_str(); n > 0; n--, p++)
+    for (auto p = s.c_str(); n > 0; n--, p++) {
 	out += std::toupper(static_cast<int>(*p));
+    }
     return out;
 }
 
@@ -372,8 +439,9 @@ inline S& upper(S& out, const std::string& s)
 template <typename S>
 inline S& lower(S& out, const std::string& s, size_t n)
 {
-    for (auto p = s.c_str(); n > 0; n--, p++)
+    for (auto p = s.c_str(); n > 0; n--, p++) {
 	out += std::tolower(static_cast<int>(*p));
+    }
     return out;
 }
 
@@ -393,27 +461,34 @@ inline S& lower(S& out, const std::string& s)
 // concat
 
 template <typename S>
-S& concat(S& out, const std::string& sep, const char **sv, int sc = -1) {
-    if (*sv == nullptr)
+S& concat(S& out, const std::string& sep, const char **sv, int sc = -1)
+{
+    if (*sv == nullptr) {
 	return out;
+    }
     out += *sv++;
     if (sc == -1) {
-	for (; *sv != nullptr; sv++)
+	for (; *sv != nullptr; sv++) {
 	    (out += sep) += *sv;
+	}
     } else {
-	for (sc--; sc > 0; sc--, sv++)
+	for (sc--; sc > 0; sc--, sv++) {
 	    (out += sep) += *sv;
+	}
     }	
     return out;
 }
 
 template <typename S, typename S2>
-S& concat(S& out, const std::string& sep, const std::vector<S2>& sv) {
-    if (sv.empty())
+S& concat(S& out, const std::string& sep, const std::vector<S2>& sv)
+{
+    if (sv.empty()) {
 	return out;
+    }
     out += sv[0];
-    for (const auto& s: c7::seq::tail(sv, 1))
+    for (const auto& s: c7::seq::tail(sv, 1)) {
 	(out += sep) += s;
+    }
     return out;
 }
 
@@ -462,8 +537,9 @@ inline std::string transpose(const std::string& in, Trans trans)
 {
     std::string out;
     for (auto ch: in) {
-	if (auto c = trans(ch); c != 0)
+	if (auto c = trans(ch); c != 0) {
 	    out += c;
+	}
     }
     return out;
 }
@@ -472,8 +548,9 @@ inline std::string transpose(const std::string& in, const std::string& cond, con
 {
     auto last_trans = trans[trans.size()-1];
     return transpose(in, [&cond, &trans, last_trans](char ch) {
-	    if (auto pos = cond.find(ch); pos != std::string::npos)
+	    if (auto pos = cond.find(ch); pos != std::string::npos) {
 		return (pos < trans.size()) ? trans[pos] : last_trans;
+	    }
 	    return ch;
 	});
 }
@@ -575,15 +652,15 @@ std::string eval_C(const std::string& s);
 
 typedef std::function<c7::result<const char*>(std::string& out, const char *vn, bool enclosed)> evalvar;
 
-c7::result<void> eval(std::string& out, const std::string& in, char mark, char escape, c7::str::evalvar);
-c7::result<void> eval(std::stringstream& out, const std::string& in, char mark, char escape, c7::str::evalvar);
+c7::result<> eval(std::string& out, const std::string& in, char mark, char escape, c7::str::evalvar);
+c7::result<> eval(std::stringstream& out, const std::string& in, char mark, char escape, c7::str::evalvar);
 c7::result<std::string> eval(const std::string& in, char mark, char escape, c7::str::evalvar evalvar);
 
 
 // eval C escape sequece
 
-c7::result<void> eval_env(std::string& out, const std::string& in);
-c7::result<void> eval_env(std::stringstream& out, const std::string& in);
+c7::result<> eval_env(std::string& out, const std::string& in);
+c7::result<> eval_env(std::stringstream& out, const std::string& in);
 c7::result<std::string> eval_env(const std::string& in);
 
 

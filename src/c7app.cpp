@@ -1,7 +1,7 @@
 /*
  * c7app.cpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
@@ -43,57 +43,101 @@ void set_progname(const std::string& name)
 }
 
 
-static void echo_impl(continuation con, const char *file, int line,
-		      const c7::result_base *res,
-		      const char *s)
+static inline void
+echo_impl(const char *file, int line, const c7::result_base *res, const char *s)
 {
     c7::p_("%{}:%{} %{}", c7path_name(file), line, (s != nullptr) ? s : "...");
     if (res != nullptr) {
 	c7::p_("%{}", *res);
     }
-    switch (con) {
-    case continuation::keep:
-	return;
-    case continuation::exit_success:
+}
+
+void echo(const char *file, int line)
+{
+    echo_impl(file, line, nullptr, nullptr);
+}
+
+void echo(const char *file, int line, const char *s)
+{
+    echo_impl(file, line, nullptr, s);
+}
+
+void echo(const char *file, int line, const std::string& s)
+{
+    echo_impl(file, line, nullptr, s.c_str());
+}
+
+void echo(const char *file, int line, const c7::result_base& res)
+{
+    echo_impl(file, line, &res, nullptr);
+}
+
+void echo(const char *file, int line, const c7::result_base& res, const char *s)
+{
+    echo_impl(file, line, &res, s);
+}
+
+void echo(const char *file, int line, const c7::result_base& res, const std::string& s)
+{
+    echo_impl(file, line, &res, s.c_str());
+}
+
+
+[[noreturn]] static void
+quit_impl(quit_type qt, const char *file, int line, const c7::result_base *res, const char *s)
+{
+    c7::p_("%{}:%{} %{}", c7path_name(file), line, (s != nullptr) ? s : "...");
+    if (res != nullptr) {
+	c7::p_("%{}", *res);
+    }
+    switch (qt) {
+    case quit_type::success:
 	std::exit(EXIT_SUCCESS);
-	return;
-    case continuation::exit_failure:
+	break;
+    case quit_type::failure:
 	std::exit(EXIT_FAILURE);
-	return;
-    case continuation::abort:
+	break;
+    case quit_type::abort:
+    default:
 	std::abort();
-	return;
+	break;
     }
 }
 
-void echo(continuation con, const char *file, int line)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line)
 {
-    echo_impl(con, file, line, nullptr, nullptr);
+    quit_impl(qt, file, line, nullptr, nullptr);
 }
 
-void echo(continuation con, const char *file, int line, const char *s)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line, const char *s)
 {
-    echo_impl(con, file, line, nullptr, s);
+    quit_impl(qt, file, line, nullptr, s);
 }
 
-void echo(continuation con, const char *file, int line, const std::string& s)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line, const std::string& s)
 {
-    echo_impl(con, file, line, nullptr, s.c_str());
+    quit_impl(qt, file, line, nullptr, s.c_str());
 }
 
-void echo(continuation con, const char *file, int line, const c7::result_base& res)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line, const c7::result_base& res)
 {
-    echo_impl(con, file, line, &res, nullptr);
+    quit_impl(qt, file, line, &res, nullptr);
 }
 
-void echo(continuation con, const char *file, int line, const c7::result_base& res, const char *s)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line, const c7::result_base& res, const char *s)
 {
-    echo_impl(con, file, line, &res, s);
+    quit_impl(qt, file, line, &res, s);
 }
 
-void echo(continuation con, const char *file, int line, const c7::result_base& res, const std::string& s)
+[[noreturn]] void
+quit(quit_type qt, const char *file, int line, const c7::result_base& res, const std::string& s)
 {
-    echo_impl(con, file, line, &res, s.c_str());
+    quit_impl(qt, file, line, &res, s.c_str());
 }
 
 

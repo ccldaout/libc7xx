@@ -1,10 +1,13 @@
 /*
  * c7socket.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=448649916
  */
 #ifndef C7_SOCKET_HPP_LOADED__
 #define C7_SOCKET_HPP_LOADED__
@@ -20,6 +23,7 @@
 namespace c7 {
 
 
+result<std::pair<::sockaddr_un, size_t>> sockaddr_unix(const std::string& path);
 ::sockaddr_in sockaddr_ipv4(uint32_t ipaddr, int port);
 result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port);
 void sockaddr_ipv4_port(::sockaddr_in& inaddr, int port);
@@ -51,36 +55,36 @@ public:
     static result<socket> udp();	// AF_INET, SOCK_DGRAM
     static result<socket> unix();	// AF_UNXI, SOCK_STREAM
 
-    result<void> bind(const ::sockaddr_in& inaddr);
-    result<void> bind(uint32_t ipaddr, int port);
-    result<void> bind(const std::string& host, int port);
-    result<void> bind(const std::string& path);		// UNIX domain
+    result<> bind(const ::sockaddr_in& inaddr);
+    result<> bind(uint32_t ipaddr, int port);
+    result<> bind(const std::string& host, int port);
+    result<> bind(const std::string& path);		// UNIX domain
 
-    result<void> connect(const ::sockaddr_in& inaddr);
-    result<void> connect(uint32_t ipaddr, int port);
-    result<void> connect(const std::string& host, int port);
-    result<void> connect(const std::string& path);	// UNIX domain
+    result<> connect(const ::sockaddr_in& inaddr);
+    result<> connect(uint32_t ipaddr, int port);
+    result<> connect(const std::string& host, int port);
+    result<> connect(const std::string& path);	// UNIX domain
 
-    result<void> listen(int backlog = 0);
+    result<> listen(int backlog = 0);
     
     result<socket> accept();
     
     result<::sockaddr_in> self_ipv4();
     result<::sockaddr_in> peer_ipv4();
 
-    result<void> getsockopt(int level, int optname, void *optval, socklen_t *optlen);
-    result<void> setsockopt(int level, int optname, const void *optval, socklen_t optlen);
+    result<> getsockopt(int level, int optname, void *optval, socklen_t *optlen);
+    result<> setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
-    result<void> tcp_keepalive(bool enable);
-    result<void> tcp_nodelay(bool enable);
-    result<void> set_rcvbuf(int nbytes);	// server:before listen, client:before conenct
-    result<void> set_sndbuf(int nbytes);
-    result<void> set_sndtmo(c7::usec_t timeout);
-    result<void> set_rcvtmo(c7::usec_t timeout);
+    result<> tcp_keepalive(bool enable);
+    result<> tcp_nodelay(bool enable);
+    result<> set_rcvbuf(int nbytes);	// server:before listen, client:before conenct
+    result<> set_sndbuf(int nbytes);
+    result<> set_sndtmo(c7::usec_t timeout);
+    result<> set_rcvtmo(c7::usec_t timeout);
 
-    result<void> shutdown_r();
-    result<void> shutdown_w();
-    result<void> shutdown_rw();
+    result<> shutdown_r();
+    result<> shutdown_w();
+    result<> shutdown_rw();
 
     result<ssize_t> recvfrom(void *buffer, size_t n,
 			     int flags, ::sockaddr& src_addr, socklen_t& addrlen);
@@ -96,7 +100,7 @@ result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size = 0, int 
 result<socket> tcp_server(uint32_t ipaddr, int port, int rcvbuf_size = 0, int backlog = 0);
 result<socket> tcp_server(const std::string& host, int port, int rcvbuf_size = 0, int backlog = 0);
 result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size = 0);
-result<socket> tcp_client(uint32_t ipaddr, int rcvbuf_size = 0);
+result<socket> tcp_client(uint32_t ipaddr, int port, int rcvbuf_size = 0);
 result<socket> tcp_client(const std::string& host, int port, int rcvbuf_size = 0);
 
 result<socket> udp_server(const ::sockaddr_in& inaddr);

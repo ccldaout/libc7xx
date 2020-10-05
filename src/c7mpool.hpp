@@ -1,10 +1,13 @@
 /*
  * c7mpool.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1866602842
  */
 #ifndef C7_MPOOL_HPP_LOADED__
 #define C7_MPOOL_HPP_LOADED__
@@ -43,7 +46,11 @@ struct item {
 template <typename T>
 class pointer {
 private:
+    friend pointer<T> strategy<T>::get();
+
     item<T> *s_;
+
+    explicit pointer(item<T> *s): s_(s) {}
 
 public:
     pointer(const pointer&) = delete;
@@ -53,8 +60,6 @@ public:
 
     pointer(std::nullptr_t): s_(nullptr) {}
 
-    explicit pointer(item<T> *s): s_(s) {}
-
     ~pointer() {
 	if (s_ != nullptr) {
 	    s_->link.pool->back(s_);
@@ -62,11 +67,11 @@ public:
 	}
     }
 
-    pointer(pointer<T>&& o): s_(o.s_) {
+    pointer(pointer&& o): s_(o.s_) {
 	o.s_ = nullptr;
     }
 	
-    pointer<T>& operator=(pointer<T>&& o) {
+    pointer& operator=(pointer&& o) {
 	if (this != &o) {
 	    if (s_ != nullptr) {
 		s_->link.pool->back(s_);
@@ -77,7 +82,7 @@ public:
 	return *this;
     }
 
-    pointer<T>& operator=(std::nullptr_t) {
+    pointer& operator=(std::nullptr_t) {
 	if (s_ != nullptr) {
 	    s_->link.pool->back(s_);
 	    s_ = nullptr;
@@ -89,37 +94,49 @@ public:
 	return s_ != nullptr;
     }
 
-    bool operator==(const pointer<T>& o) {
+    bool operator==(const pointer& o) const {
 	return s_ == o.s_;
     }
 
-    bool operator==(nullptr_t) {
+    bool operator==(std::nullptr_t) const {
 	return s_ == nullptr;
     }
 
-    bool operator!=(const pointer<T>& o) {
+    bool operator!=(const pointer& o) const {
 	return s_ != o.s_;
     }
 
-    bool operator!=(nullptr_t) {
+    bool operator!=(std::nullptr_t) const {
 	return s_ != nullptr;
     }
 
-    inline T* operator->() const {
+    inline const T* operator->() const {
 	return &s_->data;
     }
 
-    inline T& operator*() const {
+    inline T* operator->() {
+	return &s_->data;
+    }
+
+    inline const T& operator*() const {
 	return s_->data;
     }
 
-    inline T* get() const {
+    inline T& operator*() {
+	return s_->data;
+    }
+
+    inline const T* get() const {
 	return s_ ? &s_->data : nullptr;
     }
 
-    inline pointer<T> dup() {
+    inline T* get() {
+	return s_ ? &s_->data : nullptr;
+    }
+
+    inline pointer dup() const {
 	if (s_ == nullptr) {
-	    return pointer<T>();
+	    return pointer();
 	}
 	auto p = s_->link.pool->get();
 	if (p) {
@@ -133,10 +150,10 @@ public:
 template <typename T>
 class strategy {
 public:
-    strategy(const strategy<T>&) = delete;
-    strategy<T>& operator=(const strategy<T>&) = delete;
-    strategy(strategy<T>&&) = delete;
-    strategy<T>& operator=(strategy<T>&&) = delete;
+    strategy(const strategy&) = delete;
+    strategy& operator=(const strategy&) = delete;
+    strategy(strategy&&) = delete;
+    strategy& operator=(strategy&&) = delete;
 
     strategy() {}
 
@@ -209,13 +226,16 @@ private:
     strategy<T> *strategy_ = nullptr;
 
 public:
-    mpool(mpool<T>&& o): strategy_(o.strategy_) {
+    mpool(mpool&& o): strategy_(o.strategy_) {
 	o.strategy_ = nullptr;
     }
 
-    mpool& operator=(mpool<T>&& o) {
+    mpool& operator=(mpool&& o) {
 	if (this != &o) {
-	    this->strategy_ = o.strategy_;
+	    if (strategy_ != nullptr) {
+		strategy_->detached();
+	    }
+	    strategy_ = o.strategy_;
 	    o.strategy_ = nullptr;
 	}
 	return *this;

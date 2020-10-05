@@ -5,6 +5,9 @@
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1718128885
  */
 #ifndef C7_FILE_HPP_LOADED__
 #define C7_FILE_HPP_LOADED__
@@ -25,28 +28,28 @@ namespace file {
 
 // recursive mkdir
 
-c7::result<void> mkdir(const std::string& path,
+c7::result<> mkdir(const std::string& path,
 		       mode_t mode = 0700, uid_t uid = -1, gid_t gid = -1);
 
 // set same owner of parent directory
 
-c7::result<void> inherit_owner(const std::string& path);
+c7::result<> inherit_owner(const std::string& path);
 
 
 // file read/write operations
 
-c7::result<void> write(const std::string& path, mode_t mode, const void *buf, size_t size);
+c7::result<> write(const std::string& path, mode_t mode, const void *buf, size_t size);
 
 template <typename T>
-c7::result<void> write(const std::string& path, mode_t mode, const T& buf)
+c7::result<> write(const std::string& path, mode_t mode, const T& buf)
 {
     return write(path, mode, &buf, sizeof(buf));
 }
 
-c7::result<void> rewrite(const std::string& path, void *buf, size_t size);
+c7::result<> rewrite(const std::string& path, void *buf, size_t size);
 
 template <typename T>
-c7::result<void> rewrite(const std::string& path, const T& buf)
+c7::result<> rewrite(const std::string& path, const T& buf)
 {
     return rewrite(path, &buf, sizeof(buf));
 }

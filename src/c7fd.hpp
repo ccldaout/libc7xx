@@ -1,10 +1,13 @@
 /*
  * c7fd.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1541005293
  */
 #ifndef C7_FD_HPP_LOADED__
 #define C7_FD_HPP_LOADED__
@@ -28,7 +31,7 @@ class io_result {
 public:
     enum class status {
 	OK,		// *     : all data has been processed successfully
-	BUSY,		// *     : detect EWOULDBLOCK before read first byte.
+	BUSY,		// *     : detect EWOULDBLOCK
 	CLOSED,		// read_n: detect CLOSED before read first byte.
 	INCOMP,		// read_n: detect CLOSED in reading more data.
 	ERR,		// *     : detect other ERROR
@@ -115,23 +118,23 @@ public:
 
     fd& swap(fd& o);
     result<fd> dup(); 
-    result<void> renumber_to(int target_fdnum);
-    result<void> renumber_above(int lowest_fdnum);
+    result<> renumber_to(int target_fdnum);
+    result<> renumber_above(int lowest_fdnum);
 
     result<int> get_flag(int flagtype);
-    result<void> set_flag(int flagtype, int flag);
-    result<void> change_flag(int set_type, int flags, bool enable);
+    result<> set_flag(int flagtype, int flag);
+    result<> change_flag(int set_type, int flags, bool enable);
 
     result<bool> get_cloexec();
-    result<void> set_cloexec(bool enable);
+    result<> set_cloexec(bool enable);
 
     result<bool> get_nonblocking();
-    result<void> set_nonblocking(bool enable);
+    result<> set_nonblocking(bool enable);
 
-    result<void> chmod(::mode_t mode);
-    result<void> chown(uid_t uid);
-    result<void> chown(uid_t uid, gid_t gid);
-    result<void> truncate(size_t size);
+    result<> chmod(::mode_t mode);
+    result<> chown(uid_t uid);
+    result<> chown(uid_t uid, gid_t gid);
+    result<> truncate(size_t size);
     result<stat_t> stat() const;
 
     result<off_t> seek_abs(off_t offset);
@@ -152,15 +155,17 @@ public:
 
     result<bool> wait_readable(c7::usec_t tmo_us = -1) {
 	auto res = wait(READABLE, tmo_us);
-	if (!res)
-	    return res;
+	if (!res)  {
+	    return std::move(res);
+	}
 	return c7result_ok((res.value() & READABLE) != 0);
     }
 
     result<bool> wait_writable(c7::usec_t tmo_us = -1) {
 	auto res = wait(WRITABLE, tmo_us);
-	if (!res)
-	    return res;
+	if (!res) {
+	    return std::move(res);
+	}
 	return c7result_ok((res.value() & WRITABLE) != 0);
     }
 

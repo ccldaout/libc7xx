@@ -58,7 +58,7 @@ c7::fd test_1()
 	c7echo("&d:%{}, d.s:<%{}>", &d, d.s);
     }
 
-    return std::move(fd);
+    return fd;
 }
 
 void test_2(c7::fd&& fd)

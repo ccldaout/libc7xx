@@ -1,10 +1,13 @@
 /*
  * c7threadcom.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * (Nothing)
  */
 #ifndef C7_THREADCOM_HPP_LOADED__
 #define C7_THREADCOM_HPP_LOADED__
@@ -397,7 +400,7 @@ public:
     void detach(bool wait_all_detached = true) {
 	(void)user_.down();
 	if (wait_all_detached) {
-	    (void)user_.wait_zero();
+	    (void)user_.wait_just(0);
 	}
     }
 

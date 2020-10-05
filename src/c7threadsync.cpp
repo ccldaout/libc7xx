@@ -1,7 +1,7 @@
 /*
  * c7threadsync.cpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
@@ -64,7 +64,7 @@ public:
 	cv_(), flag_(WAIT), unfinished_(0) {
     }
 
-    result<void> monitor(thread& th) {
+    result<> monitor(thread& th) {
 	auto defer = cv_.lock();
 	if (flag_ == ABORT) {
 	    return c7result_err("Already aborted: some thread cannot be started previously.");
@@ -81,7 +81,7 @@ public:
 	return c7result_ok();
     }
 
-    result<void> start() {
+    result<> start() {
 	auto defer = cv_.lock();
 	if (flag_ == ABORT) {
 	    return c7result_err("Already aborted: some thread cannot be started previously.");
@@ -140,12 +140,12 @@ group::~group()
     pimpl = nullptr;
 }
 
-result<void> group::add(thread& th)
+result<> group::add(thread& th)
 {
     return pimpl->monitor(th);
 }
 
-result<void> group::start()
+result<> group::start()
 {
     return pimpl->start();
 }
@@ -189,13 +189,16 @@ int counter::count()
 
 void counter::reset(int count)
 {
+    c_._lock();
     counter_ = count;
+    c_.notify_all();
+    c_.unlock();
 }
 
-void counter::up()
+void counter::up(int n)
 {
     c_._lock();
-    counter_++;
+    counter_ += n;
     c_.notify_all();
     c_.unlock();
 }
@@ -205,8 +208,9 @@ bool counter::down(c7::usec_t timeout)
     ::timespec *tmp = c7::mktimespec(timeout);
     auto defer = c_.lock();
     while (counter_ == 0) {
-	if (!c_.wait(tmp))
+	if (!c_.wait(tmp)) {
 	    return false;
+	}
     }
     if (--counter_ == 0) {
 	on_zero();
@@ -215,13 +219,26 @@ bool counter::down(c7::usec_t timeout)
     return true;
 }
 
-bool counter::wait_zero(c7::usec_t timeout)
+bool counter::wait_atleast(int expect, c7::usec_t timeout)
 {
     ::timespec *tmp = c7::mktimespec(timeout);
     auto defer = c_.lock();
-    while (counter_ != 0) {
-	if (!c_.wait(tmp))
+    while (counter_ < expect) {
+	if (!c_.wait(tmp)) {
 	    return false;
+	}
+    }
+    return true;
+}
+
+bool counter::wait_just(int expect, c7::usec_t timeout)
+{
+    ::timespec *tmp = c7::mktimespec(timeout);
+    auto defer = c_.lock();
+    while (counter_ != expect) {
+	if (!c_.wait(tmp)) {
+	    return false;
+	}
     }
     return true;
 }

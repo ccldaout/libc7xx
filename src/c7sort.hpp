@@ -5,6 +5,9 @@
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=612923095
  */
 
 #ifndef C7_SORT_HPP_LOADED__
@@ -21,8 +24,8 @@
 namespace c7 {
 
 
-#define C7_MSORT_MAX_DEPTH	64
-#define C7_QSORT_MAX_DEPTH	48
+#define C7_MSORT_MAX_DEPTH	(64)
+#define C7_QSORT_MAX_DEPTH	(128)
 
 
 /*----------------------------------------------------------------------------

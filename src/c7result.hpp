@@ -1,10 +1,13 @@
 /*
  * c7result.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=360068048
  */
 #ifndef C7_RESULT_HPP_LOADED__
 #define C7_RESULT_HPP_LOADED__
@@ -139,58 +142,64 @@ public:
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, const char *msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, const char *msg, const Args&... args) {
 	errors_.reset();
 	add_errinfo(file, line, 0, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, const std::string& msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, const std::string& msg, const Args&... args) {
 	errors_.reset();
 	add_errinfo(file, line, 0, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, int what, const char *msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, int what, const char *msg, const Args&... args) {
 	errors_.reset();
 	add_errinfo(file, line, what, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, int what, const std::string& msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, int what, const std::string& msg, const Args&... args) {
 	errors_.reset();
 	add_errinfo(file, line, what, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, result_base&& base, int what, const char *msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, result_base&& base, int what, const char *msg, const Args&... args) {
 	errors_ = std::move(base.errors_);
 	add_errinfo(file, line, what, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
     template <typename... Args>
-    result_base&& set_error(const char *file, int line, result_base&& base, int what, const std::string& msg, const Args&... args) {
+    result_base& set_error(const char *file, int line, result_base&& base, int what, const std::string& msg, const Args&... args) {
 	errors_ = std::move(base.errors_);
 	add_errinfo(file, line, what, msg, args...);
-	return std::move(*this);
+	return *this;
     }
 
-    result_base&& set_error(const char *file, int line, result_base&& base, int what) {
+    result_base& set_error(const char *file, int line, result_base&& base, int what) {
 	errors_ = std::move(base.errors_);
 	add_errinfo(file, line, what);
-	return std::move(*this);
+	return *this;
     }
 
-    result_base&& set_error(const char *file, int line, result_base&& base) {
+    result_base& set_error(const char *file, int line, result_base&& base) {
 	errors_ = std::move(base.errors_);
 	add_errinfo(file, line, 0);
-	return std::move(*this);
+	return *this;
     }
+
+    void copy(result_base& target) const {
+	target.copy_from(*this);
+    }
+
+    void merge_iferror(result_base&& source);
 
     explicit operator bool() const {
 	return !errors_;
@@ -222,6 +231,8 @@ protected:
 	add_errinfo(file, line, what, c7::format(msg, arg1, args...));
     }
 
+    void copy_from(const result_base&);
+
 private:
     static const std::vector<errinfo> no_error_;
 };
@@ -229,7 +240,7 @@ private:
 
 // primary template
 
-template <typename R, typename Tag = typename result_category<R>::type>
+template <typename R = void, typename Tag = typename result_category<R>::type>
 class result: public result_base {};
 
 
@@ -250,7 +261,7 @@ public:
 
     result(R&& r): result_base(), value_(std::move(r)) {}
 
-    result(result<R, result_move_tag>&& o):
+    result(result&& o):
 	result_base(std::move(o)), value_(std::move(o.value_)) {
     }
 
@@ -262,12 +273,12 @@ public:
     }
 
     template <typename... Args>
-    result<R, result_move_tag>&& set_error(const Args&... args) {
+    result&& set_error(const Args&... args) {
 	result_base::set_error(args...);
 	return std::move(*this);
     }
 
-    result<R, result_move_tag>& operator=(result<R, result_move_tag>&& o) {
+    result& operator=(result&& o) {
 	if (this != &o) {
 	    value_ = std::move(o.value_);
 	    errors_ = std::move(o.errors_);
@@ -275,16 +286,16 @@ public:
 	return *this;
     }
 
-    result<R, result_move_tag>&& operator=(const R& r) {
+    result& operator=(const R& r) {
 	value_ = r;
 	errors_.reset();
-	return std::move(*this);
+	return *this;
     }
 
-    result<R, result_move_tag>&& operator=(R&& r) {
+    result& operator=(R&& r) {
 	value_ = std::move(r);
 	errors_.reset();
-	return std::move(*this);
+	return *this;
     }
 
     R& value() {
@@ -294,16 +305,22 @@ public:
 	return value_;
     }
 
-    R& value(const R& alt_value) {
+    const R& value() const {
 	if (errors_) {
-	    value_ = alt_value;
+	    throw std::runtime_error("result has no value");
 	}
 	return value_;
     }
 
     R& value(R&& alt_value) {
 	if (errors_) {
-	    value_ = std::move(alt_value);
+	    return alt_value;
+	}
+	return value_;
+    }
+    const R& value(const R& alt_value) const {
+	if (errors_) {
+	    return alt_value;
 	}
 	return value_;
     }
@@ -322,22 +339,21 @@ public:
 
     explicit result(R r): result_base(), value_(r) {}
 
-    result(result<R, result_copy_tag>&& o): result_base(std::move(o)), value_(o.value_) {}
+    result(result&& o): result_base(std::move(o)), value_(o.value_) {}
 
     result(result_base&& o): result_base(std::move(o)), value_() {
 	if (!errors_) {
-	    //result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
 	    throw std::runtime_error("value type mismatch: data maybe lost");
 	}
     }
 
     template <typename... Args>
-    result<R, result_copy_tag>&& set_error(const Args&... args) {
+    result& set_error(const Args&... args) {
 	result_base::set_error(args...);
-	return std::move(*this);
+	return *this;
     }
 
-    result<R, result_copy_tag>& operator=(result<R, result_copy_tag>&& o) {
+    result& operator=(result&& o) {
 	if (this != &o) {
 	    value_ = o.value_;
 	    errors_ = std::move(o.errors_);
@@ -345,20 +361,20 @@ public:
 	return *this;
     }
 
-    result<R, result_copy_tag>&& operator=(R r) {
+    result& operator=(R r) {
 	value_ = r;
 	errors_.reset();
-	return std::move(*this);
+	return *this;
     }
 
-    R value() {
+    R value() const {
 	if (errors_) {
 	    throw std::runtime_error("result has no value");
 	}
 	return value_;
     }
 
-    R value(R alt_value) {
+    R value(R alt_value) const {
 	return errors_ ? alt_value : value_;
     }
 };
@@ -371,22 +387,21 @@ class result<void, result_void_tag>: public result_base {
 public:
     result(): result_base() {}
 
-    result(result<void, result_void_tag>&& o): result_base(std::move(o)) {}
+    result(result&& o): result_base(std::move(o)) {}
 
     result(result_base&& o): result_base(std::move(o)) {
 	if (!errors_) {
-	    //result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
 	    throw std::runtime_error("value type mismatch: data maybe lost");
 	}
     }
 
     template <typename... Args>
-    result<void, result_void_tag>&& set_error(const Args&... args) {
+    result& set_error(const Args&... args) {
 	result_base::set_error(args...);
-	return std::move(*this);
+	return *this;
     }
 
-    result<void, result_void_tag>& operator=(result<void, result_void_tag>&& o) {
+    result& operator=(result&& o) {
 	if (this != &o) {
 	    errors_ = std::move(o.errors_);
 	}
@@ -421,7 +436,7 @@ inline auto c7result_ok(R&& r)
 
 inline auto c7result_ok()
 {
-    return c7::result<void>();
+    return c7::result<>();
 }
 
 #define c7result_err(...)		c7::result_base(__FILE__, __LINE__, __VA_ARGS__)

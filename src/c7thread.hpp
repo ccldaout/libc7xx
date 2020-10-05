@@ -1,10 +1,13 @@
 /*
  * c7thread.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1557099975
  */
 #ifndef C7_THREAD_HPP_LOADED__
 #define C7_THREAD_HPP_LOADED__
@@ -324,11 +327,11 @@ public:
 	set_finalize([=](){ func(args...); });
     }
 
-    c7::result<void> start();
+    c7::result<> start();
 
     bool join(c7::usec_t timeout = -1);
     exit_type status() const;
-    c7::result<void>& terminate_result();
+    c7::result<>& terminate_result();
 
     bool is_alive() const;
     bool is_self() const;
@@ -342,7 +345,7 @@ struct self {
     static uint64_t id();
     [[noreturn]] static void exit();
     [[noreturn]] static void abort();
-    [[noreturn]] static void abort(c7::result<void>&&);
+    [[noreturn]] static void abort(c7::result<>&&);
 };
 
 class proxy {

@@ -82,10 +82,12 @@ std::string& eval_C(std::string& out, const std::string& s)
 		out += static_cast<char>(std::strtol(in+1, (char **)&in, 16));
 	    } else if (isoctal(*in)) {
 		int ch = *in++ - '0';
-		if (isoctal(*in))
+		if (isoctal(*in)) {
 		    ch = (ch << 3) + *in++ - '0';
-		if (isoctal(*in))
+		}
+		if (isoctal(*in)) {
 		    ch = (ch << 3) + *in++ - '0';
+		}
 		out += static_cast<char>(ch);
 	    } else {
 		out += *in++;
@@ -156,20 +158,24 @@ static result<const char*> evalvarref(std::string& out, const char *in, const ev
     while ((p = strpbrk(in, prm.brks)) != nullptr) {
 	var.append(in, p - in);
 	if (*p == prm.escape) {
-	    if (p[1] == 0)
+	    if (p[1] == 0) {
 		return c7result_seterr(res, "Invalid escape sequence: '%{}'", refbeg);
+	    }
 	    var += p[1];
 	    in = p + 2;
 	} else if (*p == prm.mark) {
 	    res = evalvarref(var, p + 1, prm);
-	    if (!res)
+	    if (!res) {
 		return res;
+	    }
 	    in = res.value();
 	} else if (*p == prm.end) {
 	    res = prm.evalvar(out, var.c_str(), true);
-	    if (!res)
+	    if (!res) {
 		return res;
-	    return (res = p + 1);		// success
+	    }
+	    res = p + 1;
+	    return res;			// success
 	} else {
 	    var += *p;
 	    in = p + 1;
@@ -178,7 +184,7 @@ static result<const char*> evalvarref(std::string& out, const char *in, const ev
     return c7result_seterr(res, "No closing character '%{}': '%{}'", prm.end, refbeg);
 }
 
-c7::result<void> eval(std::string& out, const std::string& in_, char mark, char escape,
+c7::result<> eval(std::string& out, const std::string& in_, char mark, char escape,
 		      c7::str::evalvar evalvar)
 {
     const char brks[] = { mark, escape, '}', 0 };
@@ -202,8 +208,9 @@ c7::result<void> eval(std::string& out, const std::string& in_, char mark, char 
 	    in = p + 2;
 	} else if (*p == mark) {
 	    res = evalvarref(out, p + 1, prm);
-	    if (!res)
-		return res;
+	    if (!res) {
+		return std::move(res);
+	    }
 	    in = res.value();
 	} else {
 	    out += *p;
@@ -215,13 +222,14 @@ c7::result<void> eval(std::string& out, const std::string& in_, char mark, char 
     return c7result_ok();
 }
 
-c7::result<void> eval(std::stringstream& out, const std::string& in, char mark, char escape,
+c7::result<> eval(std::stringstream& out, const std::string& in, char mark, char escape,
 		      c7::str::evalvar evalvar)
 {
     std::string tmp;
     auto r = eval(tmp, in, mark, escape, evalvar);
-    if (r)
+    if (r) {
 	out.write(tmp.c_str(), tmp.size());
+    }
     return r;
 }
 
@@ -231,8 +239,9 @@ c7::result<std::string> eval(const std::string& in, char mark, char escape,
 {
     std::string out;
     auto r = eval(out, in, mark, escape, evalvar);
-    if (r)
+    if (r) {
 	return c7result_ok(std::move(out));
+    }
     return result<std::string>(std::move(r));
 }
 
@@ -253,8 +262,9 @@ static result<const char*> evalenv(std::string& out, const char *vn, bool enclos
 	if (*m == 0) {		// m == ve
 	    out += val;
 	} else if (m[1] == '+') {
-	    if (*val != 0)
+	    if (*val != 0) {
 		out += m + 2;
+	    }
 	} else if (m[1] == '-') {
 	    out += (*val == 0) ? m+2 : val;
 	} else {
@@ -264,8 +274,9 @@ static result<const char*> evalenv(std::string& out, const char *vn, bool enclos
 	}
     } else {
 	ve = vn + 1;
-	if (std::isalpha(*vn) || *vn == '_')
+	if (std::isalpha(*vn) || *vn == '_') {
 	    for (; std::isalnum(*ve) || *ve == '_'; ve++);
+	}
 	std::string env(vn, ve - vn);
 	const char *val = getenv_x(env.c_str(), "");
 	out += val;
@@ -274,12 +285,12 @@ static result<const char*> evalenv(std::string& out, const char *vn, bool enclos
     return result<const char*>(ve);
 }
 
-c7::result<void> eval_env(std::string& out, const std::string& in)
+c7::result<> eval_env(std::string& out, const std::string& in)
 {
     return eval(out, in, '$', '\\', evalenv);
 }
 
-c7::result<void> eval_env(std::stringstream& out, const std::string& in)
+c7::result<> eval_env(std::stringstream& out, const std::string& in)
 {
     return eval(out, in, '$', '\\', evalenv);
 }

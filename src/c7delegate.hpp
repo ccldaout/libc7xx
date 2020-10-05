@@ -1,10 +1,13 @@
 /*
  * c7delegate.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=608487862
  */
 #ifndef C7_DELEGATE_HPP_LOADED__
 #define C7_DELEGATE_HPP_LOADED__
@@ -74,22 +77,22 @@ public:
 
     class proxy {
     private:
-	delegate<Return, Args...> *principal_;
+	delegate *principal_;
 
     public:
-	explicit proxy(delegate<Return, Args...>& d): principal_(&d) {}
+	explicit proxy(delegate& d): principal_(&d) {}
 
 	id push_front(const func_type& f) {
 	    return principal_->push_front(f);
 	}
-	id push_front(const func_type&& f) {
+	id push_front(func_type&& f) {
 	    return principal_->push_front(std::move(f));
 	}
 
 	id push_back(const func_type& f) {
 	    return principal_->push_back(f);
 	}
-	id push_back(const func_type&& f) {
+	id push_back(func_type&& f) {
 	    return principal_->push_back(std::move(f));
 	}
 
@@ -103,11 +106,11 @@ public:
 	    principal_->remove(target_id);
 	}
 
-	bool is_empty() {
+	bool is_empty() const {
 	    return principal_->is_empty();
 	}
 
-	size_t size() {
+	size_t size() const {
 	    return principal_->size();
 	}
     };
@@ -143,7 +146,7 @@ public:
 	funcs_.emplace_front(new_id, f);
 	return new_id;
     }
-    id push_front(const func_type&& f) {
+    id push_front(func_type&& f) {
 	id new_id;
 	funcs_.emplace_front(new_id, std::move(f));
 	return new_id;
@@ -154,14 +157,14 @@ public:
 	funcs_.emplace_back(new_id, f);
 	return new_id;
     }
-    id push_back(const func_type&& f) {
+    id push_back(func_type&& f) {
 	id new_id;
 	funcs_.emplace_back(new_id, std::move(f));
 	return new_id;
     }
 
     template <typename F>
-    delegate<Return, Args...>& operator+=(F&& f) {
+    delegate& operator+=(F&& f) {
 	push_back(std::forward<F>(f));
 	return *this;
     }
@@ -173,11 +176,11 @@ public:
 	    funcs_.erase(it);
     }
 
-    bool is_empty() {
+    bool is_empty() const {
 	return funcs_.empty();
     }
 
-    size_t size() {
+    size_t size() const {
 	return funcs_.size();
     }
 

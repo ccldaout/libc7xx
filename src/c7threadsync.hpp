@@ -1,10 +1,13 @@
 /*
  * c7threadsync.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=192335276
  */
 #ifndef C7_THREADSYNC_HPP_LOADED__
 #define C7_THREADSYNC_HPP_LOADED__
@@ -41,8 +44,8 @@ public:
     group& operator=(group&&);
     ~group();
 
-    result<void> add(thread& th);
-    result<void> start();
+    result<> add(thread& th);
+    result<> start();
     void wait();
 
     size_t size();
@@ -72,9 +75,10 @@ public:
     
     int count();
     void reset(int count);
-    void up();
+    void up(int n = 1);
     bool down(c7::usec_t timeout = -1);
-    bool wait_zero(c7::usec_t timeout = -1);
+    bool wait_atleast(int expect, c7::usec_t timeout = -1);
+    bool wait_just(int expect, c7::usec_t timeout = -1);
 };
 
 

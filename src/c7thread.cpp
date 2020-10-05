@@ -1,7 +1,7 @@
 /*
  * c7thread.cpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
@@ -41,8 +41,9 @@ public:
     bool _lock(bool wait) {
 	int ret = wait ? pthread_spin_lock(&m_) : pthread_spin_trylock(&m_);
 	if (ret != C7_SYSOK) {
-	    if (ret == EBUSY)
+	    if (ret == EBUSY) {
 		return false;
+	    }
 	    throw thread_error(ret, "pthread_spinlock_[try]lock");
 	}
 	return true;
@@ -134,8 +135,9 @@ public:
     bool _lock(bool wait) {
 	int ret = wait ? pthread_mutex_lock(&m_) : pthread_mutex_trylock(&m_);
 	if (ret != C7_SYSOK) {
-	    if (ret == EBUSY)
+	    if (ret == EBUSY) {
 		return false;
+	    }
 	    throw thread_error(ret, "pthread_mutex_[try]lock");
 	}
 	return true;
@@ -223,14 +225,16 @@ public:
 	allocated_ = (mutex == nullptr);
 	if (mutex == nullptr) {
 	    mimpl_ = new mutex::impl(name, false);
-	} else
+	} else {
 	    mimpl_ = mutex->pimpl;
+	}
     }
 
     ~impl() {
 	(void)pthread_cond_destroy(&c_);
-	if (allocated_)
+	if (allocated_) {
 	    delete mimpl_;
+	}
     }
 
     bool _lock(bool wait) {
@@ -251,23 +255,26 @@ public:
 	    } while (ret == EINTR);
 	}
 	if (ret != C7_SYSOK) {
-	    if (ret == ETIMEDOUT)
+	    if (ret == ETIMEDOUT) {
 		return false;
+	    }
 	    throw thread_error(ret, "pthread_cond_[timed]wait");
 	}
 	return true;
     }
 
     void notify() {
-	int ret;
-	if ((ret = pthread_cond_signal(&c_)) != C7_SYSOK)
+	int ret = pthread_cond_signal(&c_);
+	if (ret != C7_SYSOK) {
 	    throw thread_error(ret, "pthread_cond_signal");
+	}
     }
 
     void notify_all() {
-	int ret;
-	if ((ret = pthread_cond_broadcast(&c_)) != C7_SYSOK)
+	int ret = pthread_cond_broadcast(&c_);
+	if (ret != C7_SYSOK) {
 	    throw thread_error(ret, "pthread_cond_broadcast");
+	}
     }
 
     const std::string& name() {
@@ -380,7 +387,7 @@ private:
     pthread_attr_t attr_;
     pthread_t pthread_;
 
-    c7::result<void> term_result_;
+    c7::result<> term_result_;
     exit_type exit_;
     state_t state_;
     condvar cv_;
@@ -406,9 +413,12 @@ private:
 	    exit_ = thread::EXIT;
 	} catch (abort_thread&) {
 	    exit_ = thread::ABORT;
+	} catch (std::exception& e) {
+	    exit_ = thread::CRASH;
+	    term_result_ = c7result_err(EFAULT, "thread is terminated by exception: %{}", e.what());
 	} catch (...) {
 	    exit_ = thread::CRASH;
-	    term_result_ = c7result_err(EFAULT, "thread is terminated by exception.");
+	    term_result_ = c7result_err(EFAULT, "thread is terminated by unknown exception.");
 	}
 
 	if (finalize_) {
@@ -462,7 +472,7 @@ public:
 	finalize_ = std::move(finalize);
     }
 
-    result<void> start() {
+    result<> start() {
 	auto defer = cv_.lock();
 
 	if (state_ != IDLE) {
@@ -497,7 +507,7 @@ public:
 	return exit_;
     }
 
-    c7::result<void>& terminate_result() {
+    c7::result<>& terminate_result() {
 	return term_result_;
     }
 
@@ -518,8 +528,9 @@ public:
     }
 
     void signal(int sig) {
-	if (state_ == RUNNING)
+	if (state_ == RUNNING) {
 	    ::pthread_kill(pthread_, sig);
+	}
     }
 
     [[noreturn]]
@@ -533,7 +544,7 @@ public:
     }
 
     [[noreturn]]
-    static void abort(c7::result<void>&& res) {
+    static void abort(c7::result<>&& res) {
 	current_thread->term_result_ = std::move(res);
 	throw abort_thread();
     }
@@ -583,7 +594,7 @@ void thread::reuse()
 	if (s == NA_RUNNING) {
 	    throw std::runtime_error("invalid reuse(): thread is running.");
 	}
-	*this = std::move(thread());
+	*this = thread();
     }
 }
 
@@ -607,7 +618,7 @@ void thread::set_finalize(std::function<void()>&& finalize)
     pimpl->set_finalize(std::move(finalize));
 }
 
-result<void> thread::start()
+result<> thread::start()
 {
     return pimpl->start();
 }
@@ -622,7 +633,7 @@ thread::exit_type thread::status() const
     return pimpl->status();
 }
 
-c7::result<void>& thread::terminate_result()
+c7::result<>& thread::terminate_result()
 {
     return pimpl->terminate_result();
 }
@@ -674,7 +685,7 @@ void self::abort()
     thread::impl::abort();
 }
 
-void self::abort(c7::result<void>&& res)
+void self::abort(c7::result<>&& res)
 {
     thread::impl::abort(std::move(res));
 }
@@ -721,9 +732,9 @@ void format_traits<thread::proxy>::convert(
 	"N/A(idle)", "N/A(running)", "EXIT", "ABORT", "CRASH",
     };
     const char *exit_str = "?";
-    if (0 <= th.status() && th.status() < c7_numberof(exitv))
+    if (0 <= th.status() && th.status() < c7_numberof(exitv)) {
 	exit_str = exitv[th.status()];
-
+    }
     out << c7::format("thread<#%{},%{},%{}(%{})>",
 		      th.id(), th.name(), exit_str, th.status());
 }

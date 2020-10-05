@@ -27,32 +27,32 @@ namespace file {
                             file mode / owner /...
 ----------------------------------------------------------------------------*/
 
-result<void> fchstat(int fd, const std::string& ref_path)
+result<> fchstat(int fd, const std::string& ref_path)
 {
     struct ::stat st;
-    if (::stat(ref_path.c_str(), &st) == C7_SYSERR)
+    if (::stat(ref_path.c_str(), &st) == C7_SYSERR) {
 	return c7result_err(errno, "stat failed: %{}", ref_path);
-
-    if (::fchmod(fd, st.st_mode) == C7_SYSERR)
+    }
+    if (::fchmod(fd, st.st_mode) == C7_SYSERR) {
 	return c7result_err(errno, "fchmod failed");
-
-    if (geteuid() == 0 && ::fchown(fd, st.st_uid, st.st_gid) == C7_SYSERR)
+    }
+    if (geteuid() == 0 && ::fchown(fd, st.st_uid, st.st_gid) == C7_SYSERR) {
 	return c7result_err(errno, "fchown(%{}, %{}) failed (on root)", st.st_uid, st.st_gid);
-
+    }
     return c7result_ok();
 }
 
-c7::result<void> inherit_owner(const std::string& path)
+c7::result<> inherit_owner(const std::string& path)
 {
     std::string dir(path, 0, c7path_name(path.c_str()) - path.c_str());
 
     struct ::stat st;
-    if (::stat(dir.c_str(), &st) == C7_SYSERR)
+    if (::stat(dir.c_str(), &st) == C7_SYSERR) {
 	return c7result_err(errno, "stat failed: %{}", dir);
-
-    if (::chown(path.c_str(), st.st_uid, st.st_gid) == C7_SYSERR)
+    }
+    if (::chown(path.c_str(), st.st_uid, st.st_gid) == C7_SYSERR) {
 	return c7result_err(errno, "chown failed: %{} %{} %{}", path, st.st_uid, st.st_gid);
-
+    }
     return c7result_ok();
 }
 
@@ -68,7 +68,7 @@ struct mkdir_prm {
     char *path;
 };
 
-static result<void> mkdir_x(mkdir_prm& prm)
+static result<> mkdir_x(mkdir_prm& prm)
 {
     if (::mkdir(prm.path, prm.mode) == C7_SYSOK) {
 	if (::chown(prm.path, prm.uid, prm.gid) == C7_SYSOK) {
@@ -82,7 +82,7 @@ static result<void> mkdir_x(mkdir_prm& prm)
     return c7result_err(errno, "mkdir failed: %{}", prm.path);
 }
 
-static result<void> stepmkdir(char *namepos, mkdir_prm &prm)
+static result<> stepmkdir(char *namepos, mkdir_prm &prm)
 {
     for (;;) {
 	if (namepos[0] == 0) {
@@ -101,16 +101,18 @@ static result<void> stepmkdir(char *namepos, mkdir_prm &prm)
     }
 }
 
-c7::result<void> mkdir(const std::string& path, mode_t mode, uid_t uid, gid_t gid)
+c7::result<> mkdir(const std::string& path, mode_t mode, uid_t uid, gid_t gid)
 {
-    if (uid == -1U)
+    if (uid == -1U) {
 	uid = geteuid();
-    if (gid == -1U)
+    }
+    if (gid == -1U) {
 	gid = getegid();
-
+    }
     char *buf = (char *)std::malloc(path.size() + 1);
-    if (buf == nullptr)
+    if (buf == nullptr) {
 	return c7result_err(errno, "cannot allocate working memory: %{}", path.size()+1);
+    }
     auto defer = c7::defer(std::free, buf);
     (void)std::strcpy(buf, path.c_str());
 
@@ -124,18 +126,19 @@ c7::result<void> mkdir(const std::string& path, mode_t mode, uid_t uid, gid_t gi
                               write entire file
 ----------------------------------------------------------------------------*/
 
-c7::result<void> write(const std::string& path, mode_t mode, const void *buf, size_t size)
+c7::result<> write(const std::string& path, mode_t mode, const void *buf, size_t size)
 {
     int fd = ::open(path.c_str(), O_WRONLY|O_CREAT|O_TRUNC, mode);
-    if (fd == C7_SYSERR)
+    if (fd == C7_SYSERR) {
 	return c7result_err(errno, "open failed: %{}", path);
+    }
     auto closer = c7::defer(::close, fd);
 
     ssize_t actsize = ::write(fd, buf, size);
-    if (actsize != (ssize_t)size)
+    if (actsize != (ssize_t)size) {
 	return c7result_err(errno,
 			    "write failed: %{}, req:%{}, act:%{}", path, size, actsize);
-
+    }
     return c7result_ok();
 }
 
@@ -155,10 +158,12 @@ static result<std::string> trytmp(const std::string& ref_path, Action action)
     for (uint64_t u = 1; u != 0; u++) {
 	tmppath.replace(fixsize, std::string::npos, std::to_string(u));
 	int err = action(tmppath);
-	if (err == 0)
+	if (err == 0) {
 	    return c7result_ok(std::move(tmppath));
-	if (err != EEXIST)
+	}
+	if (err != EEXIST) {
 	    return c7result_err(errno, "action failed: %{}", tmppath.c_str());
+	}
     }
 
     return c7result_err("cannot ready temporary file: ref_path: %{}", ref_path);
@@ -169,8 +174,9 @@ static result<std::string> reservetmp(const std::string& ref_path)
     return trytmp(ref_path,
 		  [&ref_path](const std::string& candidate) {
 		      int fd = ::open(candidate.c_str(), O_WRONLY|O_CREAT|O_EXCL, 0600);
-		      if (fd == C7_SYSERR)
+		      if (fd == C7_SYSERR) {
 			  return errno;
+		      }
 		      (void)fchstat(fd, ref_path);
 		      (void)close(fd);
 		      return 0;
@@ -181,8 +187,9 @@ static result<std::string> linktmp(const std::string& ref_path)
 {
     return trytmp(ref_path,
 		  [&ref_path](const std::string& candidate) {
-		      if (::link(ref_path.c_str(), candidate.c_str()) == C7_SYSERR)
+		      if (::link(ref_path.c_str(), candidate.c_str()) == C7_SYSERR) {
 			  return errno;
+		      }
 		      return 0;
 		  });
 }
@@ -190,24 +197,27 @@ static result<std::string> linktmp(const std::string& ref_path)
 static int unlink_if(const char *path)
 {
     struct ::stat st;
-    if (::stat(path, &st) == C7_SYSOK && st.st_nlink == 1)
+    if (::stat(path, &st) == C7_SYSOK && st.st_nlink == 1) {
 	return ::unlink(path);
+    }
     return 0;
 }
 
-c7::result<void> rewrite(const std::string& path, void *buf, size_t size)
+c7::result<> rewrite(const std::string& path, void *buf, size_t size)
 {
     auto res = reservetmp(path);
-    if (!res)
+    if (!res) {
 	return c7result_err(std::move(res), "rewrite failed");
+    }
     auto tmppath = res.value();
     auto rmvtmp = c7::defer(::unlink, tmppath.c_str());
 
-    if (auto res = c7::file::write(tmppath, 0600, buf, size); !res)
+    if (auto res = c7::file::write(tmppath, 0600, buf, size); !res) {
 	return c7result_err(std::move(res), "rewrite failed");
-
-    if (res = linktmp(path); !res)
+    }
+    if (res = linktmp(path); !res) {
 	return c7result_err(std::move(res), "rewrite failed");
+    }
     auto bckpath = res.value();
     auto rmvbck = c7::defer(unlink_if, bckpath.c_str());
     
@@ -227,8 +237,9 @@ c7::result<void> rewrite(const std::string& path, void *buf, size_t size)
 
 static const char *path_s(const std::string& path)
 {
-    if (path.empty() || path == "-")
+    if (path.empty() || path == "-") {
 	return "<stdin>";
+    }
     return path.c_str();
 }
 
@@ -253,7 +264,7 @@ c7::result<ssize_t> read_into(const std::string& path, void *buf, size_t size)
 {
     auto res = ropen(path);
     if (!res) {
-	return res;
+	return std::move(res);
     }
     auto fd = res.value();
     ssize_t az = ::read(fd, buf, size);
@@ -272,14 +283,15 @@ c7::result<ssize_t> read_into(const std::string& path, void *buf, size_t size)
 static result<int> rx_open(const std::string& path, struct ::stat *st)
 {
     auto res = ropen(path);
-    if (!res)
+    if (!res) {
 	return res;
+    }
     int fd = res.value();
     auto closer = c7::defer(::close, fd);
 
-    if (::fstat(fd, st) == C7_SYSERR)
+    if (::fstat(fd, st) == C7_SYSERR) {
 	return c7result_err(errno, "fstat failed: fd:%d, %{}", fd, path_s(path));
-
+    }
     closer.cancel();
     return res;
 }
@@ -342,8 +354,9 @@ result<void*> read_impl(const std::string& path, size_t& size)
 {
     struct ::stat st;
     auto o_res = rx_open(path, &st);
-    if (!o_res)
-	return o_res;
+    if (!o_res) {
+	return std::move(o_res);
+    }
 
     int fd = o_res.value();
     auto closer = c7::defer(::close, fd);
@@ -351,7 +364,10 @@ result<void*> read_impl(const std::string& path, size_t& size)
     result<char*> r_res;
 
     if (S_ISREG(st.st_mode)) {
-	r_res = rx_once(fd, st.st_size);
+	if (size == 0) {
+	    size = st.st_size;
+	}
+	r_res = rx_once(fd, size);
     } else {
 	r_res = rx_repeat(fd, size);
     }
@@ -369,8 +385,9 @@ result<void*> read_impl(const std::string& path, size_t& size)
 result<std::vector<std::string>> readlines(const std::string& path)
 {
     auto res = read<char>(path);
-    if (!res)
-	return res;
+    if (!res) {
+	return std::move(res);
+    }
     return c7result_ok(c7::str::split(res.value().get(), '\n'));
 }
 

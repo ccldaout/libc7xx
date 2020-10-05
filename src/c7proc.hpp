@@ -1,10 +1,13 @@
 /*
  * c7proc.hpp
  *
- * Copyright (c) 2019 ccldaout@gmail.com
+ * Copyright (c) 2020 ccldaout@gmail.com
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1296242688
  */
 #ifndef C7_PROC_HPP_LOADED__
 #define C7_PROC_HPP_LOADED__
@@ -43,21 +46,21 @@ public:
     proc();
 
     template <typename Preexec, typename... Args>
-    result<void> start(const std::string& program,
+    result<> start(const std::string& program,
 		       const c7::strvec& argv,
 		       Preexec preexec, Args... args) {
 	return _start(program, argv, [&preexec, &args...](){ return preexec(args...); });
     }
 
-    result<void> start(const std::string& program,
+    result<> start(const std::string& program,
 		       const c7::strvec& argv) {
 	return _start(program, argv, nullptr);
     }
 
     void manage_external(pid_t pid, const std::string& prog);
 
-    result<void> signal(int sig);
-    result<void> wait();
+    result<> signal(int sig);
+    result<> wait();
     std::pair<state_t, int> state() const;
     uint64_t id() const;
     std::string format(const std::string& format_str) const;
@@ -74,7 +77,7 @@ public:
 	std::string format(const std::string& format_str) const;
     };
 
-    result<void> _start(const std::string& program,
+    result<> _start(const std::string& program,
 			const c7::strvec& argv,
 			std::function<bool()> preexec);
 };

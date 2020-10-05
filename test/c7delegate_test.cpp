@@ -37,7 +37,7 @@ int main()
 	c7::delegate<bool, const int&> op;
 
 	op.push_back(func1_false);
-	op.push_back(func2_false);
+	op += func2_false;
 	auto id3 = op.push_back(func3_true);
 	op.push_back(func4_false);
 	auto id5 = op.push_back(func5_true);

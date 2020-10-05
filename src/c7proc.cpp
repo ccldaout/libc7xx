@@ -98,7 +98,7 @@ public:
 	c7::signal::__enable(waitprocs);
     };
 
-    result<void> start(const std::string& prog,
+    result<> start(const std::string& prog,
 		       const c7::strvec& argv,
 		       std::function<bool()> preexec,
 		       std::shared_ptr<proc::impl> self,
@@ -108,25 +108,29 @@ public:
 		const std::string& prog,
 		std::shared_ptr<proc::impl> self);
 
-    result<void> kill(int sig) {
+    result<> kill(int sig) {
 	auto defer = cv_.lock();
-	if (state_ == EXIT || state_ == KILLED)
+	if (state_ == EXIT || state_ == KILLED) {
 	    return c7result_ok();
+	}
 	if (pid_ != -1) {
-	    if (::kill(pid_, sig) == C7_SYSOK)
+	    if (::kill(pid_, sig) == C7_SYSOK) {
 		return c7result_ok();
+	    }
 	}  else {
 	    errno = 0;
 	}
 	return c7result_err(errno, "kill failed: %{}", format());
     }
 
-    result<void> wait() {
+    result<> wait() {
 	auto defer = cv_.lock();
-	while (state_ == RUNNING)
+	while (state_ == RUNNING) {
 	    cv_.wait();
-	if (state_ == EXIT || state_ == KILLED)
+	}
+	if (state_ == EXIT || state_ == KILLED) {
 	    return c7result_ok();
+	}
 	return c7result_err("process has not been run: %{}", format());
     }
 
@@ -143,8 +147,9 @@ public:
 	    "IDLE", "FAILED", "RUNNIG", "EXIT", "KILLED"
 	};
 	const char *state_str = "?";
-	if (0 <= state_ && state_ < c7_numberof(state_list))
+	if (0 <= state_ && state_ < c7_numberof(state_list)) {
 	    state_str = state_list[state_];
+	}
 	return c7::format("proc#%{}<%{},pid:%{},%{},%{}>",
 			  id_, prog_, pid_, state_str, value_);
     }
@@ -154,7 +159,7 @@ std::unordered_set<std::shared_ptr<proc::impl>> proc::impl::procs;
 std::atomic<uint64_t> proc::impl::id_counter_;
 
 
-static result<void> fork_x(pid_t& newpid, int& chkpipe)
+static result<> fork_x(pid_t& newpid, int& chkpipe)
 {
     int pipefd[2];
     if (::pipe(pipefd) == C7_SYSERR) {
@@ -174,8 +179,9 @@ static result<void> fork_x(pid_t& newpid, int& chkpipe)
 
 static bool fd_renumber(int& fd_io, int target_fd)
 {
-    if (fd_io == target_fd)
+    if (fd_io == target_fd) {
 	return true;
+    }
     (void)::close(target_fd);
     if (::fcntl(fd_io, F_DUPFD, target_fd) != C7_SYSERR) {
 	(void)close(fd_io);
@@ -199,8 +205,9 @@ static result<pid_t> forkexec(int conf_fd,
     int chkpipe = -1;
     char errval;
 
-    if (auto res = fork_x(newpid, chkpipe); !res)
-	return res;
+    if (auto res = fork_x(newpid, chkpipe); !res) {
+	return std::move(res);
+    }
 
     if (newpid == 0) {
 	//
@@ -249,24 +256,26 @@ static result<pid_t> forkexec(int conf_fd,
     int status;
     if (::waitpid(newpid, &status, WNOHANG) == newpid) {
 	// preexec() maybe crached. (or program exit or crashed soon after run).
-	if (WIFEXITED(status))
+	if (WIFEXITED(status)) {
 	    return c7result_err("program maybe exit soon: exit:%{}", WEXITSTATUS(status));
-	else
+	} else {
 	    return c7result_err("preexec() maybe crashed: signal:%{}", WTERMSIG(status));
+	}
     }
 
     return c7result_ok(newpid);
 }
 
-result<void>
+result<>
 proc::impl::start(const std::string& prog,
 		  const c7::strvec& argv,
 		  std::function<bool()> preexec,
 		  std::shared_ptr<proc::impl> self,
 		  int conf_fd)
 {
-    if (state_ != IDLE)
+    if (state_ != IDLE) {
 	return c7result_err("proc object is in use: %{}", format());
+    }
 
     prog_ = prog;
     argv_ = argv;
@@ -322,7 +331,7 @@ proc::proc():
     on_start(pimpl->on_start), on_finish(pimpl->on_finish) {
 }
 
-result<void> proc::_start(const std::string& program,
+result<> proc::_start(const std::string& program,
 			  const c7::strvec& argv,
 			  std::function<bool()> preexec)
 			  
@@ -335,12 +344,12 @@ void proc::manage_external(pid_t pid, const std::string& program)
     pimpl->manage(pid, program, pimpl);
 }
 
-result<void> proc::signal(int sig)
+result<> proc::signal(int sig)
 {
     return pimpl->kill(sig);
 }
 
-result<void> proc::wait()
+result<> proc::wait()
 {
     return pimpl->wait();
 }

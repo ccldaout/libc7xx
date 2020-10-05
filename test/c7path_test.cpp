@@ -123,6 +123,7 @@ static void search_test()
 	"/usr/ebsys:/usr/ebsys/tmp",
 	"/usr/bin:/usr/sbin",
 	"/usr/ebsys/.ccldaout/libc7/src:/usr/ebsys/prog/c7xxdev:/usr/ebsys/uukit/prog/yamm",
+	nullptr,
     };
     {
 	auto res = c7::path::search("yamm.h", pathlistv, ".c");
@@ -150,13 +151,36 @@ static void search_test()
 }
 
 
-int main()
+void parts_test(char *p)
+{
+    std::string path(p);
+    p_("--------- path: <%{}> ---------", path);
+    p_("dir: <%{}>", c7::path::dir(path));
+    p_("dir_with_sep: <%{}>", c7::path::dir_with_sep(path));
+    p_("nondir: <%{}>", c7::path::nondir(path));
+    p_("name: <%{}>", c7::path::name(path));
+    p_("nonsuffix: <%{}>", c7::path::nonsuffix(path));
+    p_("suffix: <%{}>", c7::path::suffix(path));
+
+    path += ".tmp.exe";
+    p_("--------- path: <%{}> ---------", path);
+    p_("dir: <%{}>", c7::path::dir(path));
+    p_("dir_with_sep: <%{}>", c7::path::dir_with_sep(path));
+    p_("nondir: <%{}>", c7::path::nondir(path));
+    p_("name: <%{}>", c7::path::name(path));
+    p_("nonsuffix: <%{}>", c7::path::nonsuffix(path));
+    p_("suffix: <%{}>", c7::path::suffix(path));
+}
+
+
+int main(int argc, char **argv)
 {
     untildize_test();
     cwd_test();
     ortho_test();
     abs_test();
     search_test();
+    parts_test(argv[0]);
 
     return 0;
 }

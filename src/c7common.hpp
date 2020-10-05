@@ -5,6 +5,9 @@
  *
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
+ *
+ * Google spreadsheets:
+ * (Nothing)
  */
 #ifndef C7_COMMON_HPP_LOADED__
 #define C7_COMMON_HPP_LOADED__

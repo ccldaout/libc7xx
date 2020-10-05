@@ -118,7 +118,7 @@ result<fd> fd::dup()
     return c7result_ok(fd(newfd, name_));
 }
 
-result<void> fd::renumber_to(int target_fdnum)
+result<> fd::renumber_to(int target_fdnum)
 {
     if (fdnum_ != target_fdnum) {
 	(void)::close(target_fdnum);
@@ -127,7 +127,7 @@ result<void> fd::renumber_to(int target_fdnum)
     return c7result_ok();
 }
 
-result<void> fd::renumber_above(int lowest_fdnum)
+result<> fd::renumber_above(int lowest_fdnum)
 {
     int newfd = ::fcntl(fdnum_, F_DUPFD, lowest_fdnum);
     if (newfd == C7_SYSERR) {
@@ -148,7 +148,7 @@ result<int> fd::get_flag(int flagtype)
     return c7result_ok(ret);
 }
 
-result<void> fd::set_flag(int flagtype, int value)
+result<> fd::set_flag(int flagtype, int value)
 {
     int ret = ::fcntl(fdnum_, flagtype, value);
     if (ret == C7_SYSERR) {
@@ -157,7 +157,7 @@ result<void> fd::set_flag(int flagtype, int value)
     return c7result_ok();
 }
 
-result<void> fd::change_flag(int set_flagtype, int flags, bool on)
+result<> fd::change_flag(int set_flagtype, int flags, bool on)
 {
     int get_flagtype;
     switch (set_flagtype) {
@@ -174,14 +174,16 @@ result<void> fd::change_flag(int set_flagtype, int flags, bool on)
     }
 
     auto ret = get_flag(get_flagtype);
-    if (!ret)
-	return ret;
+    if (!ret) {
+	return std::move(ret);
+    }
     
     int newflag = ret.value();
-    if (on)
+    if (on) {
 	newflag |= flags;
-    else
+    } else {
 	newflag &= ~flags;
+    }
 
     return set_flag(set_flagtype, newflag);
 }
@@ -189,12 +191,13 @@ result<void> fd::change_flag(int set_flagtype, int flags, bool on)
 result<bool> fd::get_cloexec()
 {
     auto ret = get_flag(F_GETFD);
-    if (!ret)
-	return ret;
+    if (!ret) {
+	return std::move(ret);
+    }
     return c7result_ok((ret.value() & FD_CLOEXEC) != 0);
 }
 
-result<void> fd::set_cloexec(bool enable)
+result<> fd::set_cloexec(bool enable)
 {
     return change_flag(F_SETFD, FD_CLOEXEC, enable);
 }
@@ -202,17 +205,18 @@ result<void> fd::set_cloexec(bool enable)
 result<bool> fd::get_nonblocking()
 {
     auto ret = get_flag(F_GETFL);
-    if (!ret)
-	return ret;
+    if (!ret) {
+	return std::move(ret);
+    }
     return c7result_ok((ret.value() & O_NONBLOCK) != 0);
 }
 
-result<void> fd::set_nonblocking(bool enable)
+result<> fd::set_nonblocking(bool enable)
 {
     return change_flag(F_SETFL, O_NONBLOCK, enable);
 }
 
-result<void> fd::chmod(::mode_t mode)
+result<> fd::chmod(::mode_t mode)
 {
     int ret = ::fchmod(fdnum_, mode);
     if (ret == C7_SYSERR) {
@@ -221,12 +225,12 @@ result<void> fd::chmod(::mode_t mode)
     return c7result_ok();
 }
 
-result<void> fd::chown(uid_t uid)
+result<> fd::chown(uid_t uid)
 {
     return fd::chown(uid, getegid());
 }
 
-result<void> fd::chown(uid_t uid, gid_t gid)
+result<> fd::chown(uid_t uid, gid_t gid)
 {
     int ret = ::fchown(fdnum_, uid, gid);
     if (ret == C7_SYSERR) {
@@ -235,7 +239,7 @@ result<void> fd::chown(uid_t uid, gid_t gid)
     return c7result_ok();
 }
 
-result<void> fd::truncate(size_t size)
+result<> fd::truncate(size_t size)
 {
     int ret = ::ftruncate(fdnum_, size);
     if (ret == C7_SYSERR) {
