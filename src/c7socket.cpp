@@ -138,13 +138,9 @@ result<socket> socket::make_socket(int domain, int type, int protocol,
     if (fd == C7_SYSERR) {
 	return c7result_err(errno, "socket(%{}, %{}, %{}) failed", domain, type, protocol);
     }
-    auto res = c7result_ok(c7::socket(fd, name));
-    if (!res) {
-	return res;
-    }
-    auto& sock = res.value();
+    auto sock = c7::socket(fd, name);
     sock.setup_str("!");
-    return res;
+    return c7result_ok(std::move(sock));
 }
 
 result<socket> socket::tcp()
