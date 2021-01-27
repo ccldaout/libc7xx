@@ -13,7 +13,7 @@ C7_CC_IPATH = .
 
 include ../Makefile.common
 
-CPPFLAGS += -fPIC
+CXXFLAGS += -fPIC
 C7_LD_LPATH =
 C7_LD_RPATH =
 C7_NOLIBC7 = y
@@ -36,7 +36,7 @@ headers:
 depend:
 	@rm -f Makefile.dep
 	@for cpp in *.cpp; do \
-	  c++ -c $(CPPFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
+	  c++ -c $(CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
 	done
 
 include Makefile.dep
