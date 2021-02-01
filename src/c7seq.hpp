@@ -347,7 +347,7 @@ public:
 	}
 
 	value_type operator*() {
-	    return { idx_, *it_ };	// c++17
+	    return { idx_, *it_ };
 	}
     };
 
