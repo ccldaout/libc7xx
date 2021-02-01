@@ -301,30 +301,29 @@ io_result fd::read_n(void *buf, size_t const req_n)
     while (n != req_n) {
 	ssize_t z = ::read(fdnum_, buf, (req_n - n));
 	if (z <= 0) {
+	    auto status = io_result::status::ERR;
+	    const char *descrip = "error";
+	    
 	    if (z == 0 && n == 0) {
-		return io_result(io_result::status::CLOSED, n, 0,
-				 c7result_err(ECONNRESET,
-					      "read_n(%{}, %{}) -> 0 (maybe closed)",
-					      *this, req_n));
+		status = io_result::status::CLOSED;
+		descrip = "maybe closed";
+		errno = ENODATA;
 	    } else if (z == 0) {
 		// 0 < n < req_n
-		return io_result(io_result::status::INCOMP, n, req_n - n,
-				 c7result_err(ECONNRESET,
-					      "read_n(%{}, %{}) -> %{} (maybe closed)",
-					      *this, req_n, n));
+		status = io_result::status::INCOMP;
+		descrip = "maybe closed";
+		errno = ENODATA;
 	    } else if (errno == EWOULDBLOCK) {
  		// z == C7_SYSERR
-		return io_result(io_result::status::BUSY, n, req_n - n,
-				 c7result_err(errno,
-					      "read_n(%{}, %{}) -> %{} (busy)",
-					      *this, req_n, n));
+		status = io_result::status::BUSY;
+		descrip = "busy";
 	    } else {
 		// z == C7_SYSERR
-		return io_result(io_result::status::ERR, n, req_n - n,
-				 c7result_err(errno,
-					      "read_n(%{}, %{}) -> %{} (error)",
-					      *this, req_n, n));
 	    }
+	    return io_result(status, n, req_n - n,
+			     c7result_err(errno,
+					  "read_n(%{}, %{}) -> %{} (%{})",
+					  *this, req_n, n, descrip));
 	}
 	buf = (char *)buf + z;
 	n += z;
