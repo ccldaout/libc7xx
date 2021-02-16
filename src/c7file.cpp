@@ -183,26 +183,6 @@ static result<std::string> reservetmp(const std::string& ref_path)
 		  });
 }
 
-static result<std::string> linktmp(const std::string& ref_path)
-{
-    return trytmp(ref_path,
-		  [&ref_path](const std::string& candidate) {
-		      if (::link(ref_path.c_str(), candidate.c_str()) == C7_SYSERR) {
-			  return errno;
-		      }
-		      return 0;
-		  });
-}
-
-static int unlink_if(const char *path)
-{
-    struct ::stat st;
-    if (::stat(path, &st) == C7_SYSOK && st.st_nlink == 1) {
-	return ::unlink(path);
-    }
-    return 0;
-}
-
 c7::result<> rewrite(const std::string& path, void *buf, size_t size)
 {
     auto res = reservetmp(path);
@@ -215,16 +195,10 @@ c7::result<> rewrite(const std::string& path, void *buf, size_t size)
     if (auto res = c7::file::write(tmppath, 0600, buf, size); !res) {
 	return c7result_err(std::move(res), "rewrite failed");
     }
-    if (res = linktmp(path); !res) {
-	return c7result_err(std::move(res), "rewrite failed");
-    }
-    auto bckpath = res.value();
-    auto rmvbck = c7::defer(unlink_if, bckpath.c_str());
     
     auto unblock_defer = c7::signal::block();
     auto lastret = c7result_ok();
     if (::rename(tmppath.c_str(), path.c_str()) == C7_SYSERR) {
-	::unlink(bckpath.c_str());
 	c7result_seterr(lastret, "rewrite failed: rename: %{} -> %{}", tmppath, path);
     }
 
