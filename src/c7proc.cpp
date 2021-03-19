@@ -21,7 +21,7 @@ namespace c7 {
 
 
 namespace signal {
-void __enable(void (*sigchld)(int));
+void enable_SIGCHLD(void (*sigchld)(int));
 }
 
 
@@ -31,18 +31,13 @@ void __enable(void (*sigchld)(int));
 
 class proc::impl {
 
-    // -----------------------------------
-    // process finalizing (handle SIGCHLD)
-    // -----------------------------------
 private:
-    static std::unordered_set<std::shared_ptr<proc::impl>> procs;
 
     bool try_wait() {
 	auto defer = cv_.lock();
 	if (pid_ != -1) {
 	    int status;
-	    int wait_ret = ::waitpid(pid_, &status, WNOHANG);
-	    if (wait_ret == pid_) {
+	    if (::waitpid(pid_, &status, WNOHANG) == pid_) {
 		pid_ = -1;
 		if (WIFEXITED(status)) {
 		    state_ = EXIT;
@@ -58,24 +53,30 @@ private:
 	return false;
     }
 
+    // called on signal handling thread
     static void waitprocs(int) {
-	// range-for DON'T work well
-	auto cur = procs.begin();
-	auto end = procs.end();
-	while (cur != end) {
-	    auto p = cur++;
-	    if ((*p)->try_wait()) {
-		(*p)->on_finish(proc::proxy(*p));
-		procs.erase(p);
+	std::vector<std::shared_ptr<proc::impl>> finished;
+
+	{
+	    auto defer = procs_mutex_.lock();
+
+	    // range-for DON'T work well with erase
+	    for (auto cur = procs_.begin(); cur != procs_.end(); ++cur) {
+		auto p = *cur;
+		if (p->try_wait()) {
+		    finished.push_back(p);
+		    procs_.erase(cur);
+		}
 	    }
+	}
+
+	for (auto& p: finished) {
+	    p->on_finish(proc::proxy(p));
 	}
     }
 
-    // -------------------------
-    // proc::impl implementaion
-    // -------------------------
-private:
-
+    static std::unordered_set<std::shared_ptr<proc::impl>> procs_;
+    static c7::thread::mutex procs_mutex_;
     static std::atomic<uint64_t> id_counter_;
 
     c7::thread::condvar cv_;
@@ -95,7 +96,7 @@ public:
     impl& operator=(const impl&) = delete;
 
     impl(): id_(++id_counter_) {
-	c7::signal::__enable(waitprocs);
+	c7::signal::enable_SIGCHLD(waitprocs);
     };
 
     result<> start(const std::string& prog,
@@ -155,7 +156,8 @@ public:
     }
 };
 
-std::unordered_set<std::shared_ptr<proc::impl>> proc::impl::procs;
+std::unordered_set<std::shared_ptr<proc::impl>> proc::impl::procs_;
+c7::thread::mutex proc::impl::procs_mutex_;
 std::atomic<uint64_t> proc::impl::id_counter_;
 
 
@@ -287,10 +289,11 @@ proc::impl::start(const std::string& prog,
     }
 
     {
-	auto unload_defere = cv_.lock();
+	auto unload_defer = cv_.lock();
+	auto mutex_defer = procs_mutex_.lock();
 	pid_ = res.value();
 	state_ = RUNNING;
-	procs.insert(self);
+	procs_.insert(self);
     }
 
     // To shorten time of locking cv_, on_start() is called after unlock cv_. 
@@ -314,10 +317,14 @@ proc::impl::manage(pid_t pid,
     prog_ = prog;
     argv_ = c7::strvec{prog_};
 
-    auto unload_defere = cv_.lock();
-    pid_ = pid;
-    state_ = RUNNING;
-    procs.insert(self);
+    {
+	auto unload_defere = cv_.lock();
+	auto mutex_defer = procs_mutex_.lock();
+	pid_ = pid;
+	state_ = RUNNING;
+	procs_.insert(self);
+    }
+
     (void)::kill(::getpid(), SIGCHLD);	// this is needed by same reason of above.
 }
 

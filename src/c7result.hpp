@@ -280,8 +280,8 @@ public:
 
     result& operator=(result&& o) {
 	if (this != &o) {
+	    result_base::operator=(std::move(o));
 	    value_ = std::move(o.value_);
-	    errors_ = std::move(o.errors_);
 	}
 	return *this;
     }
@@ -355,8 +355,8 @@ public:
 
     result& operator=(result&& o) {
 	if (this != &o) {
+	    result_base::operator=(std::move(o));
 	    value_ = o.value_;
-	    errors_ = std::move(o.errors_);
 	}
 	return *this;
     }
@@ -403,7 +403,7 @@ public:
 
     result& operator=(result&& o) {
 	if (this != &o) {
-	    errors_ = std::move(o.errors_);
+	    result_base::operator=(std::move(o));
 	}
 	return *this;
     }

@@ -49,26 +49,30 @@ result<> funcM()
 {
     result<std::string> res0 = c7result_err(EINVAL, "1st error");
     result<std::string> res1 = c7result_err(ENOMEM, "end error");
+    p_("-- 1");
     p_("res0: %{}", res0);
     p_("res1: %{}", res1);
-    p_("--");
+    p_("-- 2 : res0.merge_iferror(std::move(res1))");
     res0.merge_iferror(std::move(res1));
     p_("res0: %{}", res0);
     p_("res1: %{}", res1);
-
-    p_("--");
+    p_("-- 3 : res1 = std::move(res0)");
+    res1 = std::move(res0);
+    p_("res0: %{}", res0);
+    p_("res1: %{}", res1);
+    p_("-- 4");
     auto res3 = c7result_ok();
     auto res4 = c7result_ok();
     res3.merge_iferror(std::move(res4));
     p_("res3: %{}", res3);
 
-    p_("--");
+    p_("-- 5");
     result<> res5 = c7result_err(EPERM);
     auto res6 = c7result_ok();
     res5.merge_iferror(std::move(res6));
     p_("res5: %{}", res5);
 
-    p_("--");
+    p_("-- 6");
     auto res7 = c7result_ok();
     auto res8 = c7result_err(EINTR);
     res7.merge_iferror(std::move(res8));

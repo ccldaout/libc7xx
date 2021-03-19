@@ -104,7 +104,7 @@ private:
 	}
     }
 
-    friend void __enable(void (*)(int));
+    friend void enable_SIGCHLD(void (*)(int));
 
 public:
     sigmanager() {
@@ -223,7 +223,7 @@ public:
 static sigmanager manager;
 
 
-void __enable(void (*sigchld)(int))
+void enable_SIGCHLD(void (*sigchld)(int))
 {
     manager.start_if();
     manager.action_[SIGCHLD - 1].handler = sigchld;

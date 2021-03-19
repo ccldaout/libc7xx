@@ -1,5 +1,7 @@
 #include <c7format.hpp>
 #include <c7proc.hpp>
+#include <c7utils.hpp>
+#include <csignal>
 
 #define p_	c7::p_
 
@@ -48,6 +50,7 @@ static void proc1a_test()
     p_("start ...");
     auto r = proc.start("sleep", std::vector<std::string>({"sleep", "0"}));
     p_("start ... %{}", r);
+    c7::sleep_ms(500);
     p_("wait...");
     auto res = proc.wait();
     p_("wait... %{}", res);
@@ -73,7 +76,7 @@ static void proc2_test()
 	});
 
     p_("start ...");
-    auto r = proc.start("not found", std::vector<std::string>({"-", "1"}));
+    auto r = proc.start("not_found", std::vector<std::string>({"-", "1"}));
     p_("start ... %{}", r);
     p_("wait...");
     auto res = proc.wait();
@@ -86,7 +89,7 @@ static void proc2_test()
 
 static void proc3_test()
 {
-    p_("- proc preexec false -----------------------------------------------");
+    p_("- proc3 preexec false -----------------------------------------------");
 
     auto proc = c7::proc();
 
@@ -100,7 +103,7 @@ static void proc3_test()
 	});
 
     p_("start ...");
-    auto r = proc.start("sleep", std::vector<std::string>({"sleep", "1"}),
+    auto r = proc.start("sleep", std::vector<std::string>({"-preexe_failed-", "1"}),
 			[](){ p_("preexec"); return false; });
     p_("start ... %{}", r);
     p_("wait...");
@@ -114,7 +117,7 @@ static void proc3_test()
 
 static void proc4_test()
 {
-    p_("- proc4 crash -----------------------------------------------");
+    p_("- proc4 killed -----------------------------------------------");
 
     auto proc = c7::proc();
 
@@ -128,8 +131,9 @@ static void proc4_test()
 	});
 
     p_("start ...");
-    auto r = proc.start("abort.exe", std::vector<std::string>({"abort.exe"}));
+    auto r = proc.start("sleep", std::vector<std::string>({"-killed-", "10"}));
     p_("start ... %{}", r);
+    proc.signal(SIGBUS);
     p_("wait...");
     auto res = proc.wait();
     p_("wait... %{}", res);
