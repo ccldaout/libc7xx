@@ -60,7 +60,7 @@ getpw_by_key(T key, int (*getpw)(T, ::passwd*, char*, size_t, ::passwd **), cons
 
     for (;;) {
 	bufsize += 128;
-	auto np = std::realloc(pwd.get(), sizeof(*pwd) + bufsize);
+	auto np = std::malloc(sizeof(*pwd) + bufsize);
 	if (np == nullptr) {
 	    return c7result_err(errno, "getpw%{}_r: realloc failed '%{}'", type, key);
 	}
