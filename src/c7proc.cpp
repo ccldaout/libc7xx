@@ -61,11 +61,13 @@ private:
 	    auto defer = procs_mutex_.lock();
 
 	    // range-for DON'T work well with erase
-	    for (auto cur = procs_.begin(); cur != procs_.end(); ++cur) {
+	    for (auto cur = procs_.begin(); cur != procs_.end();) {
 		auto p = *cur;
 		if (p->try_wait()) {
 		    finished.push_back(p);
-		    procs_.erase(cur);
+		    cur = procs_.erase(cur);	// IMPORTANT: cur must be updated by return of erase.
+		} else {
+		    ++cur;
 		}
 	    }
 	}
