@@ -29,59 +29,25 @@ void enable_SIGCHLD(void (*sigchld)(int));
                                   proc::impl
 ----------------------------------------------------------------------------*/
 
+static const char *state_string(proc::state_t state)
+{
+    static const char *state_list[] = {
+	"IDLE", "FAILED", "RUNNIG", "EXIT", "KILLED"
+    };
+    if (0 <= state && state < c7_numberof(state_list)) {
+	return state_list[state];
+    }
+    return "?";
+}
+
 class proc::impl {
-
 private:
-
-    bool try_wait() {
-	auto defer = cv_.lock();
-	if (pid_ != -1) {
-	    int status;
-	    if (::waitpid(pid_, &status, WNOHANG) == pid_) {
-		pid_ = -1;
-		if (WIFEXITED(status)) {
-		    state_ = EXIT;
-		    value_ = WEXITSTATUS(status);
-		} else {
-		    state_ = KILLED;
-		    value_ = WTERMSIG(status);
-		}
-		cv_.notify_all();
-		return true;
-	    }
-	}
-	return false;
-    }
-
-    // called on signal handling thread
-    static void waitprocs(int) {
-	std::vector<std::shared_ptr<proc::impl>> finished;
-
-	{
-	    auto defer = procs_mutex_.lock();
-
-	    // range-for DON'T work well with erase
-	    for (auto cur = procs_.begin(); cur != procs_.end();) {
-		auto p = *cur;
-		if (p->try_wait()) {
-		    finished.push_back(p);
-		    cur = procs_.erase(cur);	// IMPORTANT: cur must be updated by return of erase.
-		} else {
-		    ++cur;
-		}
-	    }
-	}
-
-	for (auto& p: finished) {
-	    p->on_finish(proc::proxy(p));
-	}
-    }
-
     static std::unordered_set<std::shared_ptr<proc::impl>> procs_;
     static c7::thread::mutex procs_mutex_;
     static std::atomic<uint64_t> id_counter_;
 
     c7::thread::condvar cv_;
+    c7::defer unguard_;
     uint64_t id_;
     ::pid_t pid_ = -1;
     state_t state_ = IDLE;
@@ -89,6 +55,10 @@ private:
 
     std::string prog_;
     c7::strvec argv_;
+
+    bool try_wait_raw(std::shared_ptr<proc::impl> self);
+    bool try_wait(std::shared_ptr<proc::impl> self);
+    static void waitprocs(int);		// called on signal handling thread
 
 public:
     c7::delegate<void, proc::proxy> on_start;
@@ -101,41 +71,20 @@ public:
 	c7::signal::enable_SIGCHLD(waitprocs);
     };
 
+    defer guard_finish();
+
     result<> start(const std::string& prog,
-		       const c7::strvec& argv,
-		       std::function<bool()> preexec,
-		       std::shared_ptr<proc::impl> self,
-		       int conf_fd);
+		   const c7::strvec& argv,
+		   std::function<bool()> preexec,
+		   std::shared_ptr<proc::impl> self,
+		   int conf_fd);
+    
+    result<> manage(pid_t pid,
+		    const std::string& prog,
+		    std::shared_ptr<proc::impl> self);
 
-    void manage(pid_t pid,
-		const std::string& prog,
-		std::shared_ptr<proc::impl> self);
-
-    result<> kill(int sig) {
-	auto defer = cv_.lock();
-	if (state_ == EXIT || state_ == KILLED) {
-	    return c7result_ok();
-	}
-	if (pid_ != -1) {
-	    if (::kill(pid_, sig) == C7_SYSOK) {
-		return c7result_ok();
-	    }
-	}  else {
-	    errno = 0;
-	}
-	return c7result_err(errno, "kill failed: %{}", format());
-    }
-
-    result<> wait() {
-	auto defer = cv_.lock();
-	while (state_ == RUNNING) {
-	    cv_.wait();
-	}
-	if (state_ == EXIT || state_ == KILLED) {
-	    return c7result_ok();
-	}
-	return c7result_err("process has not been run: %{}", format());
-    }
+    result<> kill(int sig);
+    result<> wait();
 
     std::pair<state_t, int> state() {
 	return std::make_pair(state_, value_);
@@ -145,23 +94,70 @@ public:
 	return id_;
     }
 
-    std::string format(const std::string& format_str = "") {
-	static const char *state_list[] = {
-	    "IDLE", "FAILED", "RUNNIG", "EXIT", "KILLED"
-	};
-	const char *state_str = "?";
-	if (0 <= state_ && state_ < c7_numberof(state_list)) {
-	    state_str = state_list[state_];
-	}
+    std::string to_string(const std::string& format_str = "") {
+	auto state_str = state_string(state_);
 	return c7::format("proc#%{}<%{},pid:%{},%{},%{}>",
 			  id_, prog_, pid_, state_str, value_);
     }
 };
 
+
 std::unordered_set<std::shared_ptr<proc::impl>> proc::impl::procs_;
 c7::thread::mutex proc::impl::procs_mutex_;
 std::atomic<uint64_t> proc::impl::id_counter_;
 
+
+// proc::impl -- SIGCHLD handling
+// -------------------------------
+
+bool proc::impl::try_wait_raw(std::shared_ptr<proc::impl> self)
+{
+    int status;
+    if (::waitpid(pid_, &status, WNOHANG) == pid_) {
+	pid_ = -1;
+	if (WIFEXITED(status)) {
+	    state_ = EXIT;
+	    value_ = WEXITSTATUS(status);
+	} else {
+	    state_ = KILLED;
+	    value_ = WTERMSIG(status);
+	}
+	on_finish(proc::proxy(self));
+	return true;
+    }
+    return false;
+}
+
+bool proc::impl::try_wait(std::shared_ptr<proc::impl> self)
+{
+    auto defer = cv_.lock();
+    if (pid_ != -1) {
+	if (try_wait_raw(self)) {
+	    cv_.notify_all();
+	    return true;
+	}
+    }
+    return false;
+}
+
+void proc::impl::waitprocs(int)		// SIGCHLD handler
+{
+    auto defer = procs_mutex_.lock();
+
+    // range-for DON'T work well with erase
+    for (auto cur = procs_.begin(); cur != procs_.end();) {
+	auto p = *cur;
+	if (p->try_wait(p)) {
+	    cur = procs_.erase(cur);
+	} else {
+	    ++cur;
+	}
+    }
+}
+
+
+// proc::impl --  fork & execve
+// -------------------------------
 
 static result<> fork_x(pid_t& newpid, int& chkpipe)
 {
@@ -270,6 +266,15 @@ static result<pid_t> forkexec(int conf_fd,
     return c7result_ok(newpid);
 }
 
+
+defer
+proc::impl::guard_finish()
+{
+    unguard_ = [](){};	// dummy
+    return c7::defer([this](){ unguard_(); });
+}
+
+
 result<>
 proc::impl::start(const std::string& prog,
 		  const c7::strvec& argv,
@@ -278,7 +283,7 @@ proc::impl::start(const std::string& prog,
 		  int conf_fd)
 {
     if (state_ != IDLE) {
-	return c7result_err("proc object is in use: %{}", format());
+	return c7result_err("proc object is in use: %{}", to_string());
     }
 
     prog_ = prog;
@@ -287,31 +292,36 @@ proc::impl::start(const std::string& prog,
     auto res = forkexec(conf_fd, preexec, prog_, argv_);
     if (!res) {
 	state_ = FAILED;
-	return c7result_err(std::move(res), "proc::start failed: %{}", format());
+	return c7result_err(std::move(res), "proc::start failed: %{}", to_string());
     }
 
+    // Next lock is important to prevent SIGCHLD handler from accessing this proc
+    // object and calling on_finish delegate before on_start.
+    auto unlock_defer = cv_.lock();
+
+    pid_ = res.value();
+    state_ = RUNNING;
     {
-	auto unload_defer = cv_.lock();
 	auto mutex_defer = procs_mutex_.lock();
-	pid_ = res.value();
-	state_ = RUNNING;
 	procs_.insert(self);
     }
 
-    // To shorten time of locking cv_, on_start() is called after unlock cv_. 
     on_start(proc::proxy(self));
 
     // If forked process exit immediately before process informaton is registered
     // to procs at above code block, SIGCHLD handler already has been called, but
-    // it cannot update state of this process. So, next calling kill() is needed to
-    // prevent caller's proc::wait() from block.
-    (void)::kill(::getpid(), SIGCHLD);
+    // it cannot update state of this process. So, next calling try_wait_raw() is
+    // important to prevent caller's proc::wait() from blocking.
+    unlock_defer += [this, self](){ (void)try_wait_raw(self); };
+    if (unguard_) {
+	unguard_ = std::move(unlock_defer);
+    }
 
     return c7result_ok();
 }
 
 
-void
+result<>
 proc::impl::manage(pid_t pid,
 		   const std::string& prog,
 		   std::shared_ptr<proc::impl> self)
@@ -319,15 +329,55 @@ proc::impl::manage(pid_t pid,
     prog_ = prog;
     argv_ = c7::strvec{prog_};
 
+    // IMPORTANT: same above reason
+    auto unlock_defer = cv_.lock();
+
+    pid_ = pid;
+    state_ = RUNNING;
     {
-	auto unload_defere = cv_.lock();
 	auto mutex_defer = procs_mutex_.lock();
-	pid_ = pid;
-	state_ = RUNNING;
 	procs_.insert(self);
     }
 
-    (void)::kill(::getpid(), SIGCHLD);	// this is needed by same reason of above.
+    // IMPORTANT: same above reason
+    unlock_defer += [this, self](){ (void)try_wait_raw(self); };
+    if (unguard_) {
+	unguard_ = std::move(unlock_defer);
+    }
+
+    return c7result_ok();
+}
+
+
+// proc::impl -- other operations
+// -------------------------------
+
+result<> proc::impl::kill(int sig)
+{
+    auto defer = cv_.lock();
+    if (state_ == EXIT || state_ == KILLED) {
+	return c7result_ok();
+    }
+    if (pid_ != -1) {
+	if (::kill(pid_, sig) == C7_SYSOK) {
+	    return c7result_ok();
+	}
+    }  else {
+	errno = 0;
+    }
+    return c7result_err(errno, "kill failed: %{}", to_string());
+}
+
+result<> proc::impl::wait()
+{
+    auto defer = cv_.lock();
+    while (state_ == RUNNING) {
+	cv_.wait();
+    }
+    if (state_ == EXIT || state_ == KILLED) {
+	return c7result_ok();
+    }
+    return c7result_err("process has not been run: %{}", to_string());
 }
 
 
@@ -340,9 +390,14 @@ proc::proc():
     on_start(pimpl->on_start), on_finish(pimpl->on_finish) {
 }
 
+c7::defer proc::guard_finish()
+{
+    return pimpl->guard_finish();
+}
+
 result<> proc::_start(const std::string& program,
-			  const c7::strvec& argv,
-			  std::function<bool()> preexec)
+		      const c7::strvec& argv,
+		      std::function<bool()> preexec)
 			  
 {
     return pimpl->start(program, argv, preexec, pimpl, conf_fd);
@@ -375,7 +430,7 @@ uint64_t proc::id() const
 
 std::string proc::format(const std::string& format_str) const
 {
-    return pimpl->format(format_str);
+    return pimpl->to_string(format_str);
 }
 
 
@@ -397,7 +452,7 @@ uint64_t proc::proxy::id() const
 
 std::string proc::proxy::format(const std::string& format_str) const
 {
-    return pimpl->format(format_str);
+    return pimpl->to_string(format_str);
 }
 
 

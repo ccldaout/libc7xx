@@ -45,6 +45,8 @@ public:
 
     proc();
 
+    c7::defer guard_finish();
+
     template <typename Preexec, typename... Args>
     result<> start(const std::string& program,
 		       const c7::strvec& argv,
