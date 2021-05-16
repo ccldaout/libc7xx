@@ -389,11 +389,7 @@ public:
 
     result(result&& o): result_base(std::move(o)) {}
 
-    result(result_base&& o): result_base(std::move(o)) {
-	if (!errors_) {
-	    throw std::runtime_error("value type mismatch: data maybe lost");
-	}
-    }
+    result(result_base&& o): result_base(std::move(o)) {}
 
     template <typename... Args>
     result& set_error(const Args&... args) {
