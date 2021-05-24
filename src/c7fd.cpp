@@ -22,30 +22,7 @@ namespace c7 {
                                   I/O result
 ----------------------------------------------------------------------------*/
 
-io_result::io_result(io_result&& o):
-    result_(std::move(o.result_)), status_(o.status_), done_(o.done_), remain_(o.remain_)
-{
-}
-
-io_result& io_result::operator=(io_result&& o)
-{
-    if (this != &o) {
-	result_ = std::move(o.result_);
-	status_ = o.status_;
-	done_   = o.done_;
-	remain_ = o.remain_;
-    }
-    return *this;
-}
-
-io_result::io_result() {}
-
-io_result::io_result(status status, size_t done, size_t remain, c7::result_base&& base):
-    result_(std::move(base)), status_(status), done_(done), remain_(remain)
-{
-}
-
-std::string io_result::format_status(status status)
+std::string io_result::to_string(status status)
 {
     const char *sv[] = { "OK", "BUSY", "CLOSED", "INCOMP", "ERR" };
     int i = static_cast<int>(status);
@@ -57,13 +34,23 @@ std::string io_result::format_status(status status)
     return c7::format("%{}(%{})", p, i);
 }
 
-std::string io_result::format(const std::string& spec) const
+std::string io_result::to_string(const std::string& spec) const
 {
     if (status_ == status::OK || result_)
 	return c7::format("io_result<%{},done:%{},remain:%{}>",
-			  format_status(status_), done_, remain_);
+			  to_string(status_), done_, remain_);
     return c7::format("io_result<%{},done:%{},remain:%{}>:error: %{}",
-		      format_status(status_), done_, remain_, result_);
+		      to_string(status_), done_, remain_, result_);
+}
+
+void io_result::print(std::ostream& out, const std::string& spec) const
+{
+    out << to_string(spec);
+}
+
+void print_type(std::ostream& out, const std::string& format, io_result::status arg)
+{
+    out << io_result::to_string(arg);
 }
 
 
@@ -79,8 +66,7 @@ fd::fd(int fdnum, const std::string& name):
 }
 
 fd::fd(fd&& o):
-    fdnum_(o.fdnum_), name_(std::move(o.name_)),
-    str_(std::move(o.str_)), on_close(std::move(o.on_close))
+    on_close(std::move(o.on_close)), fdnum_(o.fdnum_), name_(std::move(o.name_)) 
 {
     o.fdnum_ = -1;
 }
@@ -89,33 +75,29 @@ fd& fd::operator=(fd&& o)
 {
     if (this != &o) {
 	close();
+	on_close = std::move(o.on_close);
 	fdnum_   = o.fdnum_;
 	name_    = std::move(o.name_);
-	str_     = std::move(o.str_);
-	on_close = std::move(o.on_close);
-	o.fdnum_ = -1;
+	o.fdnum_  = -1;
     }
     return *this;
 }
 
-fd& fd::swap(fd& o)
+result<> fd::close()
 {
-    if (this != &o) {
-	std::swap(fdnum_,   o.fdnum_);
-	std::swap(name_,    o.name_);
-	std::swap(str_,     o.str_);
-	std::swap(on_close, o.on_close);
-    }    
-    return *this;
-}
-
-result<fd> fd::dup()
-{
-    int newfd = ::dup(fdnum_);
-    if (newfd == C7_SYSERR) {
-	return c7result_err(errno, "dup(%{}) failed", fdnum_);
+    if (fdnum_ != -1) {
+	auto _on_close = std::move(on_close);
+	_on_close(*this);
+	if (fdnum_ != -1) {
+	    _close();
+	    name_ += c7::format(":CLOSED<%{}>", fdnum_);
+	    if (::close(fdnum_) == C7_SYSERR) {
+		return c7result_err(errno, "close(%{}) failed", *this);
+	    }
+	    fdnum_ = -1;
+	}
     }
-    return c7result_ok(fd(newfd, name_));
+    return c7result_ok();
 }
 
 result<> fd::renumber_to(int target_fdnum)
@@ -135,7 +117,6 @@ result<> fd::renumber_above(int lowest_fdnum)
     }
     (void)::close(fdnum_);
     fdnum_ = newfd;
-    str_.clear();
     return c7result_ok();
 }
 
@@ -328,7 +309,7 @@ io_result fd::read_n(void *buf, size_t const req_n)
 	buf = (char *)buf + z;
 	n += z;
     }
-    return io_result();
+    return io_result::ok(n);
 }
 
 io_result fd::write_n(const void *buf, size_t const req_n)
@@ -353,12 +334,13 @@ io_result fd::write_n(const void *buf, size_t const req_n)
 	buf = (char *)buf + z;
 	n += z;
     }
-    return io_result();
+    return io_result::ok(n);
 }
 
 io_result fd::write_v(::iovec*& iov, int& ioc)
 {
     const int ioc_save = ioc;
+    size_t n = 0;	// actual writen bytes
 
     while (ioc > 0) {
 	if (iov->iov_len == 0) {
@@ -379,6 +361,7 @@ io_result fd::write_v(::iovec*& iov, int& ioc)
 	    }
 	}
 	while (z > 0) {
+	    n += z;
 	    if (iov->iov_len <= (size_t)z) {
 		z -= iov->iov_len;
 		iov->iov_len = 0;
@@ -392,7 +375,7 @@ io_result fd::write_v(::iovec*& iov, int& ioc)
 	    }
 	}
     }
-    return io_result();
+    return io_result::ok(n);
 }
 
 result<uint32_t> fd::wait(uint32_t which, c7::usec_t tmo_us)
@@ -430,27 +413,17 @@ result<uint32_t> fd::wait(uint32_t which, c7::usec_t tmo_us)
     return c7result_ok(which);
 }
 
-void fd::_close()
+std::string fd::to_string(const std::string&) const
 {
-    if (fdnum_ != -1) {
-	on_close(*this);
-	(void)::close(fdnum_);
-	str_ += c7::format(":CLOSED<%{}>", fdnum_);
-    }
-    fdnum_ = -1;
-    name_.clear();
-    on_close.clear();
+    if (name_.empty())
+	return c7::format("fd<%{}>", fdnum_);
+    else
+	return c7::format("fd<%{},%{}>", fdnum_, name_);
 }
 
-const std::string& fd::format(const std::string spec) const
+void fd::print(std::ostream& out, const std::string& spec) const
 {
-    if (str_.empty()) {
-	if (name_.empty())
-	    str_ = c7::format("fd<%{}>", fdnum_);
-	else
-	    str_ = c7::format("fd<%{},%{}>", fdnum_, name_);
-    }
-    return str_;
+    out << to_string(spec);
 }
 
 result<fd> open(std::string&& path, int oflag, ::mode_t mode)
@@ -504,31 +477,16 @@ result<fd> opentmp(const std::string& dir, ::mode_t mode)
 #endif
 }
 
-
-/*----------------------------------------------------------------------------
-                                     pipe
-----------------------------------------------------------------------------*/
-
-std::atomic<size_t> pipe::id_counter_;
-
-const std::string& pipe::format(const std::string spec) const
+result<std::pair<fd, fd>> make_pipe()
 {
-    if (str_.empty()) {
-	if (name_.empty())
-	    str_ = c7::format("pipe<%{},#%{}>", fdnum_, id_);
-	else
-	    str_ = c7::format("pipe<%{},#%{}%{},>", fdnum_, id_, name_);
-    }
-    return str_;
-}
-
-result<std::pair<pipe, pipe>> make_pipe()
-{
+    static std::atomic<size_t> id_counter;
     int fdv[2];
     if (::pipe(fdv) == C7_SYSERR) {
 	return c7result_err(errno, "pipe() failed");
     }	
-    return c7result_ok(std::make_pair(c7::pipe(fdv[0], "R"), c7::pipe(fdv[1], "W")));
+    id_counter++;
+    return c7result_ok(std::make_pair(c7::fd(fdv[0], c7::format("R.%{}", id_counter)),
+				      c7::fd(fdv[1], c7::format("W.%{}", id_counter))));
 }
 
 

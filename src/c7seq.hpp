@@ -71,7 +71,7 @@ public:
 	iterator& operator++() {
 	    if (idx_ < seq_.n_) {
 		idx_++;
-		if (std::is_floating_point<T>::value)
+		if (std::is_floating_point_v<T>)
 		    val_ = calc();
 		else
 		    val_ += seq_.step_;
@@ -206,8 +206,8 @@ public:
 
 private:
     typedef std::remove_reference_t<C> C_;
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_&&, C_&>::type A;
 
     S c;
     size_t off;
@@ -259,8 +259,8 @@ template <typename C>
 class reverse_seq {
 private:
     typedef typename std::remove_reference_t<C> C_;
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_&&, C_&>::type A;
 
     S c;
 
@@ -456,8 +456,8 @@ public:
     typedef iterator const_iterator;
 
 private:
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_, C_&>::type S;
-    typedef typename std::conditional<std::is_rvalue_reference<C>::value, C_&&, C_&>::type A;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_, C_&>::type S;
+    typedef typename std::conditional<std::is_rvalue_reference_v<C>, C_&&, C_&>::type A;
 
     S c;
     predicate pred;

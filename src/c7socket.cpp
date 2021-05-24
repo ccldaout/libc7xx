@@ -17,6 +17,24 @@
 #include <sys/socket.h>
 
 
+static const char *inaddr_name(const ::sockaddr_in& inaddr)
+{
+    static thread_local char namebuf[INET_ADDRSTRLEN];
+    auto addr = reinterpret_cast<const ::sockaddr *>(&inaddr);
+    (void)getnameinfo(addr, sizeof(inaddr),
+		      namebuf, sizeof(namebuf),
+		      nullptr, 0,
+		      0);
+    return namebuf;
+}
+
+
+void print_type(std::ostream& out, const std::string&, const ::sockaddr_in& inaddr)
+{
+    c7::format(out, "ipv4<%{}:%{})", inaddr_name(inaddr), ntohs(inaddr.sin_port));
+}
+
+
 namespace c7 {
 
 
@@ -66,7 +84,7 @@ result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port)
 	    return c7result_err(EINVAL,
 				"getaddrinfo(%{}) failed: %{}", host, gai_strerror(err));
 	}
-	ipaddr = ((::sockaddr_in *)result->ai_addr)->sin_addr.s_addr;
+	ipaddr = reinterpret_cast<::sockaddr_in *>(result->ai_addr)->sin_addr.s_addr;
 	::freeaddrinfo(result);
     }
     return c7result_ok(sockaddr_ipv4(ipaddr, port));
@@ -77,96 +95,85 @@ result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port)
                                     socket
 ----------------------------------------------------------------------------*/
 
-void socket::setup_ipv4_str(const std::string& state)
+void socket::setup_ipv4_str() const
 {
     auto res1 = self_ipv4();
     auto res2 = peer_ipv4();
     if (!res1) {
-	str_ = c7::format("%{}<%{},?,%{}>", name_, fdnum_, state);
+	name_ = "peer:?,self:?";
 	return;
     }
     auto& self = res1.value();
     if (res2) {
 	auto& peer = res2.value();
-	const uint8_t *ip = (const uint8_t *)&peer.sin_addr.s_addr;
-	str_ = c7::format("%{}<%{},peer:%{}.%{}.%{}.%{}:%{},self:%{},%{}>",
-			  name_, fdnum_,
-			  uint32_t(ip[0]), uint32_t(ip[1]), uint32_t(ip[2]), uint32_t(ip[3]),
-			  ntohs(peer.sin_port),
-			  ntohs(self.sin_port),
-			  state);
+	name_ = c7::format("peer:%{}:%{} self:%{}",
+			   inaddr_name(peer), ntohs(peer.sin_port), ntohs(self.sin_port));
     } else {
-	const uint8_t *ip = (const uint8_t *)&self.sin_addr.s_addr;
-	str_ = c7::format("%{}<%{},self:%{}.%{}.%{}.%{}:%{},%{}>",
-			  name_, fdnum_,
-			  uint32_t(ip[0]), uint32_t(ip[1]), uint32_t(ip[2]), uint32_t(ip[3]),
-			  ntohs(self.sin_port),
-			  state);
+	name_ = c7::format("peer:? self:%{}:%{}",
+			   inaddr_name(self), ntohs(self.sin_port));
     }
 }
 
-void socket::setup_unix_str(const std::string& state)
+void socket::setup_unix_str() const
 {
     ::sockaddr_un unaddr;
     socklen_t n = sizeof(unaddr);
-    int ret = ::getsockname(fdnum_, (::sockaddr *)&unaddr, &n);
+    int ret = ::getsockname(fdnum_, reinterpret_cast<::sockaddr *>(&unaddr), &n);
     if (ret == C7_SYSERR) {
-	str_ = c7::format("%{}<%{},?,%{}>", name_, fdnum_, state);
+	name_ = "unix:?";
     } else {
-	str_ = c7::format("%{}<%{},%{},%{}>", name_, fdnum_, unaddr.sun_path, state);
+	name_ = c7::format("unix:%{}", unaddr.sun_path);
     }
 }
 
-void socket::setup_str(const std::string& state)
+void socket::setup_str() const
 {
     ::sockaddr addr;
     socklen_t n = sizeof(addr);
     int ret = ::getsockname(fdnum_, &addr, &n);
     if (ret == C7_SYSOK && addr.sa_family == AF_INET) {
-	setup_ipv4_str(state);
+	setup_ipv4_str();
     } else if (ret == C7_SYSOK && addr.sa_family == AF_UNIX) {
-	setup_unix_str(state);
+	setup_unix_str();
     } else {
-	str_ = c7::format("%{}<%{},?,%{}>", name_, fdnum_, state);
+	name_ = "?";
     }
 }
 
-result<socket> socket::make_socket(int domain, int type, int protocol,
-				   const std::string& name)
+result<socket> socket::make_socket(int domain, int type, int protocol)
 {
     int fd = ::socket(domain, type, protocol);
     if (fd == C7_SYSERR) {
 	return c7result_err(errno, "socket(%{}, %{}, %{}) failed", domain, type, protocol);
     }
-    auto sock = c7::socket(fd, name);
-    sock.setup_str("!");
+    auto sock = c7::socket(fd);
     return c7result_ok(std::move(sock));
 }
 
 result<socket> socket::tcp()
 {
-    return socket::make_socket(AF_INET, SOCK_STREAM, 0, "tcp");
+    return socket::make_socket(AF_INET, SOCK_STREAM);
 }
 
 result<socket> socket::udp()
 {
-    return socket::make_socket(AF_INET, SOCK_DGRAM, 0, "udp");
+    return socket::make_socket(AF_INET, SOCK_DGRAM);
 }
 
 result<socket> socket::unix()
 {
-    return socket::make_socket(AF_UNIX, SOCK_STREAM, 0, "un");
+    return socket::make_socket(AF_UNIX, SOCK_STREAM);
 }
 
 result<> socket::bind(const ::sockaddr_in& inaddr)
 {
     int reuse = 1;
     (void)::setsockopt(fdnum_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-    if (::bind(fdnum_, (::sockaddr *)&inaddr, sizeof(inaddr)) == C7_SYSERR) {
+    auto addr = reinterpret_cast<const ::sockaddr *>(&inaddr);
+    if (::bind(fdnum_, addr, sizeof(inaddr)) == C7_SYSERR) {
 	return c7result_err(errno,
 			    "bind(%{}, %{}) failed", *this, inaddr);
     }
-    setup_str("B");
     return c7result_ok();
 }
 
@@ -193,21 +200,21 @@ result<> socket::bind(const std::string& path)	// UNIX domain
 	return c7result_err(std::move(res), "bind(%{}, %{}) failed", fdnum_, path);
     }
     auto [unaddr, addrlen] = res.value();
-    if (::bind(fdnum_, (struct sockaddr *)&unaddr, addrlen) == C7_SYSERR) {
+    auto addr = reinterpret_cast<const ::sockaddr *>(&unaddr);
+    if (::bind(fdnum_, addr, addrlen) == C7_SYSERR) {
 	return c7result_err(errno, "bind(%{}, %{}) failed", fdnum_, path);
     }
-    setup_str("B");
     return c7result_ok();
 }
 
 result<> socket::connect(const ::sockaddr_in& inaddr)
 {
-    if (::connect(fdnum_, (::sockaddr *)&inaddr, sizeof(inaddr)) == C7_SYSERR) {
+    (void)tcp_keepalive(true);	// called here for non-blocking connect.
+    auto addr = reinterpret_cast<const ::sockaddr *>(&inaddr);
+    if (::connect(fdnum_, addr, sizeof(inaddr)) == C7_SYSERR) {
 	return c7result_err(errno,
 			    "connect(%{}, %{}) failed", fdnum_, inaddr);
     }
-    (void)tcp_keepalive(true);
-    setup_str("C");
     return c7result_ok();
 }
 
@@ -233,10 +240,10 @@ result<> socket::connect(const std::string& path)	// UNIX domain
 	return c7result_err(std::move(res), "connect(%{}, %{}) failed", fdnum_, path);
     }
     auto [unaddr, addrlen] = res.value();
-    if (::connect(fdnum_, (struct sockaddr *)&unaddr, addrlen) == C7_SYSERR) {
+    auto addr = reinterpret_cast<const ::sockaddr *>(&unaddr);
+    if (::connect(fdnum_, addr, addrlen) == C7_SYSERR) {
 	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, path);
     }
-    setup_str("C");
     return c7result_ok();
 }
 
@@ -245,7 +252,6 @@ result<> socket::listen(int backlog)
     if (::listen(fdnum_, backlog) == C7_SYSERR) {
 	return c7result_err(errno, "listen(%{}, %{}) failed", fdnum_, backlog);
     }
-    setup_str("S");
     return c7result_ok();
 }
     
@@ -256,34 +262,33 @@ result<socket> socket::accept()
 	return c7result_err(errno, "accept(%{}) failed", fdnum_);
     }
     auto newsock = c7::socket(newfd);
-    newsock.setup_str("A");
     (void)newsock.tcp_keepalive(true);
     return c7result_ok(std::move(newsock));
 }
     
-result<::sockaddr_in> socket::self_ipv4()
+result<::sockaddr_in> socket::self_ipv4() const
 {
     ::sockaddr_in inaddr;
     socklen_t n = sizeof(inaddr);
-    int ret = ::getsockname(fdnum_, (::sockaddr *)&inaddr, &n);
+    int ret = ::getsockname(fdnum_, reinterpret_cast<::sockaddr *>(&inaddr), &n);
     if (ret == C7_SYSERR) {
 	return c7result_err(errno, "getsockname(%{}) [IPv4] failed", fdnum_);
     }
     return c7result_ok(inaddr);
 }
 
-result<::sockaddr_in> socket::peer_ipv4()
+result<::sockaddr_in> socket::peer_ipv4() const
 {
     ::sockaddr_in inaddr;
     socklen_t n = sizeof(inaddr);
-    int ret = ::getpeername(fdnum_, (struct sockaddr *)&inaddr, &n);
+    int ret = ::getpeername(fdnum_, reinterpret_cast<::sockaddr *>(&inaddr), &n);
     if (ret == C7_SYSERR) {
 	return c7result_err(errno, "setpeername(%{}) [IPv4] failed", fdnum_);
     }
     return c7result_ok(inaddr);
 }
 
-result<> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen)
+result<> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen) const
 {
     int ret = ::getsockopt(fdnum_, level, optname, optval, optlen);
     if (ret == C7_SYSERR) {
@@ -365,9 +370,22 @@ result<> socket::shutdown_rw()
     return c7result_ok();
 }
 
-const std::string& socket::format(const std::string spec) const
+std::string socket::to_string(const std::string&) const
 {
-    return str_;
+    if (name_.empty()) {
+	setup_str();
+    }
+    const char *s = name_[0] == '?' ? "fd" : "socket";
+    return c7::format("%{}<%{} %{}>", s, fdnum_, name_);
+}
+
+void socket::print(std::ostream& out, const std::string&) const
+{
+    if (name_.empty()) {
+	setup_str();
+    }
+    const char *s = name_[0] == '?' ? "fd" : "socket";
+    c7::format(out, "%{}<%{} %{}>", s, fdnum_, name_);
 }
 
 

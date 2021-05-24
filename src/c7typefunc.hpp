@@ -98,30 +98,11 @@ using cdr_t = typename cdr<Head, Tail...>::type;
 // -- map : typefunc,       t1, t2, ...  -> tuple<typefunc<t1>, typefunc<t2>, ...>
 // -- map : typefunc, tuple<t1, t2, ...> -> tuple<typefunc<t1>, typefunc<t2>, ...>
 
-#if 0
-template <template <typename> class TFunc,
-	  typename... Types>
-struct map {};
-
-template <template <typename> class TFunc>
-struct map<TFunc> {
-    typedef std::tuple<> type;
-};
-
-template <template <typename T> class TFunc,
-	  typename Head, typename... Tail>
-struct map<TFunc, Head, Tail...> {
-    typedef typename map<TFunc, Tail...>::type tail_type;
-    typedef typename TFunc<Head>::type head_type;
-    typedef typename cons<head_type, tail_type>::type type;
-};
-#else
 template <template <typename> class TFunc,
 	  typename... Types>
 struct map {
     typedef std::tuple<typename TFunc<Types>::type...> type;
 };
-#endif
 
 template <template <typename> class TFunc,
 	  typename... Types>
@@ -161,6 +142,37 @@ struct is_empty<Head, Tail...> {
 
 template <typename... Args>
 inline constexpr bool is_empty_v = is_empty<Args...>::value;
+
+
+/*----------------------------------------------------------------------------
+                            multi-case conditional
+----------------------------------------------------------------------------*/
+
+template <typename... Args>
+struct ifelse {
+    typedef void type;
+};
+
+template <typename C, typename T, typename... Args>
+struct ifelse<C, T, Args...> {
+    typedef typename std::conditional_t<bool(C::value), T, typename ifelse<Args...>::type> type;
+};
+
+template <typename T>
+struct ifelse<T> {
+    typedef T type;
+};
+
+template <typename... Args>
+using ifelse_t = typename ifelse<Args...>::type;
+
+
+/*----------------------------------------------------------------------------
+                                    others
+----------------------------------------------------------------------------*/
+
+template <typename T>
+inline constexpr bool false_v = false;
 
 
 /*----------------------------------------------------------------------------

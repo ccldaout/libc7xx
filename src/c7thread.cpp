@@ -20,6 +20,9 @@ namespace c7 {
 namespace thread {
 
 
+static bool process_alive = true;
+
+
 /*----------------------------------------------------------------------------
                                     spinlock
 ----------------------------------------------------------------------------*/
@@ -27,10 +30,9 @@ namespace thread {
 class spinlock::impl {
 private:
     pthread_spinlock_t m_;
-    std::string name_;
 
 public:
-    impl(std::string name): name_(name) {
+    impl() {
 	(void)pthread_spin_init(&m_, PTHREAD_PROCESS_PRIVATE);
     }
 
@@ -44,7 +46,9 @@ public:
 	    if (ret == EBUSY) {
 		return false;
 	    }
-	    throw thread_error(ret, "pthread_spinlock_[try]lock");
+	    if (process_alive) {
+		throw thread_error(ret, "pthread_spinlock_[try]lock");
+	    }
 	}
 	return true;
     }
@@ -53,18 +57,14 @@ public:
 	(void)pthread_spin_unlock(&m_);
     }
 
-    const std::string& name() {
-	return name_;
-    }
-
     pthread_spinlock_t& __pthread_spinlock() {
 	return m_;
     }
 };
 
-spinlock::spinlock(std::string name)
+spinlock::spinlock()
 {
-    pimpl = new spinlock::impl(name);
+    pimpl = new spinlock::impl();
 }
 
 spinlock::spinlock(spinlock&& o)
@@ -104,11 +104,6 @@ void spinlock::unlock()
     pimpl->unlock();
 }
 
-const std::string& spinlock::name()
-{
-    return pimpl->name();
-}
-
 
 /*----------------------------------------------------------------------------
                                     mutex
@@ -117,10 +112,9 @@ const std::string& spinlock::name()
 class mutex::impl {
 private:
     pthread_mutex_t m_;
-    std::string name_;
 
 public:
-    impl(std::string name, bool recursive): name_(name) {
+    impl(bool recursive) {
 	pthread_mutexattr_t attr;
 	(void)pthread_mutexattr_init(&attr);
 	if (recursive)
@@ -138,17 +132,15 @@ public:
 	    if (ret == EBUSY) {
 		return false;
 	    }
-	    throw thread_error(ret, "pthread_mutex_[try]lock");
+	    if (process_alive) {
+		throw thread_error(ret, "pthread_mutex_[try]lock");
+	    }
 	}
 	return true;
     }
 
     void unlock() {
 	(void)pthread_mutex_unlock(&m_);
-    }
-
-    const std::string& name() {
-	return name_;
     }
 
     pthread_mutex_t& __pthread_mutex() {
@@ -158,12 +150,7 @@ public:
 
 mutex::mutex(bool recursive)
 {
-    pimpl = new mutex::impl("", recursive);
-}
-
-mutex::mutex(std::string name, bool recursive)
-{
-    pimpl = new mutex::impl(name, recursive);
+    pimpl = new mutex::impl(recursive);
 }
 
 mutex::mutex(mutex&& o)
@@ -203,11 +190,6 @@ void mutex::unlock()
     pimpl->unlock();
 }
 
-const std::string& mutex::name()
-{
-    return pimpl->name();
-}
-
 
 /*----------------------------------------------------------------------------
                               condition variable
@@ -218,13 +200,12 @@ private:
     pthread_cond_t c_ = PTHREAD_COND_INITIALIZER;
     mutex::impl* mimpl_;
     bool allocated_;
-    std::string name_;
 
 public:
-    impl(mutex* mutex, std::string name): name_(name) {
+    impl(mutex* mutex) {
 	allocated_ = (mutex == nullptr);
 	if (mutex == nullptr) {
-	    mimpl_ = new mutex::impl(name, false);
+	    mimpl_ = new mutex::impl(false);
 	} else {
 	    mimpl_ = mutex->pimpl;
 	}
@@ -258,7 +239,9 @@ public:
 	    if (ret == ETIMEDOUT) {
 		return false;
 	    }
-	    throw thread_error(ret, "pthread_cond_[timed]wait");
+	    if (process_alive) {
+		throw thread_error(ret, "pthread_cond_[timed]wait");
+	    }
 	}
 	return true;
     }
@@ -266,30 +249,30 @@ public:
     void notify() {
 	int ret = pthread_cond_signal(&c_);
 	if (ret != C7_SYSOK) {
-	    throw thread_error(ret, "pthread_cond_signal");
+	    if (process_alive) {
+		throw thread_error(ret, "pthread_cond_signal");
+	    }
 	}
     }
 
     void notify_all() {
 	int ret = pthread_cond_broadcast(&c_);
 	if (ret != C7_SYSOK) {
-	    throw thread_error(ret, "pthread_cond_broadcast");
+	    if (process_alive) {
+		throw thread_error(ret, "pthread_cond_broadcast");
+	    }
 	}
-    }
-
-    const std::string& name() {
-	return name_;
     }
 };
 
-condvar::condvar(std::string name)
+condvar::condvar()
 {
-    pimpl = new condvar::impl(nullptr, name);
+    pimpl = new condvar::impl(nullptr);
 }
 
-condvar::condvar(mutex& mutex, std::string name)
+condvar::condvar(mutex& mutex)
 {
-    pimpl = new condvar::impl(&mutex, name);
+    pimpl = new condvar::impl(&mutex);
 }
 
 condvar::condvar(condvar&& o)
@@ -349,15 +332,15 @@ void condvar::notify_all()
     pimpl->notify_all();
 }
 
-const std::string& condvar::name()
-{
-    return pimpl->name();
-}
-
 
 /*----------------------------------------------------------------------------
                                    thread
 ----------------------------------------------------------------------------*/
+
+static void mark_exiting()
+{
+    process_alive = false;
+}
 
 class thread::impl {
     // ------------ types ------------
@@ -430,9 +413,10 @@ private:
     }
 
     static void* entry_point(void *__arg) {
-	auto self = static_cast<impl*>(__arg);
-	current_thread = self;
-	self->thread();
+	auto spp = static_cast<std::shared_ptr<impl>*>(__arg);
+	auto shared_this = *spp;
+	current_thread = shared_this.get();
+	shared_this->thread();
 	return nullptr;
     }
 
@@ -444,11 +428,14 @@ public:
 
     impl():
 	id_(id_counter_++), name_("thread<" + std::to_string(id_) + ">"),
-	exit_(thread::NA_IDLE), state_(IDLE), cv_(name_) {
+	exit_(thread::NA_IDLE), state_(IDLE) {
 	(void)pthread_attr_init(&attr_);
 	(void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
 	if (this == &main_thread) {
 	    current_thread = this;
+	}
+	if (id_ == 0) {
+	    std::atexit(mark_exiting);
 	}
     }
 
@@ -472,7 +459,7 @@ public:
 	finalize_ = std::move(finalize);
     }
 
-    result<> start() {
+    result<> start(std::shared_ptr<impl> *self) {
 	auto defer = cv_.lock();
 
 	if (state_ != IDLE) {
@@ -481,7 +468,7 @@ public:
 	state_ = STARTING;
 
 	int ret = pthread_create(&pthread_, &attr_, entry_point,
-				 static_cast<void*>(this));
+				 static_cast<void*>(self));
 	if (ret != C7_SYSOK) {
 	    state_ = START_FAILED;
 	    if (finalize_) {
@@ -562,31 +549,21 @@ thread::thread():
 }
 
 thread::thread(thread&& o):
-    pimpl(o.pimpl),
+    pimpl(std::move(o.pimpl)),
     on_start(pimpl->on_start_), on_finish(pimpl->on_finish_) {
-    o.pimpl = nullptr;
 }
 
 thread& thread::operator=(thread&& o)
 {
     if (this != &o) {
-	if (pimpl->is_running()) {
-	    throw std::runtime_error("assignment is not allowed: target thread is running.");
-	}
-	delete pimpl;
-	pimpl = o.pimpl;
-	o.pimpl = nullptr;
+	pimpl = std::move(o.pimpl);
 	on_start = std::move(o.on_start);
 	on_finish = std::move(o.on_finish);
     }
     return *this;
 }
     
-thread::~thread()
-{
-    delete pimpl;
-    pimpl = nullptr;
-}
+thread::~thread() {}
 
 void thread::reuse()
 {
@@ -620,7 +597,7 @@ void thread::set_finalize(std::function<void()>&& finalize)
 
 result<> thread::start()
 {
-    return pimpl->start();
+    return pimpl->start(&pimpl);
 }
 
 bool thread::join(c7::usec_t timeout)
@@ -645,7 +622,7 @@ bool thread::is_alive() const
 
 bool thread::is_self() const
 {
-    return pimpl == impl::current_thread;
+    return pimpl.get() == impl::current_thread;
 }
 
 const char *thread::name() const
@@ -695,7 +672,7 @@ void self::abort(c7::result<>&& res)
 
 proxy::proxy(thread::impl *pimpl): pimpl(pimpl) {}
 
-proxy::proxy(const thread& th): pimpl(th.pimpl) {}
+proxy::proxy(const thread& th): pimpl(th.pimpl.get()) {}
 
 thread::exit_type proxy::status() const
 {
@@ -712,6 +689,20 @@ uint64_t proxy::id() const
     return pimpl->id();
 }
 
+void proxy::print(std::ostream& out, const std::string&) const
+{
+    const char *exitv[] = {
+	"N/A(idle)", "N/A(running)", "EXIT", "ABORT", "CRASH",
+    };
+    const char *exit_str = "?";
+    auto sts = status();
+    if (0 <= sts && sts < c7_numberof(exitv)) {
+	exit_str = exitv[sts];
+    }
+    c7::format(out, "thread<#%{},%{},%{}(%{})>",
+	       id(), name(), exit_str, sts);
+}
+
 bool operator==(const thread& t, const proxy& p)
 {
     return p == t;
@@ -723,21 +714,4 @@ bool operator==(const thread& t, const proxy& p)
 
 
 } // namespace thread
-
-
-void format_traits<thread::proxy>::convert(
-    std::ostream& out, const std::string& format, const thread::proxy& th)
-{
-    const char *exitv[] = {
-	"N/A(idle)", "N/A(running)", "EXIT", "ABORT", "CRASH",
-    };
-    const char *exit_str = "?";
-    if (0 <= th.status() && th.status() < c7_numberof(exitv)) {
-	exit_str = exitv[th.status()];
-    }
-    out << c7::format("thread<#%{},%{},%{}(%{})>",
-		      th.id(), th.name(), exit_str, th.status());
-}
-
-
 } // namespace c7

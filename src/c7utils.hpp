@@ -104,6 +104,58 @@ public:
 
 
 /*----------------------------------------------------------------------------
+                                reverse endian
+----------------------------------------------------------------------------*/
+
+namespace endian {
+
+static inline void reverse(uint64_t& u) { __asm__("bswapq %0":"+r"(u)); }
+static inline void reverse( int64_t& u) { __asm__("bswapq %0":"+r"(u)); }
+static inline void reverse(uint32_t& u) { __asm__("bswapl %0":"+r"(u)); }
+static inline void reverse( int32_t& u) { __asm__("bswapl %0":"+r"(u)); }
+static inline void reverse(uint16_t& u) { __asm__("rorw $8,%0":"+r"(u)); }
+static inline void reverse( int16_t& u) { __asm__("rorw $8,%0":"+r"(u)); }
+static inline void reverse(uint8_t) {}
+static inline void reverse( int8_t) {}
+template <typename T> static inline T reverse_to(T u) { reverse(u); return u; }
+
+} // namespace [c7::]endian;
+
+
+/*----------------------------------------------------------------------------
+                              simple raw storage
+----------------------------------------------------------------------------*/
+
+class storage {
+public:
+    storage() = default;
+    explicit storage(size_t align): align_(align) {}
+    ~storage();
+    storage(const storage&) = delete;
+    storage(storage&&);
+    storage& operator=(const storage&) = delete;
+    storage& operator=(storage&&);
+    storage& copy_from(const storage&);
+    storage copy_to();
+    result<> reserve(size_t req);
+    void reset();
+    void clear();
+    void set_align(size_t align) { align_ = align; }
+    size_t align() { return align_; }
+    size_t size() { return size_; }
+    void *addr() { return addr_; }
+    const void *addr() const { return addr_; }
+    template <typename T> operator T*() { return static_cast<T*>(addr_); }
+    template <typename T> operator const T*() const { return static_cast<T*>(addr_); }
+
+private:
+    void *addr_ = nullptr;
+    size_t size_ = 0;
+    size_t align_ = 1024;
+};
+
+
+/*----------------------------------------------------------------------------
                             C array type iterator
 ----------------------------------------------------------------------------*/
 

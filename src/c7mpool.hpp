@@ -38,20 +38,13 @@ struct item {
     union {
 	strategy<T> *pool;
 	item<T> *next;
-    } link;
+    };
     T data;
 };
 
 
 template <typename T>
 class pointer {
-private:
-    friend pointer<T> strategy<T>::get();
-
-    item<T> *s_;
-
-    explicit pointer(item<T> *s): s_(s) {}
-
 public:
     pointer(const pointer&) = delete;
     pointer& operator=(const pointer&) = delete;
@@ -62,7 +55,7 @@ public:
 
     ~pointer() {
 	if (s_ != nullptr) {
-	    s_->link.pool->back(s_);
+	    s_->pool->back(s_);
 	    s_ = nullptr;
 	}
     }
@@ -74,7 +67,7 @@ public:
     pointer& operator=(pointer&& o) {
 	if (this != &o) {
 	    if (s_ != nullptr) {
-		s_->link.pool->back(s_);
+		s_->pool->back(s_);
 	    }
 	    s_ = o.s_;
 	    o.s_ = nullptr;
@@ -84,7 +77,7 @@ public:
 
     pointer& operator=(std::nullptr_t) {
 	if (s_ != nullptr) {
-	    s_->link.pool->back(s_);
+	    s_->pool->back(s_);
 	    s_ = nullptr;
 	}
 	return *this;
@@ -138,12 +131,19 @@ public:
 	if (s_ == nullptr) {
 	    return pointer();
 	}
-	auto p = s_->link.pool->get();
+	auto p = s_->pool->get();
 	if (p) {
 	    *p = s_->data;
 	}
 	return std::move(p);
     }
+
+private:
+    friend pointer<T> strategy<T>::get();
+
+    item<T> *s_;
+
+    explicit pointer(item<T> *s): s_(s) {}
 };
 
 
@@ -180,14 +180,14 @@ private:
 	} else {
 	    s = free_;
 	}
-	free_ = s->link.next;
-	s->link.pool = this;
+	free_ = s->next;
+	s->pool = this;
 	return pointer<T>(s);
     }
 
     void back(item<T> *s) {
 	auto defer = lock();
-	s->link.next = free_;
+	s->next = free_;
 	free_ = s;
 	lending_--;
 	notify();
@@ -222,9 +222,6 @@ protected:
 
 template <typename T>
 class mpool {
-private:
-    strategy<T> *strategy_ = nullptr;
-
 public:
     mpool(mpool&& o): strategy_(o.strategy_) {
 	o.strategy_ = nullptr;
@@ -268,6 +265,9 @@ public:
     pointer<T> get() {
 	return strategy_->get();
     }
+
+private:
+    strategy<T> *strategy_ = nullptr;
 };
 
 
@@ -287,6 +287,12 @@ public:
 
 template <typename T, typename Locker = c7::thread::spinlock>
 class chunk_strategy: public strategy<T> {
+public:
+    static strategy<T> *make(int chunk_size) {
+	auto s = new chunk_strategy<T, Locker>(chunk_size);
+	return static_cast<strategy<T>*>(s);
+    }
+
 private:
     Locker lock_;
     int chunk_size_;			// item count by one chunk
@@ -312,17 +318,11 @@ private:
     item<T> *alloc() {
 	auto s = new item<T>[chunk_size_];
 	for (int i = 1; i < chunk_size_; i++) {
-	    s[i-1].link.next = &s[i];
+	    s[i-1].next = &s[i];
 	}
-	s[chunk_size_ - 1].link.next = nullptr;
+	s[chunk_size_ - 1].next = nullptr;
 	chunks_.push_back(s);
 	return s;
-    }
-
-public:
-    static strategy<T> *make(int chunk_size) {
-	auto s = new chunk_strategy<T, Locker>(chunk_size);
-	return static_cast<strategy<T>*>(s);
     }
 };
 
@@ -331,6 +331,12 @@ public:
 
 template <typename T>
 class waitable_strategy: public strategy<T> {
+public:
+    static strategy<T> *make(int chunk_size, int chunk_limit) {
+	auto s = new waitable_strategy<T>(chunk_size, chunk_limit);
+	return static_cast<strategy<T>*>(s);
+    }
+
 private:
     c7::thread::condvar cv_;
     int chunk_size_;			// item count by one chunk
@@ -362,9 +368,9 @@ private:
 	}
 	auto s = new item<T>[chunk_size_];
 	for (int i = 1; i < chunk_size_; i++) {
-	    s[i-1].link.next = &s[i];
+	    s[i-1].next = &s[i];
 	}
-	s[chunk_size_ - 1].link.next = nullptr;
+	s[chunk_size_ - 1].next = nullptr;
 	chunks_.push_back(s);
 	return s;
     }
@@ -375,12 +381,6 @@ private:
 
     void notify() {
 	cv_.notify_all();
-    }
-
-public:
-    static strategy<T> *make(int chunk_size, int chunk_limit) {
-	auto s = new waitable_strategy<T>(chunk_size, chunk_limit);
-	return static_cast<strategy<T>*>(s);
     }
 };
 

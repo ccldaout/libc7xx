@@ -15,6 +15,7 @@
 
 
 #include <c7delegate.hpp>
+#include <c7typefunc.hpp>
 #include <memory>
 #include <type_traits>
 #include <ucontext.h>
@@ -33,19 +34,6 @@ public:
 	ALIVE, EXIT, ABORT
     };
 
-private:
-    std::unique_ptr<char[]> stack_;
-    std::function<void()> target_;
-    ucontext_t context_;
-    status_t status_ = ALIVE;
-    coroutine* from_ = nullptr;
-
-    void setup_context();
-    static void entry_point();
-    void switch_to();
-    static void exit_with(status_t);
-
-public:
     c7::delegate<void> restore;
 
     coroutine();
@@ -84,6 +72,18 @@ public:
     static void abort() {
 	exit_with(ABORT);
     }
+
+private:
+    std::unique_ptr<char[]> stack_;
+    std::function<void()> target_;
+    ucontext_t context_;
+    status_t status_ = ALIVE;
+    coroutine* from_ = nullptr;
+
+    void setup_context();
+    static void entry_point();
+    void switch_to();
+    static void exit_with(status_t);
 };
 
 
@@ -145,18 +145,12 @@ protected:
 template <typename T>
 class generator: public generator_base {
 public:
-    typedef typename
-    std::conditional_t<std::is_scalar_v<T>,
-		       generator_scalar_traits<T>,
-		       std::conditional_t<std::is_reference_v<T>,
-					  generator_reference_traits<T>,
-					  generator_other_traits<T>>> traits;
+    typedef c7::typefunc::ifelse_t<
+    std::is_scalar<T>,		generator_scalar_traits<T>,
+    std::is_reference<T>,	generator_reference_traits<T>,
+    std::true_type,		generator_other_traits<T>
+    > traits;
 
-private:
-    std::unique_ptr<coroutine> co_;
-    typename traits::store_type data_;
-    
-public:
     class iterator {
     private:
 	generator<T>& gen_;
@@ -203,7 +197,6 @@ public:
 	}
     };
 
-public:
     generator(size_t stack_b, std::function<void()> func) {
 	co_ = decltype(co_)(new coroutine(stack_b));
 	co_->target(func);
@@ -229,6 +222,10 @@ public:
     bool is_success() {
 	return (co_->status() != coroutine::ABORT);
     }
+
+private:
+    std::unique_ptr<coroutine> co_;
+    typename traits::store_type data_;
 };
 
 

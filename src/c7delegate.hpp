@@ -115,11 +115,6 @@ public:
 	}
     };
 
-private:
-    typedef std::pair<id, func_type> func_item;
-    std::deque<func_item> funcs_;
-    
-public:
     delegate(const delegate&) = delete;
     delegate& operator=(const delegate&) = delete;
 
@@ -198,6 +193,10 @@ public:
 	}
 	return false;
     }
+
+private:
+    typedef std::pair<id, func_type> func_item;
+    std::deque<func_item> funcs_;
 };
 
 

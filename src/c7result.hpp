@@ -29,14 +29,12 @@ struct result_copy_tag {};
 struct result_void_tag {};
 
 template <typename R>
-struct result_category {
-    typedef typename
-    std::conditional_t<std::is_void_v<R>,
-		       result_void_tag,
-		       std::conditional_t<std::is_scalar_v<std::remove_reference_t<R>>,
-					  result_copy_tag,
-					  result_move_tag>> type;
-};
+using result_category_t =
+    c7::typefunc::ifelse_t<
+    std::is_void<R>,				result_void_tag,
+    std::is_scalar<std::remove_reference_t<R>>,	result_copy_tag,
+    std::true_type,				result_move_tag
+    >;
 
 template <typename R>
 struct result_traits {
@@ -209,6 +207,17 @@ public:
 	return errors_ ? *errors_ : no_error_;
     }
 
+    bool has_what(int what) const {
+	if (errors_) {
+	    for (const auto& e: *errors_) {
+		if (e.what == what) {
+		    return true;
+		}
+	    }
+	}
+	return false;
+    }
+
     void clear() {
 	errors_.reset();
     }
@@ -240,7 +249,7 @@ private:
 
 // primary template
 
-template <typename R = void, typename Tag = typename result_category<R>::type>
+template <typename R = void, typename Tag = result_category_t<R>>
 class result: public result_base {};
 
 
@@ -389,11 +398,7 @@ public:
 
     result(result&& o): result_base(std::move(o)) {}
 
-    result(result_base&& o): result_base(std::move(o)) {
-	if (!errors_) {
-	    throw std::runtime_error("value type mismatch: data maybe lost");
-	}
-    }
+    result(result_base&& o): result_base(std::move(o)) {}
 
     template <typename... Args>
     result& set_error(const Args&... args) {

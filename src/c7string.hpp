@@ -309,67 +309,57 @@ private:
     typedef std::vector<std::string> base_t;
 
 public:
-    strvec(): base_t() {}
+    using base_t::vector;
+
+    // copy, move constructors and assignments are all defined as default
 
     strvec(const std::vector<std::string>& sv): base_t(sv) {}
 
     strvec(std::vector<std::string>&& sv): base_t(std::move(sv)) {}
 
-    strvec(std::initializer_list<std::string> ls): base_t(ls) {}
-
     strvec& operator=(const std::string& s) {
-	this->clear();
-	this->push_back(s);
+	clear();
+	push_back(s);
 	return *this;
     }
 
     strvec& operator+=(const std::string& s) {
-	this->push_back(s);
+	push_back(s);
 	return *this;
     }
 
     strvec& operator=(std::string&& s) {
-	this->clear();
-	this->push_back(std::move(s));
+	clear();
+	push_back(std::move(s));
 	return *this;
     }
 
     strvec& operator+=(std::string&& s) {
-	this->push_back(std::move(s));
+	push_back(std::move(s));
 	return *this;
     }
 
     strvec& operator=(const char **pv) {
-	this->clear();
+	clear();
 	return (*this += pv);
     }
 
     strvec& operator+=(const char **pv) {
 	for (auto&& s: c7::seq::charp_array(pv)) {
-	    this->push_back(std::move(s));
+	    push_back(std::move(s));
 	}
 	return *this;
     }
 
-    strvec& operator=(const std::vector<std::string>& sv) {
-	base_t::operator=(sv);
-	return *this;
-    }
-    
-    strvec& operator=(std::vector<std::string>&& sv) {
-	base_t::operator=(sv);
-	return *this;
-    }
-
     strvec& operator+=(const std::vector<std::string>& sv) {
-	this->insert(this->end(), sv.begin(), sv.end());
+	insert(end(), sv.begin(), sv.end());
 	return *this;
     }
     
     strvec& operator+=(std::vector<std::string>&& sv) {
-	this->reserve(this->size() + sv.size());
+	reserve(size() + sv.size());
 	for (auto&& s: std::move(sv)) {
-	    this->push_back(std::move(s));
+	    push_back(std::move(s));
 	}
 	return *this;
     }
@@ -377,7 +367,7 @@ public:
     std::vector<char *> c_strv() const {
 	std::vector<char *> csv;
 	for (auto& s: *this) {
-	    csv.push_back((char *)s.c_str());
+	    csv.push_back(const_cast<char *>(s.c_str()));
 	}
 	csv.push_back(nullptr);
 	return csv;
@@ -558,11 +548,9 @@ inline std::string transpose(const std::string& in, const std::string& cond, con
 
 // split
 
-struct split_for_cpp_string_tag {};
-struct split_for_c_charp_tag {};
-
-template <typename Func>
-inline void split_for_impl(const std::string& in, char sep, Func func, split_for_cpp_string_tag)
+template <typename Func,
+	  std::enable_if_t<std::is_invocable_v<Func, std::string>>* = nullptr>
+inline void split_for(const std::string& in, char sep, Func func)
 {
     const char *beg = in.c_str();
     const char *p;
@@ -573,8 +561,9 @@ inline void split_for_impl(const std::string& in, char sep, Func func, split_for
     func(std::string(beg));
 }
 
-template <typename Func>
-inline void split_for_impl(const std::string& in, char sep, Func func, split_for_c_charp_tag)
+template <typename Func,
+	  std::enable_if_t<!std::is_invocable_v<Func, std::string>>* = nullptr>
+inline void split_for(const std::string& in, char sep, Func func)
 {
     const char *beg = in.c_str();
     const char *p;
@@ -583,15 +572,6 @@ inline void split_for_impl(const std::string& in, char sep, Func func, split_for
 	beg = p + 1;
     }
     func(beg, std::strchr(beg, 0));
-}
-
-template <typename Func>
-inline void split_for(const std::string& in, char sep, Func func)
-{
-    split_for_impl(in, sep, func,
-		   std::conditional_t<std::is_invocable_v<Func, std::string>,
-		   split_for_cpp_string_tag,
-		   split_for_c_charp_tag>());
 }
 
 inline c7::generator<std::string>

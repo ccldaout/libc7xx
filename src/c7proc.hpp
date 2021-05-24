@@ -23,6 +23,14 @@ namespace c7 {
 
 
 class proc {
+private:
+    class impl;
+    std::shared_ptr<impl> pimpl;
+
+    result<> _start(const std::string& program,
+		    const c7::strvec& argv,
+		    std::function<bool()> preexec);
+
 public:
     enum state_t {
 	IDLE,		// NOT started
@@ -32,69 +40,53 @@ public:
 	KILLED		// process is killed
     };
 
-private:
-    class impl;
-    std::shared_ptr<impl> pimpl;
+    class proxy {
+    public:
+	explicit proxy(std::shared_ptr<proc::impl>);
+	std::pair<state_t, int> state() const;
+	uint64_t id() const;
+	pid_t pid() const;
+	std::string to_string(const std::string& format_str) const;
+	void print(std::ostream& out, const std::string& format) const;
 
-public:
-    class proxy;
+    private:
+	std::shared_ptr<proc::impl> pimpl;
+    };
+
+    // public member data
 
     c7::delegate<void, proc::proxy>::proxy on_start;
     c7::delegate<void, proc::proxy>::proxy on_finish;
     int conf_fd = 37;			// temporary used on child process
 
+    // public member functions
+
     proc();
+
+    c7::defer guard_finish();
 
     template <typename Preexec, typename... Args>
     result<> start(const std::string& program,
-		       const c7::strvec& argv,
-		       Preexec preexec, Args... args) {
+		   const c7::strvec& argv,
+		   Preexec preexec, Args... args) {
 	return _start(program, argv, [&preexec, &args...](){ return preexec(args...); });
     }
 
     result<> start(const std::string& program,
-		       const c7::strvec& argv) {
+		   const c7::strvec& argv) {
 	return _start(program, argv, nullptr);
     }
 
-    void manage_external(pid_t pid, const std::string& prog);
+    result<> manage_external(pid_t pid, const std::string& prog);
 
     result<> signal(int sig);
     result<> wait();
+
     std::pair<state_t, int> state() const;
     uint64_t id() const;
-    std::string format(const std::string& format_str) const;
-
-public:
-    class proxy {
-    private:
-	std::shared_ptr<proc::impl> pimpl;
-
-    public:
-	explicit proxy(std::shared_ptr<proc::impl>);
-	std::pair<state_t, int> state() const;
-	uint64_t id() const;
-	std::string format(const std::string& format_str) const;
-    };
-
-    result<> _start(const std::string& program,
-			const c7::strvec& argv,
-			std::function<bool()> preexec);
-};
-
-
-template <>
-struct format_traits<proc> {
-    static void convert(std::ostream& out, const std::string& format, const proc& obj) {
-	out << obj.format(format);
-    }
-};
-
-template <>
-struct format_traits<proc::proxy> {
-    static void convert(std::ostream& out, const std::string& format, const proc::proxy& obj) {
-	out << obj.format(format);
-    }
+    pid_t pid() const;
+    std::string to_string(const std::string& format_str) const;
+    void print(std::ostream& out, const std::string& format) const;
 };
 
 
