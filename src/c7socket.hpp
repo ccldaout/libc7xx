@@ -20,6 +20,9 @@
 #include <utility>
 
 
+void print_type(std::ostream& out, const std::string&, const ::sockaddr_in&);
+
+
 namespace c7 {
 
 
@@ -31,26 +34,32 @@ void sockaddr_ipv4_port(::sockaddr_in& inaddr, int port);
 
 class socket: public fd {
 private:
-    void setup_ipv4_str(const std::string& state);
-    void setup_unix_str(const std::string& state);
-    void setup_str(const std::string& state);
+    void setup_ipv4_str() const;
+    void setup_unix_str() const;
+
+protected:
+    void setup_str() const;
 
 public:
     socket(const socket&) = delete;
     socket& operator=(const socket&) = delete;
 
     socket(): fd() {}
-
-    explicit socket(int fdnum, const std::string& name = ""): fd(fdnum, name) {}
-
+    explicit socket(int fdnum): fd(fdnum) {}
     socket(socket&& o): fd(std::move(o)) {}
+    socket(fd&& o): fd(std::move(o)) {}
 
     socket& operator=(socket&& o) {
 	fd::operator=(std::move(o));
 	return *this;
     }
 
-    static result<socket> make_socket(int domain, int type, int protocol = 0, const std::string& name = "");
+    socket& operator=(fd&& o) {
+	fd::operator=(std::move(o));
+	return *this;
+    }
+
+    static result<socket> make_socket(int domain, int type, int protocol = 0);
     static result<socket> tcp();	// AF_INET, SOCK_STREAM
     static result<socket> udp();	// AF_INET, SOCK_DGRAM
     static result<socket> unix();	// AF_UNXI, SOCK_STREAM
@@ -69,10 +78,10 @@ public:
     
     result<socket> accept();
     
-    result<::sockaddr_in> self_ipv4();
-    result<::sockaddr_in> peer_ipv4();
+    result<::sockaddr_in> self_ipv4() const;
+    result<::sockaddr_in> peer_ipv4() const;
 
-    result<> getsockopt(int level, int optname, void *optval, socklen_t *optlen);
+    result<> getsockopt(int level, int optname, void *optval, socklen_t *optlen) const;
     result<> setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
     result<> tcp_keepalive(bool enable);
@@ -86,12 +95,8 @@ public:
     result<> shutdown_w();
     result<> shutdown_rw();
 
-    result<ssize_t> recvfrom(void *buffer, size_t n,
-			     int flags, ::sockaddr& src_addr, socklen_t& addrlen);
-    result<ssize_t> sendto(const void *bufer, size_t n,
-			   int flags, const ::sockaddr& dest_addr, socklen_t addrlen);
-
-    virtual const std::string& format(const std::string spec) const;
+    std::string to_string(const std::string& spec) const override;
+    void print(std::ostream& out, const std::string& spec) const override;
 };
 
 result<std::pair<socket, socket>> socketpair(bool stream = true);
@@ -112,24 +117,6 @@ result<socket> udp_client(const std::string& host, int port);
 
 result<socket> unix_server(const std::string& addr, int backlog = 0);
 result<socket> unix_client(const std::string& addr);
-
-
-template <>
-struct format_traits<::sockaddr_in> {
-    inline static void convert(std::ostream& out, const std::string& format, const ::sockaddr_in& inaddr) {
-	const uint8_t *ip = (const uint8_t *)&inaddr.sin_addr.s_addr;
-	out << c7::format("ipv4<%{}.%{}.%{}.%{}:%{})",
-			  uint32_t(ip[0]), uint32_t(ip[1]), uint32_t(ip[2]), uint32_t(ip[3]),
-			  ntohs(inaddr.sin_port));
-    }
-};
-
-template <>
-struct format_traits<socket> {
-    inline static void convert(std::ostream& out, const std::string& format, const socket& arg) {
-	out << arg.format(format);
-    }
-};
 
 
 } // namespace c7

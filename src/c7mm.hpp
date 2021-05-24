@@ -92,12 +92,6 @@ private:
 
 template <typename T>
 class mmvec {
-private:
-    T *top_;
-    size_t capa_;
-    size_t n_;
-    mmobj mm_;
-
 public:
     typedef c_array_iterator<T> iterator;
     typedef c_array_iterator<const T> const_iterator;
@@ -262,6 +256,12 @@ public:
 	return std::reverse_iterator<const_iterator>(
 	    const_iterator(const_cast<const T*>(top_), 0));
     }
+
+private:
+    T *top_;
+    size_t capa_;
+    size_t n_;
+    mmobj mm_;
 };
 
 

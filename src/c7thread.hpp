@@ -44,7 +44,7 @@ public:
     spinlock(const spinlock&) = delete;
     spinlock& operator=(const spinlock&) = delete;
 
-    explicit spinlock(std::string name = "");
+    spinlock();
     spinlock(spinlock&& o);
     spinlock& operator=(spinlock&& o);
     ~spinlock();
@@ -91,8 +91,6 @@ public:
 	    return std::make_pair(false, R());
 	return std::make_pair(true, critical());
     }
-
-    const std::string& name();
 };
 
 
@@ -113,7 +111,6 @@ public:
     mutex& operator=(const mutex&) = delete;
 
     explicit mutex(bool recursive = false);
-    explicit mutex(std::string name, bool recursive = false);
     mutex(mutex&& o);
     mutex& operator=(mutex&& o);
     ~mutex();
@@ -160,8 +157,6 @@ public:
 	    return std::make_pair(false, R());
 	return std::make_pair(true, critical());
     }
-
-    const std::string& name();
 };
 
 
@@ -178,8 +173,8 @@ public:
     condvar(const condvar&) = delete;
     condvar& operator=(const condvar&) = delete;
 
-    explicit condvar(std::string name = "");
-    explicit condvar(mutex& mutex, std::string name = "");
+    condvar();
+    explicit condvar(mutex& mutex);
     condvar(condvar&&);
     condvar& operator=(condvar&&);
     ~condvar();
@@ -271,8 +266,6 @@ public:
 	setup();
 	notify_all();
     }
-
-    const std::string& name();
 };
 
 
@@ -285,7 +278,7 @@ class proxy;
 class thread {
 private:
     class impl;
-    impl *pimpl;
+    std::shared_ptr<impl> pimpl;
 
     friend class proxy;
     friend struct self;
@@ -355,12 +348,14 @@ private:
 public:
     explicit proxy(thread::impl *pimpl);
     explicit proxy(const thread& th);
+
     thread::exit_type status() const;
     const char *name() const;
     uint64_t id() const;
+    void print(std::ostream& out, const std::string& format) const;
 
     bool operator==(const thread& t) const {
-	return pimpl == t.pimpl;
+	return pimpl == t.pimpl.get();
     }
 };
 
@@ -372,14 +367,6 @@ extern bool operator==(const thread& t, const proxy& p);
 
 
 } // namespace thread
-
-
-template <>
-struct format_traits<thread::proxy> {
-    static void convert(std::ostream& out, const std::string& format, const thread::proxy& th);
-};
-
-
 } // namespace c7
 
 

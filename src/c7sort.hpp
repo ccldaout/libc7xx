@@ -585,9 +585,9 @@ void qsort_mt(Iterator left, ptrdiff_t n,
                           radix sort - single thread
 ----------------------------------------------------------------------------*/
 
-template <typename Iterator, typename Masktype, typename Getkey, typename Lessthan>
-static void rsort_st_main(Iterator left, Iterator right, Masktype keymask, Masktype tstmask,
-			  Getkey getkey, Lessthan lessthan,
+template <typename Iterator, typename Masktype, typename Getkey>
+static void rsort_st_main(Iterator left, Iterator right,
+			  Masktype keymask, Masktype tstmask, Getkey getkey,
 			  int rsort_threshold)
 {
     struct {
@@ -601,6 +601,11 @@ static void rsort_st_main(Iterator left, Iterator right, Masktype keymask, Maskt
     for (; tstmask != 0 && (keymask & tstmask) == 0; tstmask >>= 1) {;}
     if (tstmask == 0)
 	return;
+
+    auto lessthan = [&getkey, keymask](const decltype(*left)& p,
+				       const decltype(*left)& q) {
+	return ((getkey(p) & keymask) < (getkey(q) & keymask));
+    };
 
     for (;;) {
 	if (right - left < rsort_threshold) {
@@ -657,12 +662,7 @@ void rsort_st(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
 	      int rsort_threshold = 50)
 {
     Masktype tstmask = ((Masktype)1) << (sizeof(Masktype)*8 - 1);
-    rsort_st_main(left, left + n -1, keymask, tstmask, getkey,
-		  [&getkey, keymask](const decltype(*left)& p,
-				     const decltype(*left)& q) {
-		      return ((getkey(p) & keymask) < (getkey(q) & keymask));
-		  },
-		  rsort_threshold);
+    rsort_st_main(left, left + n -1, keymask, tstmask, getkey, rsort_threshold);
 }
 
 
@@ -680,9 +680,8 @@ struct rsort_prm_t {
     int level;
 };
 
-template <typename Iterator, typename Masktype, typename Getkey, typename Lessthan>
-static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs,
-			  Getkey getkey, Lessthan lessthan)
+template <typename Iterator, typename Masktype, typename Getkey>
+static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getkey)
 {
     Iterator p = rs->left;
     Iterator q = rs->right;
@@ -690,7 +689,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs,
     Masktype tstmask = rs->tstmask;
 
     if (rs->level == 0 || (q - p) < rs->threshold) {
-	rsort_st_main(p, q, keymask, tstmask, getkey, lessthan, rs->threshold);
+	rsort_st_main(p, q, keymask, tstmask, getkey, rs->threshold);
 	return;
     }
 
@@ -723,7 +722,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs,
 	rs1.level = rs->level - 1;
 	rs1.keymask = keymask;
 	rs1.tstmask = tstmask;
-	th = std::thread(rsort_mt_main<Iterator, Masktype, Getkey, Lessthan>, &rs1, getkey, lessthan);
+	th = std::thread(rsort_mt_main<Iterator, Masktype, Getkey>, &rs1, getkey);
     }
     if (p < rs->right) {
 	rs2.left = p;
@@ -732,7 +731,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs,
 	rs2.level = rs->level - 1;
 	rs2.keymask = keymask;
 	rs2.tstmask = tstmask;
-	rsort_mt_main(&rs2, getkey, lessthan);
+	rsort_mt_main(&rs2, getkey);
     }
     if (rs->left < q)
 	th.join();
@@ -755,11 +754,7 @@ void rsort_mt(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
     rs.level = thread_depth;
     rs.keymask = keymask;
     rs.tstmask = tstmask;
-    rsort_mt_main(&rs, getkey,
-		  [&getkey, keymask](const decltype(*left)& p,
-				     const decltype(*left)& q) {
-		      return ((getkey(p) & keymask) < (getkey(q) & keymask));
-		  });
+    rsort_mt_main(&rs, getkey);
 }
 
 

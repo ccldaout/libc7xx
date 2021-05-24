@@ -9,7 +9,8 @@
 
 
 #include <c7format.hpp>
-#include <c7thread.hpp>
+//#include <c7thread.hpp>
+#include <pthread.h>
 #include <cctype>
 #include <cstring>
 #include <time.h>	// ::localtime_r
@@ -18,7 +19,25 @@
 namespace c7 {
 
 
-static c7::thread::spinlock __global_lock;
+// [CAUTION] DON'T use c7::thread::spinlock to implement __global_lock,
+//           because an order of calling destructor of statically allocated
+//           objects is non-deterministic. Especially c7::p_() called in a
+//           destructor of that object maybe blocked forever.
+static class cout_lock {
+private:
+    pthread_spinlock_t spin_;
+
+public:
+    cout_lock() {
+	(void)pthread_spin_init(&spin_, PTHREAD_PROCESS_PRIVATE);
+    }
+    
+    c7::defer lock() {
+	(void)pthread_spin_lock(&spin_);
+	return c7::defer([this](){ (void)pthread_spin_unlock(&spin_); });
+    }
+
+} __global_lock;
 
 
 /*----------------------------------------------------------------------------
@@ -76,7 +95,7 @@ void format_traits<ssize_t>::convert(std::ostream& out, const std::string& forma
 
 // for com_status
 
-void format_traits<com_status>::convert(std::ostream& out, const std::string& format, com_status arg)
+void print_type(std::ostream& out, const std::string& format, com_status arg)
 {
     switch (arg) {
       case com_status::OK:
@@ -334,6 +353,26 @@ void formatter::handle_arg(state_t s, T arg, formatter_int_tag) noexcept
 }
 
 template <typename T>
+void formatter::handle_arg(state_t s, T arg, formatter_int8_tag) noexcept
+{
+    if (ext_.empty()) {
+	handle_arg(s, arg, formatter_int_tag{});
+    } else {
+	handle_arg(s, static_cast<int>(arg), formatter_int_tag{});
+    }
+}
+
+template <typename T>
+void formatter::handle_arg(state_t s, T arg, formatter_uint8_tag) noexcept
+{
+    if (ext_.empty()) {
+	handle_arg(s, arg, formatter_int_tag{});
+    } else {
+	handle_arg(s, static_cast<unsigned int>(arg), formatter_int_tag{});
+    }
+}
+
+template <typename T>
 void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
 {
     switch (ext_[0]) {
@@ -364,6 +403,14 @@ __C7_EXTERN(int);
 __C7_EXTERN(unsigned int);
 __C7_EXTERN(long);
 __C7_EXTERN(unsigned long);
+
+#undef  __C7_EXTERN 
+#define __C7_EXTERN(T)							\
+    template void formatter::handle_arg<T>(state_t s, T arg, formatter_int8_tag)
+__C7_EXTERN(char);
+__C7_EXTERN(signed char);
+
+template void formatter::handle_arg<unsigned char>(state_t s, unsigned char arg, formatter_uint8_tag);
 
 #undef  __C7_EXTERN 
 #define __C7_EXTERN(T)							\

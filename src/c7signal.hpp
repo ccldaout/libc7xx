@@ -23,8 +23,6 @@ namespace c7 {
 namespace signal {
 
 
-c7::defer lock();
-
 c7::result<void(*)(int)>
 handle(int sig, void (*handler)(int), const ::sigset_t& sigmask_on_call);
 
@@ -39,20 +37,11 @@ handle(int sig, void (*handler)(int))
 
 ::sigset_t mask(int how, const ::sigset_t& sigs);
 
-inline ::sigset_t set(const ::sigset_t& sigs)
-{
-    return mask(SIG_SETMASK, sigs);
-}
+::sigset_t set(const ::sigset_t& sigs);
 
-inline ::sigset_t unblock(const ::sigset_t& sigs)
-{
-    return mask(SIG_UNBLOCK, sigs);
-}
+::sigset_t unblock(const ::sigset_t& sigs);
 
-inline ::sigset_t block(const ::sigset_t& sigs)
-{
-    return mask(SIG_BLOCK, sigs);
-}
+::sigset_t block(const ::sigset_t& sigs);
 
 template <typename... Args>
 inline ::sigset_t block(::sigset_t& sigs, int sig1, Args... args)
@@ -68,8 +57,8 @@ inline c7::defer block(int sig1, Args... args)
     ::sigset_t sigs;
     ::sigemptyset(&sigs);
     ::sigaddset(&sigs, sig1);
-    auto o_sigs = block(sigs, args...);
-    return c7::defer(unblock, o_sigs);
+    auto o_set = block(sigs, args...);
+    return c7::defer(set, o_set);
 }
 
 [[nodiscard]]

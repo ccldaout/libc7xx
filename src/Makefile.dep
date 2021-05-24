@@ -3,12 +3,16 @@ $(C7_OUT_OBJDIR)/c7app.o: c7app.cpp c7app.hpp c7result.hpp c7common.hpp \
  c7string.hpp c7coroutine.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7common.o: c7common.cpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
- c7common.hpp c7delegate.hpp
+ c7common.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7dconf.o: c7dconf.cpp c7dconf.hpp c7common.hpp \
  c7file.hpp c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp \
  c7typefunc.hpp c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp \
  c7seq.hpp
 $(C7_OUT_OBJDIR)/c7delegate.o: c7delegate.cpp c7delegate.hpp c7common.hpp
+$(C7_OUT_OBJDIR)/c7event.o: c7event.cpp c7app.hpp c7result.hpp \
+ c7common.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
+ c7event/service.hpp c7event/monitor.hpp c7thread.hpp c7utils.hpp \
+ c7socket.hpp c7fd.hpp
 $(C7_OUT_OBJDIR)/c7fd.o: c7fd.cpp c7fd.hpp c7common.hpp c7delegate.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7typefunc.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7file.o: c7file.cpp c7file.hpp c7common.hpp \
@@ -16,8 +20,7 @@ $(C7_OUT_OBJDIR)/c7file.o: c7file.cpp c7file.hpp c7common.hpp \
  c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7seq.hpp \
  c7signal.hpp
 $(C7_OUT_OBJDIR)/c7format.o: c7format.cpp c7format.hpp c7common.hpp \
- c7defer.hpp c7delegate.hpp c7typefunc.hpp c7thread.hpp c7utils.hpp \
- c7result.hpp
+ c7defer.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7mlog.o: c7mlog.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
  c7utils.hpp c7mlog.hpp c7thread.hpp c7path.hpp c7string.hpp \
@@ -26,8 +29,8 @@ $(C7_OUT_OBJDIR)/c7mm.o: c7mm.cpp c7mm.hpp c7common.hpp c7fd.hpp \
  c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp c7typefunc.hpp \
  c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7path.o: c7path.cpp c7path.hpp c7common.hpp \
- c7string.hpp c7coroutine.hpp c7delegate.hpp c7result.hpp c7format.hpp \
- c7defer.hpp c7typefunc.hpp c7seq.hpp c7utils.hpp
+ c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp c7result.hpp \
+ c7format.hpp c7defer.hpp c7seq.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
  c7string.hpp c7coroutine.hpp c7seq.hpp c7thread.hpp c7utils.hpp \
@@ -35,17 +38,18 @@ $(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp \
 $(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
  c7typefunc.hpp c7utils.hpp
-$(C7_OUT_OBJDIR)/c7result.o: c7result.cpp c7result.hpp c7common.hpp \
- c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp
-$(C7_OUT_OBJDIR)/c7signal.o: c7signal.cpp c7signal.hpp c7common.hpp \
- c7defer.hpp c7result.hpp c7format.hpp c7delegate.hpp c7typefunc.hpp \
- c7threadsync.hpp c7thread.hpp c7utils.hpp
+$(C7_OUT_OBJDIR)/c7result.o: c7result.cpp c7path.hpp c7common.hpp \
+ c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp c7result.hpp \
+ c7format.hpp c7defer.hpp c7seq.hpp
+$(C7_OUT_OBJDIR)/c7signal.o: c7signal.cpp c7app.hpp c7result.hpp \
+ c7common.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
+ c7signal.hpp c7threadsync.hpp c7thread.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7socket.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
  c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7string.o: c7string.cpp c7string.hpp c7common.hpp \
- c7coroutine.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7typefunc.hpp c7seq.hpp
+ c7coroutine.hpp c7delegate.hpp c7typefunc.hpp c7result.hpp c7format.hpp \
+ c7defer.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7thread.o: c7thread.cpp c7thread.hpp c7common.hpp \
  c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7defer.hpp \
  c7typefunc.hpp
@@ -53,4 +57,4 @@ $(C7_OUT_OBJDIR)/c7threadsync.o: c7threadsync.cpp c7threadsync.hpp \
  c7common.hpp c7thread.hpp c7delegate.hpp c7utils.hpp c7result.hpp \
  c7format.hpp c7defer.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7utils.o: c7utils.cpp c7defer.hpp c7common.hpp \
- c7utils.hpp c7result.hpp c7format.hpp c7delegate.hpp c7typefunc.hpp
+ c7format.hpp c7delegate.hpp c7typefunc.hpp c7utils.hpp c7result.hpp

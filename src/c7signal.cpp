@@ -8,244 +8,206 @@
  */
 
 
+#include <c7app.hpp>
 #include <c7signal.hpp>
 #include <c7threadsync.hpp>
-#include <atomic>
-#include <cstring>
+#include <unistd.h>
+#include <sys/signal.h>
+#include <mutex>
 
 
 namespace c7 {
 namespace signal {
 
 
-#define _CNTL_SIG	SIGCHLD	// signal for restarting sgiwait
-
-
 class sigmanager {
-private:
-    struct action_t {
-	void (*handler)(int sig);
-	::sigset_t sigmask;
-    };
-
-    action_t action_[NSIG];
-    c7::thread::mutex lock_;
-    c7::thread::event applied_;
-    c7::thread::thread thread_;
-    ::sigset_t block_sigs_;	// signals to be blocked just before sigwait
-    ::sigset_t wait_sigs_;	// signals to be passed to sigwait
-    ::sigset_t managed_sigs_;	// all managed signals
-
-    static void handle_SIGCHLD(int sig) {}
-
-    void monitor() {
-	for (;;) {
-	    ::sigset_t blocksigs, waitsigs;
-	    {
-		auto defer = lock_.lock();
-		blocksigs = block_sigs_;
-		waitsigs  = wait_sigs_;
-	    }
-	    (void)::pthread_sigmask(SIG_SETMASK, &blocksigs, nullptr);
-	    applied_.set();
-
-	    int sig1;
-	    if (::sigwait(&waitsigs, &sig1) == C7_SYSOK) {
-		action_t cb;
-		{
-		    auto defer = lock_.lock();
-		    cb = action_[sig1 - 1];
-		}
-		if (cb.handler != nullptr) {
-		    (void)::pthread_sigmask(SIG_BLOCK, &cb.sigmask, nullptr);
-		    cb.handler(sig1);
-		}
-	    }
-	}
-    }
-
-    void apply_settings() {
-	// Send dummy signal to monitor thread to reload new signal masks
-	applied_.clear();
-	thread_.signal(_CNTL_SIG);
-	applied_.wait();
-    }
-
-    void start_monitor() {
-	// setup SIGCHLD handler.
-	// [CAUTION] DON'T USE sigmanager's member function.
-	auto& cb = action_[SIGCHLD - 1];
-	cb.handler = handle_SIGCHLD;
-	(void)::sigemptyset(&cb.sigmask);
-	(void)::sigaddset(&cb.sigmask,    SIGCHLD);
-	(void)::sigaddset(&block_sigs_,   SIGCHLD);
-	(void)::sigaddset(&wait_sigs_,    SIGCHLD);
-	(void)::sigaddset(&managed_sigs_, SIGCHLD);
-
-	sigset_t main_sigs;
-	(void)::sigfillset(&main_sigs);
-	(void)::sigdelset(&main_sigs, SIGSEGV);
-	(void)::sigdelset(&main_sigs, SIGBUS);
-	(void)::sigdelset(&main_sigs, SIGABRT);
-	(void)::sigprocmask(SIG_SETMASK, &main_sigs, nullptr);
-
-	thread_.set_name("sigmanager");
-	thread_.target([this](){ monitor();});
-	if (!thread_.start()) {
-	    p_("pthread_create failure");
-	    abort();
-	}
-    }
-
-    inline void start_if() {
-	static std::atomic<bool> started(false);
-	if (!started.exchange(true)) {
-	    start_monitor();
-	}
-    }
-
-    friend void enable_SIGCHLD(void (*)(int));
-
 public:
-    sigmanager() {
-	(void)std::memset(action_, 0, sizeof(action_));
-	(void)::sigemptyset(&block_sigs_);
-	(void)::sigemptyset(&wait_sigs_);
-	(void)::sigemptyset(&managed_sigs_);
+    sigmanager(const sigmanager&) = delete;
+    sigmanager& operator=(const sigmanager&) = delete;
+    sigmanager(sigmanager&&) = delete;
+    sigmanager& operator=(sigmanager&&) = delete;
 
-	(void)::sigaddset(&block_sigs_, _CNTL_SIG);
-	(void)::sigaddset(&wait_sigs_,  _CNTL_SIG);
-    }
+    sigmanager() = default;
+    ~sigmanager() = default;
 
-    c7::defer lock() {
-	return lock_.lock();
-    }
-
-    result<void(*)(int)> handle(int sig,
-				void (*handler)(int),
-				const ::sigset_t& sigmask_on_call) {
-	start_if();
-
-	if (sig < 1 || NSIG < sig) {
-	    return c7result_err(EINVAL, "handle: sig:%{} is out of range", sig);
+    result<> init() {
+	for (auto& h: handlers_) {
+	    h = sig_default;
 	}
-	
-	void (*o_handler)(int);
+	(void)::sigemptyset(&user_mask_);
+	(void)::sigemptyset(&blocked_mask_);
 
-	{
-	    auto defer = lock_.lock();
-	    auto& cb = action_[sig - 1];
-	    o_handler = cb.handler;
+	::sigset_t wait_mask;
+	(void)::sigfillset(&wait_mask);
+	sigset_em(wait_mask);
+	(void)::sigprocmask(SIG_SETMASK, &wait_mask, nullptr);
 
-	    cb.handler = handler;
-	    cb.sigmask = sigmask_on_call;
+	c7::thread::thread loop_thread;
+	loop_thread.target([this, wait_mask](){ loop(wait_mask); });
+	return loop_thread.start();
+    }
 
-	    if (handler == SIG_IGN || handler == SIG_DFL) {
-		(void)::signal(sig, handler);
-		(void)::sigdelset(&block_sigs_,   sig);
-		(void)::sigdelset(&wait_sigs_,    sig);
-		(void)::sigdelset(&managed_sigs_, sig);
+    void (*handler(int sig, void (*new_handler)(int)))(int) {
+	auto old = handlers_[sig];
+	if (new_handler == SIG_IGN) {
+	    (void)::signal(sig, new_handler);
+	} else {
+	    if (new_handler == SIG_DFL) {
+		new_handler = sig_default;
+	    }
+	}
+	handlers_[sig] = new_handler;
+	if (old == sig_default) {
+	    old = SIG_DFL;
+	}
+	return old;
+    }
+
+    ::sigset_t block(const ::sigset_t& mask) {
+	auto unlock = lock_.lock();
+	auto old_mask = user_mask_;
+	sigset_on(user_mask_, mask);
+	return old_mask;
+    }
+
+    ::sigset_t unblock(const ::sigset_t& mask) {
+	auto unlock = lock_.lock();
+	auto old_mask = user_mask_;
+	sigset_off(user_mask_, mask);
+	check_blocked();
+	return old_mask;
+    }
+
+    ::sigset_t setmask(const ::sigset_t& mask) {
+	auto unlock = lock_.lock();
+	auto old_mask = user_mask_;
+	user_mask_ = mask;
+	check_blocked();
+	return old_mask;
+    }
+
+private:
+    ::sigset_t blocked_mask_;
+    ::sigset_t user_mask_;
+    void (*handlers_[NSIG])(int);
+    c7::thread::mutex lock_;
+
+    static void sigset_on(::sigset_t& mask, const ::sigset_t& on) {
+	for (int i = 0; i < NSIG; i++) {
+	    if (::sigismember(&on, i)) {
+		::sigaddset(&mask, i);
+	    }
+	}
+    }
+
+    static void sigset_off(::sigset_t& mask, const ::sigset_t& off) {
+	for (int i = 0; i < NSIG; i++) {
+	    if (::sigismember(&off, i)) {
+		::sigdelset(&mask, i);
+	    }
+	}
+    }
+
+    static void sigset_em(::sigset_t& mask) {
+	int sigs[] = { SIGSEGV, SIGBUS, SIGILL, SIGBUS, SIGABRT };
+	for (auto sig: sigs) {
+	    sigdelset(&mask, sig);
+	}
+    }
+
+    static void sig_default(int sig) {
+	::sigset_t mask;
+	(void)::sigemptyset(&mask);
+	(void)::sigaddset(&mask, sig);
+	(void)pthread_sigmask(SIG_UNBLOCK, &mask, nullptr);
+	(void)::kill(::getpid(), sig);
+    }
+
+    void check_blocked() {
+	for (int i = 0; i < NSIG; i++) {
+	    if (::sigismember(&blocked_mask_, i) && !::sigismember(&user_mask_, i)) {
+		(void)::kill(getpid(), i);
+		::sigdelset(&blocked_mask_, i);
+	    }
+	}
+    }
+
+    void loop(::sigset_t waitmask) {
+	for (;;) {
+	    int sig;
+	    if (::sigwait(&waitmask, &sig) == C7_SYSOK) {
+		auto unlock = lock_.lock();
+		if (::sigismember(&user_mask_, sig)) {
+		    ::sigaddset(&blocked_mask_, sig);
+		} else {
+		    unlock();
+		    handlers_[sig](sig);
+		}
 	    } else {
-		(void)::sigaddset(&block_sigs_,   sig);
-		(void)::sigaddset(&wait_sigs_,    sig);
-		(void)::sigaddset(&managed_sigs_, sig);
+		c7error(c7result_err(errno, "sigwait() failed"));
 	    }
 	}
-
-	apply_settings();
-	return c7result_ok(o_handler);
-    }
-
-    ::sigset_t update_mask(int how, const ::sigset_t& sigs) {
-	start_if();
-
-	::sigset_t o_sigs;
-
-	{
-	    auto defer = lock_.lock();
-	    o_sigs = block_sigs_;
-
-	    if (how == SIG_BLOCK) {
-		for (int sig0 = 0; sig0 < NSIG; sig0++) {
-		    int sig1 = sig0 + 1;
-		    if (sig1 == _CNTL_SIG)
-			continue;
-		    if (::sigismember(&sigs, sig1)) {
-			::sigaddset(&block_sigs_, sig1);
-			::sigdelset(&wait_sigs_, sig1);
-		    }
-		}
-	    } else if (how == SIG_UNBLOCK) {
-		for (int sig0 = 0; sig0 < NSIG; sig0++) {
-		    int sig1 = sig0 + 1;
-		    if (sig1 == _CNTL_SIG)
-			continue;
-		    if (::sigismember(&sigs, sig1)) {
-			if (::sigismember(&managed_sigs_, sig1)) {
-			    ::sigaddset(&block_sigs_, sig1);
-			    ::sigaddset(&wait_sigs_, sig1);
-			} else {
-			    ::sigdelset(&block_sigs_, sig1);
-			    //::sigdelset(&wait_sigs_, sig1);
-			}
-		    }
-		}
-	    } else if (how == SIG_SETMASK) {
-		for (int sig0 = 0; sig0 < NSIG; sig0++) {
-		    int sig1 = sig0 + 1;
-		    if (sig1 == _CNTL_SIG)
-			continue;
-		    if (::sigismember(&sigs, sig1)) {
-			::sigaddset(&block_sigs_, sig1);
-			if (::sigismember(&managed_sigs_, sig1)) {
-			    ::sigaddset(&wait_sigs_, sig1);
-			} else {
-			    //::sigdelset(&wait_sigs_, sig1);
-			}
-		    } else {
-			if (::sigismember(&managed_sigs_, sig1)) {
-			    ::sigaddset(&block_sigs_, sig1);
-			    ::sigaddset(&wait_sigs_, sig1);
-			} else {
-			    ::sigdelset(&block_sigs_, sig1);
-			    //::sigaddset(&wait_sigs_, sig1);
-			}
-		    }
-		}
-	    }
-	}
-
-	apply_settings();
-	return o_sigs;
     }
 };
 
-static sigmanager manager;
+
+static sigmanager signal_manager;
+static std::once_flag once_init;
+
+static void init()
+{
+    if (auto res = signal_manager.init(); !res) {
+	c7abort(res, "signal_manager initialization failed.");
+    }
+}
 
 
 void enable_SIGCHLD(void (*sigchld)(int))
 {
-    manager.start_if();
-    manager.action_[SIGCHLD - 1].handler = sigchld;
-}
-
-
-c7::defer lock()
-{
-    return manager.lock();
+    std::call_once(once_init, init);
+    signal_manager.handler(SIGCHLD, sigchld);
 }
 
 
 c7::result<void(*)(int)>
-handle(int sig, void (*handler)(int), const ::sigset_t& sigmask_on_call)
+handle(int sig, void (*handler)(int), const ::sigset_t&)
 {
-    return manager.handle(sig, handler, sigmask_on_call);
+    std::call_once(once_init, init);
+    return c7result_ok(signal_manager.handler(sig, handler));
+}
+
+
+::sigset_t set(const ::sigset_t& sigs)
+{
+    std::call_once(once_init, init);
+    return signal_manager.setmask(sigs);
+}
+
+
+::sigset_t unblock(const ::sigset_t& sigs)
+{
+    std::call_once(once_init, init);
+    return signal_manager.unblock(sigs);
+}
+
+
+::sigset_t block(const ::sigset_t& sigs)
+{
+    std::call_once(once_init, init);
+    return signal_manager.block(sigs);
 }
 
 
 ::sigset_t mask(int how, const ::sigset_t& sigs)
 {
-    return manager.update_mask(how, sigs);
+    switch (how) {
+    case SIG_SETMASK:
+	return set(sigs);
+    case SIG_UNBLOCK:
+	return unblock(sigs);
+    default:
+	return block(sigs);
+    }
 }
 
 
@@ -256,10 +218,11 @@ c7::defer block(void)
     };
     ::sigset_t n_set;
     (void)::sigemptyset(&n_set);
-    for (auto sig: sigs)
+    for (auto sig: sigs) {
 	(void)::sigaddset(&n_set, sig);
-    auto o_sigs = manager.update_mask(SIG_BLOCK, n_set);
-    return c7::defer(unblock, o_sigs);
+    }
+    auto o_set = block(n_set);
+    return c7::defer(set, o_set);
 }
 
 

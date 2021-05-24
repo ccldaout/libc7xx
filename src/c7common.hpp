@@ -13,11 +13,6 @@
 #define C7_COMMON_HPP_LOADED__
 
 
-#include <limits.h>
-#include <stddef.h>
-#include <sys/types.h>
-
-
 /*----------------------------------------------------------------------------
                           definition from c7config.h
 ----------------------------------------------------------------------------*/
@@ -37,6 +32,10 @@
 
 #undef  _GNU_SOURCE
 #define _GNU_SOURCE 1
+
+#include <climits>
+#include <cstddef>
+#include <sys/types.h>
 
 
 /*----------------------------------------------------------------------------
@@ -90,6 +89,9 @@ enum class com_status {
 // format traits primary template
 template <typename T>
 struct format_traits {};
+
+// empty class
+class empty {};
 
 
 /*----------------------------------------------------------------------------

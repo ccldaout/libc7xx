@@ -34,28 +34,12 @@ inline std::ostream& operator<<(std::ostream& out, const std::stringstream& ss)
 
 
 /*----------------------------------------------------------------------------
-                                format traits
-----------------------------------------------------------------------------*/
-
-template <>
-struct format_traits<ssize_t> {
-    static c7::delegate<bool, std::ostream&, const std::string&, ssize_t> converter;
-    static void convert(std::ostream& out, const std::string& format, ssize_t arg);
-};
-
-template <>
-struct format_traits<com_status> {
-    static void convert(std::ostream& out, const std::string& format, com_status arg);
-};
-
-
-/*----------------------------------------------------------------------------
                                 type functions
 ----------------------------------------------------------------------------*/
 
 // check type is formattable or not.
 
-struct is_formattable_impl {
+struct formatter_has_traits_impl {
     template <typename T>
     static auto check(T*) -> decltype(
 	format_traits<T>::convert,
@@ -64,40 +48,103 @@ struct is_formattable_impl {
     template <typename T>
     static auto check(...) -> std::false_type;
 };
-
 template <typename T>
-struct is_formattable:
-	public decltype(is_formattable_impl::check<T>(nullptr)) {};
+struct formatter_has_traits:
+	public decltype(formatter_has_traits_impl::check<T>(nullptr)) {};
 
+
+// check type has print_type function or not.
+
+struct formatter_has_function_impl {
+    template <typename T>
+    static auto check(const T* o) -> decltype(
+	print_type(std::cout, std::string{}, *o),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
 template <typename T>
-inline constexpr bool is_formattable_v = is_formattable<T>::value;
+struct formatter_has_function:
+    decltype(formatter_has_function_impl::check<T>(nullptr)) {};
+
+
+// check type has print member function or not.
+
+struct formatter_has_member_impl {
+    template <typename T>
+    static auto check(const T* o) -> decltype(
+	o->print(std::cout, std::string{}),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+template <typename T>
+struct formatter_has_member:
+    decltype(formatter_has_member_impl::check<T>(nullptr)) {};
+
+
+// check type has print_as member function or not.
+
+struct formatter_has_printas_impl {
+    template <typename T>
+    static auto check(const T* o) -> decltype(
+	o->print_as(),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+template <typename T>
+struct formatter_has_printas:
+    decltype(formatter_has_printas_impl::check<T>(nullptr)) {};
+
+
+// check type invoke operator<< function or not.
+
+struct formatter_has_operator_impl {
+    template <typename T>
+    static auto check(const T* o) -> decltype(
+	std::cout << *o,
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+template <typename T>
+struct formatter_has_operator:
+    decltype(formatter_has_operator_impl::check<T>(nullptr)) {};
 
 
 // tag dispatch
 
 struct formatter_int_tag {};
+struct formatter_int8_tag {};
+struct formatter_uint8_tag {};
 struct formatter_float_tag {};
 struct formatter_pointer_tag {};
-struct formatter_formattable_tag {};
+struct formatter_traits_tag {};
+struct formatter_function_tag {};
+struct formatter_member_tag {};
+struct formatter_printas_tag {};
+struct formatter_operator_tag {};
 struct formatter_enum_tag {};
-struct formatter_other_tag {};
+struct formatter_error_tag {};
 
 template <typename T>
 struct formatter_tag {
     typedef typename
-    std::conditional_t<
-	std::is_integral_v<T>,
-	formatter_int_tag,
-	std::conditional_t<
-	    std::is_floating_point_v<T>,
-	    formatter_float_tag,
-	    std::conditional_t<
-		is_formattable_v<T>,
-		formatter_formattable_tag,
-		std::conditional_t<
-		    std::is_enum_v<T>,
-		    formatter_enum_tag,
-		    formatter_other_tag>>>
+    c7::typefunc::ifelse_t<
+	std::is_integral<T>,		formatter_int_tag,
+	std::is_floating_point<T>,	formatter_float_tag,
+	formatter_has_traits<T>,	formatter_traits_tag,
+	formatter_has_function<T>,	formatter_function_tag,
+	formatter_has_member<T>,	formatter_member_tag,
+	formatter_has_printas<T>,	formatter_printas_tag,
+	std::is_enum<T>,		formatter_enum_tag,
+	formatter_has_operator<T>,	formatter_operator_tag,
+	std::true_type,			formatter_error_tag
 	> type;
 
     static constexpr type value{};
@@ -106,30 +153,51 @@ struct formatter_tag {
 template <typename T>
 struct formatter_tag<T*> {
     typedef formatter_pointer_tag type;
-
     static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<std::string> {
-    typedef formatter_other_tag type;
-
+    typedef formatter_operator_tag type;
     static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<const char*> {
-    typedef formatter_other_tag type;
-
+    typedef formatter_operator_tag type;
     static constexpr type value{};
 };
 
 template <>
 struct formatter_tag<char*> {
-    typedef formatter_other_tag type;
-
+    typedef formatter_operator_tag type;
     static constexpr type value{};
 };
+
+template <>
+struct formatter_tag<int8_t> {
+    typedef formatter_int8_tag type;
+    static constexpr type value{};
+};
+
+template <>
+struct formatter_tag<uint8_t> {
+    typedef formatter_uint8_tag type;
+    static constexpr type value{};
+};
+
+
+/*----------------------------------------------------------------------------
+                              special formatter
+----------------------------------------------------------------------------*/
+
+template <>
+struct format_traits<ssize_t> {
+    static c7::delegate<bool, std::ostream&, const std::string&, ssize_t> converter;
+    static void convert(std::ostream& out, const std::string& format, ssize_t arg);
+};
+
+void print_type(std::ostream& out, const std::string& format, com_status arg);
 
 
 /*----------------------------------------------------------------------------
@@ -161,6 +229,12 @@ private:
     void handle_arg(state_t s, T arg, formatter_int_tag) noexcept;
 
     template <typename T>
+    void handle_arg(state_t s, T arg, formatter_int8_tag) noexcept;
+
+    template <typename T>
+    void handle_arg(state_t s, T arg, formatter_uint8_tag) noexcept;
+
+    template <typename T>
     void handle_arg(state_t s, T arg, formatter_float_tag) noexcept;
 
     template <typename T>
@@ -169,13 +243,35 @@ private:
     }
 
     template <typename T>
-    void handle_arg(state_t s, const T& arg, formatter_formattable_tag) noexcept {
+    void handle_arg(state_t s, const T& arg, formatter_traits_tag) noexcept {
 	format_traits<T>::convert(out_, ext_, arg);
     }
 
     template <typename T>
-    inline void handle_arg(state_t s, const T& arg, formatter_other_tag) noexcept {
+    void handle_arg(state_t s, const T& arg, formatter_function_tag) noexcept {
+	print_type(out_, ext_, arg);
+    }
+
+    template <typename T>
+    void handle_arg(state_t s, const T& arg, formatter_member_tag) noexcept {
+	arg.print(out_, ext_);
+    }
+
+    template <typename T>
+    void handle_arg(state_t s, const T& arg, formatter_printas_tag) noexcept {
+	auto as_value = arg.print_as();
+	typedef decltype(as_value) U;
+	handle_arg<U>(s, as_value, formatter_tag<U>::value);
+    }
+
+    template <typename T>
+    inline void handle_arg(state_t s, const T& arg, formatter_operator_tag) noexcept {
 	out_ << arg;
+    }
+
+    template <typename T>
+    inline void handle_arg(state_t s, const T& arg, formatter_error_tag) noexcept {
+	static_assert(c7::typefunc::false_v<T>, "Specified type is not formattable.");
     }
 
     void format_impl(state_t s) noexcept {}
