@@ -74,9 +74,8 @@ void timer_provider::on_event(monitor& mon, int, uint32_t events)
 {
     uint64_t tmo_n;
     if (::read(fd_, &tmo_n, sizeof(tmo_n)) != sizeof(tmo_n)) {
-	// TODO: notify error
-	mon.unsubscribe(fd_);
-	return;
+	tmo_n = 0;	// mean error happen
+	count_ = 1;	// enforce unsubscribe after invoking callback
     }
     count_--;
     callback_(fd_, tmo_n);

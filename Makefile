@@ -1,6 +1,6 @@
 MAKE_JOBS ?= 8
 
-UNITS = src
+UNITS = src tools
 .PHONY: rebuild clean all $(UNITS)
 
 all: $(UNITS)

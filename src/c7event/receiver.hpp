@@ -49,39 +49,6 @@ private:
 };
 
 
-#if 0
-template <typename Msgbuf, typename Port = socket_port,
-	  typename Receiver = receiver<Msgbuf, Port>>
-auto make_receiver(Port&& port,
-		   shared_service_ptr<Msgbuf, Port> svc,
-		   provider_hint hint = nullptr)
-{
-    return Receiver::make(std::move(port), std::move(svc), hint);
-}
-
-
-template <typename Msgbuf, typename Port = socket_port,
-	  typename Receiver = receiver<Msgbuf, Port>>
-result<> subscribe_receiver(Port&& port,
-			    shared_service_ptr<Msgbuf, Port> svc,
-			    provider_hint hint = nullptr)
-{
-    return subscribe(make_receiver<Msgbuf, Port, Receiver>(std::move(port), std::move(svc), hint));
-}
-
-
-template <typename Msgbuf, typename Port = socket_port,
-	  typename Receiver = receiver<Msgbuf, Port>>
-result<> subscribe_receiver(monitor& mon,
-			    Port&& port,
-			    shared_service_ptr<Msgbuf, Port> svc,
-			    provider_hint hint = nullptr)
-{
-    return mon.subscribe(make_receiver<Msgbuf, Port, Receiver>(std::move(port), std::move(svc), hint));
-}
-#endif
-
-
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>

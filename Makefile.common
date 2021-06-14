@@ -41,37 +41,25 @@ C7_LD_RPATH_OPT = -Wl,-rpath,
 
 C7_CLEAN_REMOVED += $(C7_OUT_TMPDIR)
 
-CFLAGS += -std=c99 $(if $(C7_NOTHREAD),,-pthread)
-CFLAGS += $(addprefix -I,$(C7_CC_IPATH))
-CFLAGS += -Wall $(if $(C7_WERROR),-Werror,)
-CFLAGS += -W$(CFLAGS_PROTO)strict-prototypes
-
 CXXFLAGS += -std=c++17 $(if $(C7_NOTHREAD),,-pthread)
 CXXFLAGS += $(addprefix -I,$(C7_CC_IPATH))
 CXXFLAGS += -Wall $(if $(C7_WERROR),-Werror,)
 
 LDFLAGS = $(addprefix -L,$(C7_LD_LPATH)) $(addprefix $(C7_LD_RPATH_OPT),$(C7_LD_RPATH))
-LDLIBS = $(if $(C7_NOLIBC7),,-lc7) $(if $(C7_NOTHREAD),,-lpthread)
+LDLIBS = $(if $(C7_NOLIBC7XX),,-lc7++) $(if $(C7_NOTHREAD),,-lpthread)
 
 ifeq "$(wildcard DEBUG)" ""
   C7_ECHO_BEG="\x1b[32m"
   C7_ECHO_END="\x1b[0m"
-  CFLAGS   += -O3
   CXXFLAGS += -O3
 else
   C7_ECHO_BEG="\x1b[33m"
   C7_ECHO_END="\x1b[0m"
   C7_DBGSFX = .g
-  CFLAGS   += -g2 -O0 -D__C7_DEBUG
   CXXFLAGS += -g2 -O0 -D__C7_DEBUG
   LDFLAGS  += -g
 endif
 
-ifneq "$(wildcard ../uconfig.h)" ""
-  CFLAGS += -I.. -DC7_USER_CONFIG_H=uconfig.h
-endif
-
-CFLAGS   += $(CFLAGS_TAIL)
 CXXFLAGS += $(CXXFLAGS_TAIL)
 
 ifeq (,$(findstring s,$(MAKEFLAGS)))
@@ -89,12 +77,6 @@ define cmd_bin
   @$(C7_ECHO) $(C7_ECHO_BEG)$(subst $(HOME),\~,$(subst $(C7_OUT_BINDIR)/,,$1))$(C7_ECHO_END)
   @$1
 endef
-
-$(C7_OUT_BINDIR)/%: %.c
-	$(call cmd_bin,cc $(CFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS))
-
-$(C7_OUT_OBJDIR)/%.o: %.c
-	$(call cmd_o,cc -c $(CFLAGS) -o $@ $<)
 
 $(C7_OUT_PY2DIR)/%.py: %.py
 	$(call cmd_o,cp -p $< $@)

@@ -14,6 +14,7 @@
 #include <c7common.hpp>
 
 
+#include <c7event/monitor.hpp>
 #include <c7event/port.hpp>
 
 

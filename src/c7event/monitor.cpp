@@ -67,7 +67,7 @@ void monitor::loop()
 	    }
 	} else if (ret == C7_SYSERR) {
 	    if (errno != EINTR) {
-		// TODO: notify error
+		// FATAL ERROR
 		c7abort(c7result_err(errno, "epoll_wait() failed"));
 	    }
 	}
