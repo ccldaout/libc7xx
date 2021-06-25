@@ -199,6 +199,11 @@ public:
 
     void merge_iferror(result_base&& source);
 
+    result_base& operator<<(result_base&& source) {
+	merge_iferror(std::move(source));
+	return *this;
+    }
+
     explicit operator bool() const {
 	return !errors_;
     }

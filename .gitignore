@@ -1,3 +1,4 @@
 COMMITMSG
 build
 config.mk
+*.pyc

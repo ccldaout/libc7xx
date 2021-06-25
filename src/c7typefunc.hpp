@@ -47,7 +47,61 @@ struct unwrapref<std::reference_wrapper<T>> {
                             type list manipulation
 ----------------------------------------------------------------------------*/
 
-// -- cons : T, tuple<T1, T2, ...> -> tuple<T, T1, T2, ...>
+// -- is_empty<...> : 
+
+template <typename... Args>
+struct is_empty {
+    static constexpr bool value = false;
+};
+
+template <>
+struct is_empty<> {
+    static constexpr bool value = true;
+};
+
+template <typename... Args>
+inline constexpr bool is_empty_v = is_empty<Args...>::value;
+
+
+// --  count<T, ...> -> number of T,...
+
+template <typename T, typename... Types>
+static inline constexpr int count_()
+{
+    if constexpr (is_empty_v<Types...>) {
+	return 0;
+    } else {
+	return 1 + count_<Types...>();
+    }
+}
+
+template <typename... Types>
+static inline constexpr int count()
+{
+    return count_<void, Types...>();
+}
+
+
+// --  at<N, T, ...> -> N th type of <T, ...>
+
+template <int N, typename... Types>
+struct at {};
+
+template <typename T, typename... Types>
+struct at<0, T, Types...> {
+    typedef T type;
+};
+
+template <int N, typename T, typename... Types>
+struct at<N, T, Types...> {
+    typedef typename at<N-1, Types...>::type type;
+};
+
+template <int N, typename... Types>
+using at_t = typename at<N, Types...>::type;
+
+
+// -- cons<T, tuple<T2, ...>> -> tuple<T, T2, ...>
 
 template <typename Head, typename... Tail>
 struct cons {};
@@ -61,8 +115,8 @@ template <typename Head, typename... Tail>
 using cons_t = typename cons<Head, Tail...>::type;
 
 
-// -- car :       T1, T2, ...  -> T1
-// -- car : tuple<T1, T2, ...> -> T1
+// -- car<      T1, T2, ...>  -> T1
+// -- car<tuple<T1, T2, ...>> -> T1
 
 template <typename Head, typename... Tail>
 struct car {
@@ -78,8 +132,8 @@ template <typename Head, typename... Tail>
 using car_t = typename car<Head, Tail...>::type;
 
 
-// -- tail :       T1, T2, ...  -> tuple<T2, ...>
-// -- tail : tuple<T1, T2, ...> -> tuple<T2, ...>
+// -- tail<      T1, T2, ...>  -> tuple<T2, ...>
+// -- tail<tuple<T1, T2, ...>> -> tuple<T2, ...>
 
 template <typename Head, typename... Tail>
 struct cdr {
@@ -95,8 +149,8 @@ template <typename Head, typename... Tail>
 using cdr_t = typename cdr<Head, Tail...>::type;
 
 
-// -- map : typefunc,       t1, t2, ...  -> tuple<typefunc<t1>, typefunc<t2>, ...>
-// -- map : typefunc, tuple<t1, t2, ...> -> tuple<typefunc<t1>, typefunc<t2>, ...>
+// -- map<TypeFunc,       T, ...>  -> tuple<typefunc<T>, ...>
+// -- map<TypeFunc, tuple<T, ...>> -> tuple<typefunc<T>, ...>
 
 template <template <typename> class TFunc,
 	  typename... Types>
@@ -115,7 +169,7 @@ template <template <typename> class TFunc,
 using map_t = typename map<TFunc, Types...>::type;
 
 
-// -- apply : type, tuple<T1, T2, ...> -> type<T1, T2, ...>
+// -- apply<Type, tuple<T, ...>> -> Type<T, ...>
 
 template <template <typename...> class T, typename... Ts>
 struct apply {};
@@ -129,24 +183,23 @@ template <template <typename...> class T, typename... Ts>
 using apply_t = typename apply<T, Ts...>::type;
 
 
-// -- is_empty : 
-template <typename... Args>
-struct is_empty {
-    static constexpr bool value = true;
-};
-
-template <typename Head, typename... Tail>
-struct is_empty<Head, Tail...> {
-    static constexpr bool value = false;
-};
-
-template <typename... Args>
-inline constexpr bool is_empty_v = is_empty<Args...>::value;
-
-
 /*----------------------------------------------------------------------------
                             multi-case conditional
 ----------------------------------------------------------------------------*/
+
+// -- ifelse<CondType1, SelectedType1,
+//           ...
+//           CondTypeN, SelectedTypeN> -> one of SelectedType1, ..., SelectedTypeN, void
+//
+// -- ifelse<CondType1, SelectedType1,
+//           ...
+//           CondTypeN, SelectedTypeN,
+//           DefaultType>              -> one of SelectedType1, ..., SelectedTypeN, DefaultType
+//
+// -- ifelse<CondType1, SelectedType1,
+//           ...
+//           CondTypeN, SelectedTypeN,
+//           std::true_type, DefaultType> -> one of SelectedType1, ..., SelectedTypeN, DefaultType
 
 template <typename... Args>
 struct ifelse {
