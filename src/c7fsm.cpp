@@ -84,12 +84,6 @@ bool driver_base::step(state_t& cur, event_t ev, void *ctx)
 {
     auto unlock = lock_.lock();
 
-    if (is_partial(ev)) {
-	if (!try_get_combined(ev)) {
-	    return true;
-	}
-    }
-
     auto it = table_.find(table_key_t(cur, ev));
     if (it == table_.end()) {
 	return false;
@@ -194,6 +188,12 @@ result<> driver_base::start()
 
 result<> driver_base::transit(event_t ev, void *ctx)
 {
+    if (is_partial(ev)) {
+	if (!try_get_combined(ev)) {
+	    return c7result_ok();
+	}
+    }
+
     bool applied = false;
     for (auto& cur: currents_) {
 	if (step(cur, ev, ctx)) {
