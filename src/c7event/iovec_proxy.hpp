@@ -14,7 +14,8 @@
 #include <c7common.hpp>
 
 
-#include <c7event/portgroup.hpp>
+#include <sys/uio.h>
+#include <cstring>
 
 
 namespace c7::event {
@@ -41,7 +42,7 @@ private:
 	explicit iov_base_t(::iovec *&iov): iov_(iov) {}
 	iov_base_t& operator=(void *p) { iov_->iov_base = p; return *this; }
 	iov_base_t& operator=(const void *p) { iov_->iov_base = const_cast<void*>(p); return *this; }
-	iov_base_t& operator=(const char *s) { iov_->iov_base = const_cast<char*>(s); iov_->iov_len = strlen(s) + 1; return *this; }
+	iov_base_t& operator=(const char *s) { iov_->iov_base = const_cast<char*>(s); iov_->iov_len = std::strlen(s) + 1; return *this; }
 	iov_base_t& operator=(const std::string& s) { return operator=(s.c_str()); }
 	template <typename T> iov_base_t& operator=(T *p) { iov_->iov_base = p; iov_->iov_len = sizeof(T); return *this; }
 	template <typename T> iov_base_t& operator=(const T *p) { return operator=(const_cast<T*>(p)); }
