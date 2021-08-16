@@ -38,9 +38,9 @@ int receiver<Msgbuf, Port>::fd()
 
 
 template <typename Msgbuf, typename Port>
-void receiver<Msgbuf, Port>::on_subscribed(monitor& mon, int prvfd)
+void receiver<Msgbuf, Port>::on_manage(monitor& mon, int prvfd)
 {
-    port_.add_on_close([&mon, prvfd](){ mon.unsubscribe(prvfd); });
+    port_.add_on_close([&mon, prvfd](){ mon.unmanage(prvfd); });
     svc_->on_attached(mon, port_, hint_);
 }
 
@@ -66,7 +66,7 @@ void receiver<Msgbuf, Port>::on_event(monitor& mon, int, uint32_t)
 
 
 template <typename Msgbuf, typename Port>
-void receiver<Msgbuf, Port>::on_unsubscribed(monitor& mon, int)
+void receiver<Msgbuf, Port>::on_unmanage(monitor& mon, int)
 {
     svc_->on_detached(mon, port_, hint_);
 }

@@ -30,9 +30,9 @@ public:
 
     ~receiver() override {}
     int fd() override;
-    void on_subscribed(monitor& mon, int prvfd) override;
+    void on_manage(monitor& mon, int prvfd) override;
     void on_event(monitor& mon, int prvfd, uint32_t events) override;
-    void on_unsubscribed(monitor&, int prvfd) override;
+    void on_unmanage(monitor&, int prvfd) override;
 
     static auto make(Port&& port, service_ptr svc, provider_hint hint) {
 	auto p = new receiver(std::move(port), std::move(svc), hint);
@@ -63,23 +63,23 @@ auto make_receiver(typename Service::port_type&& port,
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-result<> subscribe_receiver(typename Service::port_type&& port,
+result<> manage_receiver(typename Service::port_type&& port,
 			    std::shared_ptr<Service> svc,
 			    provider_hint hint = nullptr)
 {
-    return subscribe(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return manage(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
 }
 
 
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-result<> subscribe_receiver(monitor& mon,
+result<> manage_receiver(monitor& mon,
 			    typename Service::port_type&& port,
 			    std::shared_ptr<Service> svc,
 			    provider_hint hint = nullptr)
 {
-    return mon.subscribe(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return mon.manage(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
 }
 
 

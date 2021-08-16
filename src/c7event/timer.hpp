@@ -28,7 +28,7 @@ public:
     int fd() override { return fd_; }
     void on_event(monitor& mon, int, uint32_t events) override;
 
-    static result<int> subscribe(monitor& mon,
+    static result<int> manage(monitor& mon,
 				 c7::usec_t beg, c7::usec_t interval, callback_t callback,
 				 bool is_abs);
 private:
@@ -45,7 +45,7 @@ inline result<int>
 timer_start(c7::usec_t beg, c7::usec_t interval,
 	    std::function<void(int, uint64_t)> callback)
 {
-    return timer_provider::subscribe(default_event_monitor(),
+    return timer_provider::manage(default_event_monitor(),
 				     beg, interval, std::move(callback), false);
 }
 
@@ -54,14 +54,14 @@ timer_start(monitor& mon,
 	    c7::usec_t beg, c7::usec_t interval,
 	    std::function<void(int, uint64_t)> callback)
 {
-    return timer_provider::subscribe(mon, beg, interval, std::move(callback), false);
+    return timer_provider::manage(mon, beg, interval, std::move(callback), false);
 }
 
 inline result<int>
 timer_start_abs(c7::usec_t beg, c7::usec_t interval,
 		std::function<void(int, uint64_t)> callback)
 {
-    return timer_provider::subscribe(default_event_monitor(),
+    return timer_provider::manage(default_event_monitor(),
 				     beg, interval, std::move(callback), true);
 }
 
@@ -70,7 +70,7 @@ timer_start_abs(monitor& mon,
 		c7::usec_t beg, c7::usec_t interval,
 		std::function<void(int, uint64_t)> callback)
 {
-    return timer_provider::subscribe(mon, beg, interval, std::move(callback), true);
+    return timer_provider::manage(mon, beg, interval, std::move(callback), true);
 }
 
 

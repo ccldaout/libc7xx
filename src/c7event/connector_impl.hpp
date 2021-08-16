@@ -52,20 +52,20 @@ uint32_t connector<Msgbuf, Port, Receiver>::default_epoll_events()
 
 
 template <typename Msgbuf, typename Port, typename Receiver>
-void connector<Msgbuf, Port, Receiver>::on_subscribed(monitor& mon, int prvfd)
+void connector<Msgbuf, Port, Receiver>::on_manage(monitor& mon, int prvfd)
 {
     port_.set_nonblocking(true);
     if (auto res = do_connect(mon); !res && !res.has_what(EINPROGRESS)) {
 	start_timer(mon, prvfd);
     }
-    // DON'T setup unsubscribe on close as follow in this provider.
+    // DON'T setup unmanage on close as follow in this provider.
     //
-    // receiver::on_subscribed()
-    //    port_.add_on_close([&mon, prvfd](){ mon.unsubscribe(prvfd); });
+    // receiver::on_manage()
+    //    port_.add_on_close([&mon, prvfd](){ mon.unmanage(prvfd); });
     //
     // When retrying connect, we must use new socket descriptor by system
     // requirements, and close old descriptor which was failed to connect.
-    // If unsubscribe on close is enabled, *this* connector object is
+    // If unmanage on close is enabled, *this* connector object is
     // deleted although it is needed to retry connect.
 }
 
@@ -76,7 +76,7 @@ void connector<Msgbuf, Port, Receiver>::on_event(monitor& mon, int prvfd, uint32
     int so_error;
     if (auto res = port_.get_so_error(&so_error); !res) {
 	on_error(port_, res);
-	mon.unsubscribe(prvfd);
+	mon.unmanage(prvfd);
 	return;
     }
     if (so_error != 0) {
@@ -107,7 +107,7 @@ void connector<Msgbuf, Port, Receiver>::start_timer(monitor& mon, int prvfd)
     auto res = timer_start(mon, delay_us, 0, std::move(callback));
     if (!res) {
 	on_error(port_, res);
-	mon.unsubscribe(prvfd);
+	mon.unmanage(prvfd);
     }
 }
 
@@ -117,7 +117,7 @@ void connector<Msgbuf, Port, Receiver>::retry_connect(monitor& mon)
 {
     // [BUG] Following original codes has potential problem on multi thread.
     //       Old descriptor of port_ is closed by assignment at [1]. If other
-    //       thread create descriptor and subscribe it before [2], mon.change_fd
+    //       thread create descriptor and manage it before [2], mon.change_fd
     //       cause broken association of descriptor and provider object.
     //
     //   [0] auto oldfd = port_.fd_number();

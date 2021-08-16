@@ -29,7 +29,7 @@ monitor::monitor(monitor&& o): epfd_(o.epfd_), prvdic_(std::move(o.prvdic_))
 
 monitor::~monitor()
 {
-    unsubscribe_all();
+    unmanage_all();
     ::close(epfd_);
 }
 
@@ -51,7 +51,7 @@ void monitor::loop()
 	if (ret > 0) {
 	    for (int i = 0; i < ret; i++) {
 		auto ev = evts[i];
-		// IMPORTANT: It's possible that a provider has been unsubscribed here.
+		// IMPORTANT: It's possible that a provider has been unmanage here.
 		//            So, it is important to check the exsitency of provider and
 		//            hold it to prevent some thread from freeing the provider.
 		std::shared_ptr<provider_interface> hold;
@@ -74,12 +74,12 @@ void monitor::loop()
     }
 }
 
-result<> monitor::subscribe(std::shared_ptr<provider_interface> provider, uint32_t events)
+result<> monitor::manage(std::shared_ptr<provider_interface> provider, uint32_t events)
 {
-    return subscribe("", std::move(provider), events);
+    return manage("", std::move(provider), events);
 }
 
-result<> monitor::subscribe(const std::string& key,
+result<> monitor::manage(const std::string& key,
 			    std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     auto unlock = lock_.lock();
@@ -88,7 +88,7 @@ result<> monitor::subscribe(const std::string& key,
     if (!key.empty()) {
 	if (auto it = keyprvdic_.find(key); it != keyprvdic_.end()) {
 	    if (!(*it).second.expired()) {
-		return c7result_err(EEXIST, "subscribe failed: duplicate key: %{}", key);
+		return c7result_err(EEXIST, "manage failed: duplicate key: %{}", key);
 	    }
 	}
     }
@@ -119,7 +119,7 @@ result<> monitor::subscribe(const std::string& key,
 
     unlock();
 
-    sp->on_subscribed(*this, prvfd);
+    sp->on_manage(*this, prvfd);
     return c7result_ok();
 }
 
@@ -132,7 +132,7 @@ result<> monitor::change_fd(int prvfd, int new_prvfd)
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
     auto prv_info = std::move((*it).second);
 
@@ -157,7 +157,7 @@ result<> monitor::change_event(int prvfd, uint32_t events)
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
     events &= ~EPOLLHUP;
     events |= ((*it).second.events & EPOLLHUP);
@@ -179,13 +179,13 @@ result<> monitor::change_provider(int prvfd, std::shared_ptr<provider_interface>
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
     auto sp = provider.get();
     (*it).second.s_ptr = std::move(provider);
     unlock();
 
-    sp->on_subscribed(*this, prvfd);
+    sp->on_manage(*this, prvfd);
     return c7result_ok();
 }
 
@@ -194,7 +194,7 @@ result<> monitor::suspend(int prvfd)
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
 
     if (::epoll_ctl(epfd_, EPOLL_CTL_DEL, prvfd, nullptr) == C7_SYSERR) {
@@ -210,7 +210,7 @@ result<> monitor::resume(int prvfd)
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
     (*it).second.events &= ~EPOLLHUP;			// resumed
 
@@ -225,12 +225,12 @@ result<> monitor::resume(int prvfd)
     return c7result_ok();
 }
 
-result<> monitor::unsubscribe(int prvfd)
+result<> monitor::unmanage(int prvfd)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
     if (it == prvdic_.end()) {
-	return c7result_err(ENOENT, "prvfd:%{} is not subscribed.", prvfd);
+	return c7result_err(ENOENT, "prvfd:%{} is not manage.", prvfd);
     }
 
     auto provider = std::move((*it).second.s_ptr);
@@ -241,17 +241,17 @@ result<> monitor::unsubscribe(int prvfd)
     } 
     unlock();
 
-    provider->on_unsubscribed(*this, prvfd);
+    provider->on_unmanage(*this, prvfd);
     return c7result_ok();
 }
 
-void monitor::unsubscribe_all()
+void monitor::unmanage_all()
 {
-    // 1s step: notify unsubscribed by external to all provider.
+    // 1s step: notify unmanage by external to all provider.
     for (auto& [prvfd, pinfo]: prvdic_) {
 	auto& provider = pinfo.s_ptr;
 	::epoll_ctl(epfd_, EPOLL_CTL_DEL, prvfd, nullptr);
-	provider->on_unsubscribed(*this, prvfd);
+	provider->on_unmanage(*this, prvfd);
     }
 
     // 2st step: move prvdic_ to tmp in order to keep all provider in clearing prvdic_
@@ -269,7 +269,7 @@ result<std::shared_ptr<provider_interface>> monitor::find_provider(const std::st
     auto sp = (*it).second.lock();
     if (sp == nullptr) {
 	keyprvdic_.erase(it);
-	return c7result_err(ENOENT, "provider is already unsubscribed: key: %{}", key);
+	return c7result_err(ENOENT, "provider is already unmanage: key: %{}", key);
     }
     return c7result_ok(std::move(sp));
 }
@@ -301,16 +301,16 @@ monitor& default_event_monitor()
     return default_monitor;
 }
 
-result<> subscribe(std::shared_ptr<provider_interface> provider, uint32_t events)
+result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events)
 {
-    return subscribe("", std::move(provider), events);
+    return manage("", std::move(provider), events);
 }
 
-result<> subscribe(const std::string& key,
+result<> manage(const std::string& key,
 		   std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     std::call_once(once_init, init);
-    return default_monitor.subscribe(key, std::move(provider), events);
+    return default_monitor.manage(key, std::move(provider), events);
 }
 
 result<> change_fd(int prvfd, uint new_prvfd)
@@ -333,9 +333,9 @@ result<> resume(int prvfd)
     return default_monitor.resume(prvfd);
 }
 
-result<> unsubscribe(int prvfd)
+result<> unmanage(int prvfd)
 {
-    return default_monitor.unsubscribe(prvfd);
+    return default_monitor.unmanage(prvfd);
 }
 
 void forever()

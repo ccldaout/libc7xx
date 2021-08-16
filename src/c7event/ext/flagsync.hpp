@@ -31,7 +31,7 @@ public:
     using callback_t = std::function<void(flags_t&)>;
     using callback_id_t = uint64_t;
 
-    static const char * const subscribe_key;
+    static const char * const manage_key;
 
     ~flagsync_provider() = default;
 
@@ -39,8 +39,8 @@ public:
     int fd() override { return evfd_; };
     void on_event(monitor&, int, uint32_t) override;
 
-    static result<> subscribe(monitor& mon);
-    static result<> subscribe() { return subscribe(default_event_monitor()); }
+    static result<> manage(monitor& mon);
+    static result<> manage() { return manage(default_event_monitor()); }
 
     callback_id_t assign(std::weak_ptr<void> owner_wp,
 			 flags_t require_flags, callback_t callback);
@@ -128,7 +128,7 @@ template <typename BaseService>
 result<>
 flagsync_service<BaseService>::bridge::setup(monitor& mon)
 {
-    auto res = mon.find<flagsync_provider>(flagsync_provider::subscribe_key);
+    auto res = mon.find<flagsync_provider>(flagsync_provider::manage_key);
     if (!res) {
 	return std::move(res);
     }

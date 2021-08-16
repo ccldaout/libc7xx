@@ -40,9 +40,9 @@ public:
     virtual ~provider_interface() = default;
     virtual int fd() = 0;
     virtual uint32_t default_epoll_events() { return EPOLLIN; };
-    virtual void on_subscribed(monitor&, int prvfd) {}
+    virtual void on_manage(monitor&, int prvfd) {}
     virtual void on_event(monitor&, int prvfd, uint32_t events) = 0;
-    virtual void on_unsubscribed(monitor&, int prvfd) {}
+    virtual void on_unmanage(monitor&, int prvfd) {}
 
 protected:
     provider_interface() = default;
@@ -61,14 +61,14 @@ public:
     result<> init();
     void loop();
 
-    result<> subscribe(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
-    result<> subscribe(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+    result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+    result<> manage(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
     result<> change_fd(int prvfd, int new_prvfd);
     result<> change_event(int prvfd, uint32_t events);
     result<> change_provider(int prvfd, std::shared_ptr<provider_interface> provider);
     result<> suspend(int prvfd);
     result<> resume(int prvfd);
-    result<> unsubscribe(int prvfd);
+    result<> unmanage(int prvfd);
     template <typename T> result<std::shared_ptr<T>> find(const std::string& key);
     
 private:
@@ -89,7 +89,7 @@ private:
     c7::thread::mutex lock_;
 
     result<std::shared_ptr<provider_interface>> find_provider(const std::string& key);
-    void unsubscribe_all();
+    void unmanage_all();
 };
 
 template <typename T>
@@ -108,14 +108,14 @@ result<std::shared_ptr<T>> monitor::find(const std::string& key)
 // default monitor interfaces
 
 monitor& default_event_monitor();
-result<> subscribe(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
-result<> subscribe(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+result<> manage(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
 result<> change_fd(int prvfd, int new_prvfd);
 result<> change_event(int prvfd, uint32_t events);
 result<> change_provider(int prvfd, std::shared_ptr<provider_interface> provider);
 result<> suspend(int prvfd);
 result<> resume(int prvfd);
-result<> unsubscribe(int prvfd);
+result<> unmanage(int prvfd);
 template <typename T>
 result<std::shared_ptr<T>> find(const std::string& key)
 {

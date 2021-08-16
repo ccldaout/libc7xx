@@ -30,17 +30,17 @@ public:
     using callback_id_t = c7::fsm::driver<void>::callback_id_t;
     using event_t = c7::fsm::driver<void>::event_t;
 
-    static const char * const subscribe_key;
+    static const char * const manage_key;
 
     fsm_provider(int evfd, c7::fsm::driver<void>&& fsm);
     int fd() override { return evfd_; };
     void on_event(monitor&, int, uint32_t) override;
 
-    static result<> subscribe(monitor& mon, c7::fsm::driver<void>&& fsm,
-			      const std::string& key = subscribe_key);
-    static result<> subscribe(c7::fsm::driver<void>&& fsm,
-			      const std::string& key = subscribe_key) {
-	return subscribe(default_event_monitor(), std::move(fsm), key);
+    static result<> manage(monitor& mon, c7::fsm::driver<void>&& fsm,
+			      const std::string& key = manage_key);
+    static result<> manage(c7::fsm::driver<void>&& fsm,
+			      const std::string& key = manage_key) {
+	return manage(default_event_monitor(), std::move(fsm), key);
     }
 
     void link_callback(callback_id_t id, callback_t cb) { fsm_.link_callback(id, cb); }
@@ -83,7 +83,7 @@ protected:
 	bridge& operator=(const bridge&) = delete;
 
 	result<> setup(monitor& mon,
-		       const std::string& key = fsm_provider::subscribe_key);
+		       const std::string& key = fsm_provider::manage_key);
 
 	void link_callback(callback_id_t id, callback_t cb) {
 	    provider_->link_callback(id, std::move(cb));
@@ -113,7 +113,7 @@ template <typename BaseService>
 result<>
 fsm_service<BaseService>::bridge::setup(monitor& mon, const std::string& key)
 {
-    auto res = mon.find<fsm_provider>(fsm_provider::subscribe_key);
+    auto res = mon.find<fsm_provider>(fsm_provider::manage_key);
     if (!res) {
 	return std::move(res);
     }

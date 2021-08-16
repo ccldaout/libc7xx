@@ -67,14 +67,14 @@ void flagsync_provider::on_event(monitor&, int, uint32_t)
 }
 
 // static member
-result<> flagsync_provider::subscribe(monitor& mon)
+result<> flagsync_provider::manage(monitor& mon)
 {
     int evfd_ = ::eventfd(0, EFD_CLOEXEC);
     if (evfd_ == C7_SYSERR) {
 	return c7result_err(errno, "eventfd() failed");
     }
     auto prv = std::make_shared<flagsync_provider>(evfd_);
-    return mon.subscribe(subscribe_key, std::move(prv));
+    return mon.manage(manage_key, std::move(prv));
 }
 
 auto flagsync_provider::assign(std::weak_ptr<void> owner_wp,
@@ -107,7 +107,7 @@ void flagsync_provider::update(flags_t on, flags_t off)
 }
 
 std::atomic<uint64_t> flagsync_provider::id_counter_;
-const char * const flagsync_provider::subscribe_key = "c7::event::syncflag_provider";
+const char * const flagsync_provider::manage_key = "c7::event::syncflag_provider";
 
 
 } // namespace c7::event

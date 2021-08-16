@@ -39,7 +39,7 @@ public:
     ~connector() override;
     int fd() override;
     uint32_t default_epoll_events() override;
-    void on_subscribed(monitor& mon, int prvfd) override;
+    void on_manage(monitor& mon, int prvfd) override;
     void on_event(monitor& mon, int prvfd, uint32_t) override;
 
 private:
@@ -73,23 +73,23 @@ auto make_connector(const socket_addr& addr,
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-result<> subscribe_connector(const socket_addr& addr,
+result<> manage_connector(const socket_addr& addr,
 			     std::shared_ptr<Service> svc,
 			     provider_hint hint = nullptr)
 {
-    return subscribe(make_connector<Service, Receiver>(addr, svc, hint));
+    return manage(make_connector<Service, Receiver>(addr, svc, hint));
 }
 
 
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-result<> subscribe_connector(monitor& mon,
+result<> manage_connector(monitor& mon,
 			     const socket_addr& addr,
 			     std::shared_ptr<Service> svc,
 			     provider_hint hint = nullptr)
 {
-    return mon.subscribe(make_connector<Service, Receiver>(addr, svc, hint));
+    return mon.manage(make_connector<Service, Receiver>(addr, svc, hint));
 }
 
 

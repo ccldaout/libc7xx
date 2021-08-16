@@ -51,7 +51,7 @@ result<> timer_provider::setup(c7::usec_t beg, c7::usec_t interval, bool is_abs)
 
 
 result<int>
-timer_provider::subscribe(monitor& mon,
+timer_provider::manage(monitor& mon,
 			  c7::usec_t beg, c7::usec_t interval, callback_t callback,
 			  bool is_abs)
 {
@@ -63,7 +63,7 @@ timer_provider::subscribe(monitor& mon,
 	return c7result_err(std::move(res));
     }
     auto fd = timer->fd();
-    if (auto res = mon.subscribe(std::move(timer)); !res) {
+    if (auto res = mon.manage(std::move(timer)); !res) {
 	return c7result_err(std::move(res));
     }
     return c7result_ok(fd);
@@ -75,12 +75,12 @@ void timer_provider::on_event(monitor& mon, int, uint32_t events)
     uint64_t tmo_n;
     if (::read(fd_, &tmo_n, sizeof(tmo_n)) != sizeof(tmo_n)) {
 	tmo_n = 0;	// mean error happen
-	count_ = 1;	// enforce unsubscribe after invoking callback
+	count_ = 1;	// enforce unmanage after invoking callback
     }
     count_--;
     callback_(fd_, tmo_n);
     if (count_ == 0) {
-	mon.unsubscribe(fd_);
+	mon.unmanage(fd_);
     }
 }
 

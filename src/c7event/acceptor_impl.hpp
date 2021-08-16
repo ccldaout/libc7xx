@@ -39,9 +39,9 @@ int acceptor<Msgbuf, Port, Receiver>::fd()
 
 
 template <typename Msgbuf, typename Port, typename Receiver>
-void acceptor<Msgbuf, Port, Receiver>::on_subscribed(monitor& mon, int prvfd)
+void acceptor<Msgbuf, Port, Receiver>::on_manage(monitor& mon, int prvfd)
 {
-    port_.add_on_close([&mon, prvfd](){ mon.unsubscribe(prvfd); });
+    port_.add_on_close([&mon, prvfd](){ mon.unmanage(prvfd); });
 }
 
 
@@ -53,7 +53,7 @@ void acceptor<Msgbuf, Port, Receiver>::on_event(monitor& mon, int, uint32_t)
     } else {
 	auto port = std::move(res.value());
 	auto prv = make_receiver<service_interface<Msgbuf, Port>, Receiver>(std::move(port), svc_, hint_);
-	mon.subscribe(std::move(prv));
+	mon.manage(std::move(prv));
     }
 }
 

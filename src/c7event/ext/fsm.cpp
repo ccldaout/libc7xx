@@ -38,14 +38,14 @@ void fsm_provider::on_event(monitor&, int, uint32_t)
 }
 
 // static member
-result<> fsm_provider::subscribe(monitor& mon, c7::fsm::driver<void>&& fsm, const std::string& key)
+result<> fsm_provider::manage(monitor& mon, c7::fsm::driver<void>&& fsm, const std::string& key)
 {
     int evfd_ = ::eventfd(0, EFD_CLOEXEC);
     if (evfd_ == C7_SYSERR) {
 	return c7result_err(errno, "eventfd() failed");
     }
     auto drv = std::make_shared<fsm_provider>(evfd_, std::move(fsm));
-    return mon.subscribe(key, std::move(drv));
+    return mon.manage(key, std::move(drv));
 }
 
 void fsm_provider::commit(event_t event)
@@ -57,7 +57,7 @@ void fsm_provider::commit(event_t event)
     evfd_.write_n(&counter);
 }
 
-const char * const fsm_provider::subscribe_key = "c7::event::fsm_provider";
+const char * const fsm_provider::manage_key = "c7::event::fsm_provider";
 
 
 } // namespace c7::event
