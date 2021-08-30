@@ -257,7 +257,7 @@ static result<const char*> evalenv(std::string& out, const char *vn, bool enclos
     if (enclosed) {
 	ve = std::strchr(vn, 0);
 	const char *m = strchr_x(vn, ':', ve);
-	std::string env(vn, ve - vn);
+	std::string env(vn, m - vn);
 	const char *val = getenv_x(env.c_str(), "");
 	if (*m == 0) {		// m == ve
 	    out += val;
