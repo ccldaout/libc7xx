@@ -21,11 +21,32 @@
 #include <thread>
 
 
-namespace c7 {
-
-
 #define C7_MSORT_MAX_DEPTH	(64)
 #define C7_QSORT_MAX_DEPTH	(128)
+
+#if !defined(C7_MSORT_THRESHOLD)
+# define C7_MSORT_THRESHOLD	50
+#endif
+#if !defined(C7_MSORT_MT_THRESHOLD)
+# define C7_MSORT_MT_THRESHOLD	10000
+#endif
+
+#if !defined(C7_QSORT_THRESHOLD)
+# define C7_QSORT_THRESHOLD	60
+#endif
+#if !defined(C7_QSORT_MT_THRESHOLD)
+# define C7_QSORT_MT_THRESHOLD	10000
+#endif
+
+#if !defined(C7_RSORT_THRESHOLD)
+# define C7_RSORT_THRESHOLD	50
+#endif
+#if !defined(C7_RSORT_MT_THRESHOLD)
+# define C7_RSORT_MT_THRESHOLD	10000
+#endif
+
+
+namespace c7 {
 
 
 /*----------------------------------------------------------------------------
@@ -244,7 +265,7 @@ static void msort_st_main(int parity, Iterator out, Iterator in, ptrdiff_t n,
 template <typename Iterator, typename Lessthan>
 void msort_st(Iterator work,
 	      Iterator left, ptrdiff_t n, Lessthan lessthan,
-	      int msort_threshold = 50)
+	      int msort_threshold = C7_MSORT_THRESHOLD)
 {
     msort_st_main(0, left, work, n, lessthan, msort_threshold);
 }
@@ -252,7 +273,7 @@ void msort_st(Iterator work,
 template <typename Iterator>
 void msort_st(Iterator work,
 	      Iterator left, ptrdiff_t n,
-	      int msort_threshold = 50)
+	      int msort_threshold = C7_MSORT_THRESHOLD)
 {
     msort_st_main(0, left, work, n,
 		  [](const decltype(*left)& p,
@@ -272,6 +293,7 @@ struct msort_param_t {
     ptrdiff_t n;
     ptrdiff_t h;
     ptrdiff_t threshold;
+    ptrdiff_t mt_threshold;
     int parity;
     int level;
 };
@@ -320,7 +342,7 @@ static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan less
 {
     msort_param_t<Iterator> ms1, ms2;
 
-    if ((ms->level == 0) || (ms->n < ms->threshold)) {
+    if ((ms->level == 0) || (ms->n < ms->mt_threshold)) {
 	msort_st_main(ms->parity, ms->out, ms->in, ms->n, lessthan, ms->threshold);
 	return;
     }
@@ -330,6 +352,7 @@ static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan less
     ms1.n = ms->h;
     ms1.h = ms1.n >> 1;
     ms1.threshold = ms->threshold;
+    ms1.mt_threshold = ms->mt_threshold;
     ms1.parity = !ms->parity;
     ms1.level = ms->level - 1;
 
@@ -338,6 +361,7 @@ static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan less
     ms2.n = ms->n - ms->h;
     ms2.h = ms2.n >> 1;
     ms2.threshold = ms->threshold;
+    ms2.mt_threshold = ms->mt_threshold;
     ms2.parity = !ms->parity;
     ms2.level = ms->level - 1;
 
@@ -352,9 +376,10 @@ static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan less
 }
 
 template <typename Iterator, typename Lessthan>
-void msort_mt(Iterator work,
-	      Iterator left, ptrdiff_t n, Lessthan lessthan,
-	      int thread_depth, int msort_threshold = 50)
+void msort_mt(Iterator work, Iterator left, ptrdiff_t n, Lessthan lessthan,
+	      int thread_depth,
+	      int msort_mt_threshold = C7_MSORT_MT_THRESHOLD,
+	      int msort_threshold = C7_MSORT_THRESHOLD)
 {
     msort_param_t<Iterator> ms;
     ms.out = left;
@@ -362,21 +387,23 @@ void msort_mt(Iterator work,
     ms.n = n;
     ms.h = ms.n >> 1;
     ms.threshold = msort_threshold;
+    ms.mt_threshold = msort_mt_threshold;
     ms.parity = 0;
     ms.level = thread_depth;
     msort_mt_main(&ms, lessthan);
 }
 
 template <typename Iterator>
-void msort_mt(Iterator work,
-	      Iterator left, ptrdiff_t n, 
-	      int thread_depth, int msort_threshold = 50)
+void msort_mt(Iterator work, Iterator left, ptrdiff_t n, 
+	      int thread_depth,
+	      int msort_mt_threshold = C7_MSORT_MT_THRESHOLD,
+	      int msort_threshold = C7_MSORT_THRESHOLD)
 {
     msort_mt(work,
 	     left, n, 
 	     [](const decltype(*left)& p,
 		const decltype(*left)& q) { return p < q; },
-	     thread_depth, msort_threshold);
+	     thread_depth, msort_mt_threshold, msort_threshold);
 }
 
 
@@ -461,14 +488,14 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
 
 template <typename Iterator, typename Lessthan>
 void qsort_st(Iterator left, ptrdiff_t n, Lessthan lessthan,
-	      int qsort_threshold = 60)
+	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
     qsort_st_main(left, (left + n) -1, lessthan, qsort_threshold);
 }
 
 template <typename Iterator>
 void qsort_st(Iterator left, ptrdiff_t n,
-	      int qsort_threshold = 60)
+	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
     qsort_st_main(left, (left + n) -1,
 		  [](const decltype(*left)& p,
@@ -486,6 +513,7 @@ struct qsort_param_t {
     Iterator left;
     Iterator right;
     ptrdiff_t threshold;
+    ptrdiff_t mt_threshold;
     int level;
 };
 
@@ -493,7 +521,7 @@ template <typename Iterator, typename Lessthan>
 static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan lessthan)
 {
     ptrdiff_t n = qs->right - qs->left;
-    if (qs->level == 0 || n < qs->threshold) {
+    if (qs->level == 0 || n < qs->mt_threshold) {
 	qsort_st_main(qs->left, qs->right, lessthan, qs->threshold);
 	return;
     }
@@ -543,6 +571,7 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	qs1.left = qs->left;
 	qs1.right = p - 1;
 	qs1.threshold = qs->threshold;
+	qs1.mt_threshold = qs->mt_threshold;
 	qs1.level = qs->level - 1;
 	th = std::thread(qsort_mt_main<Iterator, Lessthan>, &qs1, lessthan);
     }
@@ -550,6 +579,7 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	qs2.left = p;
 	qs2.right = qs->right;
 	qs2.threshold = qs->threshold;
+	qs2.mt_threshold = qs->mt_threshold;
 	qs2.level = qs->level - 1;
 	qsort_mt_main(&qs2, lessthan);
     }
@@ -560,24 +590,29 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 
 template <typename Iterator, typename Lessthan>
 void qsort_mt(Iterator left, ptrdiff_t n, Lessthan lessthan,
-	      int thread_depth, int qsort_threshold = 60)
+	      int thread_depth,
+	      int qsort_mt_threshold = C7_QSORT_MT_THRESHOLD,
+	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
     qsort_param_t<Iterator> qs;
     qs.left = left;
     qs.right = left + (n - 1);
     qs.threshold = qsort_threshold;
+    qs.mt_threshold = qsort_mt_threshold;
     qs.level = thread_depth;
     qsort_mt_main(&qs, lessthan);
 }
 
 template <typename Iterator>
 void qsort_mt(Iterator left, ptrdiff_t n,
-	      int thread_depth, int qsort_threshold = 60)
+	      int thread_depth,
+	      int qsort_mt_threshold = C7_QSORT_MT_THRESHOLD,
+	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
     qsort_mt(left, n,
 	     [](const decltype(*left)& p,
 		const decltype(*left)& q) { return p < q; },
-	     thread_depth, qsort_threshold);
+	     thread_depth, qsort_mt_threshold, qsort_threshold);
 }
 
 
@@ -659,7 +694,7 @@ static void rsort_st_main(Iterator left, Iterator right,
 
 template <typename Iterator, typename Masktype, typename Getkey>
 void rsort_st(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
-	      int rsort_threshold = 50)
+	      int rsort_threshold = C7_RSORT_THRESHOLD)
 {
     Masktype tstmask = ((Masktype)1) << (sizeof(Masktype)*8 - 1);
     rsort_st_main(left, left + n -1, keymask, tstmask, getkey, rsort_threshold);
@@ -675,6 +710,7 @@ struct rsort_prm_t {
     Iterator left;
     Iterator right;
     ptrdiff_t threshold;
+    ptrdiff_t mt_threshold;
     Masktype keymask;
     Masktype tstmask;
     int level;
@@ -688,7 +724,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getk
     Masktype keymask = rs->keymask;
     Masktype tstmask = rs->tstmask;
 
-    if (rs->level == 0 || (q - p) < rs->threshold) {
+    if (rs->level == 0 || (q - p) < rs->mt_threshold) {
 	rsort_st_main(p, q, keymask, tstmask, getkey, rs->threshold);
 	return;
     }
@@ -719,6 +755,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getk
 	rs1.left = rs->left;
 	rs1.right = q;
 	rs1.threshold = rs->threshold;
+	rs1.mt_threshold = rs->mt_threshold;
 	rs1.level = rs->level - 1;
 	rs1.keymask = keymask;
 	rs1.tstmask = tstmask;
@@ -728,6 +765,7 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getk
 	rs2.left = p;
 	rs2.right = rs->right;
 	rs2.threshold = rs->threshold;
+	rs2.mt_threshold = rs->mt_threshold;
 	rs2.level = rs->level - 1;
 	rs2.keymask = keymask;
 	rs2.tstmask = tstmask;
@@ -739,7 +777,9 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getk
 
 template <typename Iterator, typename Masktype, typename Getkey>
 void rsort_mt(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
-	      int thread_depth, int rsort_threshold = 50)
+	      int thread_depth,
+	      int rsort_mt_threshold = C7_RSORT_MT_THRESHOLD,
+	      int rsort_threshold = C7_RSORT_THRESHOLD)
 {
     /* find start bit */
     Masktype tstmask = ((Masktype)1) << (sizeof(Masktype)*8 - 1);
@@ -751,6 +791,7 @@ void rsort_mt(Iterator left, ptrdiff_t n, Masktype keymask, Getkey getkey,
     rs.left = left;
     rs.right = left + (n - 1);
     rs.threshold = rsort_threshold;
+    rs.mt_threshold = rsort_mt_threshold;
     rs.level = thread_depth;
     rs.keymask = keymask;
     rs.tstmask = tstmask;
