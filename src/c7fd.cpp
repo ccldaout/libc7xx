@@ -90,11 +90,12 @@ result<> fd::close()
 	_on_close(*this);
 	if (fdnum_ != -1) {
 	    _close();
-	    name_ += c7::format(":CLOSED<%{}>", fdnum_);
-	    if (::close(fdnum_) == C7_SYSERR) {
-		return c7result_err(errno, "close(%{}) failed", *this);
-	    }
+	    int fd = fdnum_;
 	    fdnum_ = -1;
+	    if (::close(fd) == C7_SYSERR) {
+		return c7result_err(errno, "close(%{}) failed", fd);
+	    }
+	    name_ += c7::format(":CLOSED<%{}>", fd);
 	}
     }
     return c7result_ok();
