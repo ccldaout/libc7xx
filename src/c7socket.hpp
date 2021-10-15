@@ -20,26 +20,33 @@
 #include <utility>
 
 
-void print_type(std::ostream& out, const std::string&, const ::sockaddr_in&);
-
-
 namespace c7 {
 
 
-result<std::pair<::sockaddr_un, size_t>> sockaddr_unix(const std::string& path);
-::sockaddr_in sockaddr_ipv4(uint32_t ipaddr, int port);
-result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port);
-void sockaddr_ipv4_port(::sockaddr_in& inaddr, int port);
+struct sockaddr_gen {
+    union {
+	::sockaddr base;
+	::sockaddr_in ipv4;
+	::sockaddr_un unix;
+    };
+    sockaddr_gen(): base() {}
+    explicit sockaddr_gen(const ::sockaddr_in& ipv4_): ipv4(ipv4_) {}
+    explicit sockaddr_gen(const ::sockaddr_un& unix_): unix(unix_) {}
+    void clear();
+    void set_port(int port);
+    bool is_ipv4() const;
+    bool is_unix() const;
+    ::socklen_t socklen() const;
+    void print(std::ostream& out, const std::string&) const;
+};
+
+
+result<sockaddr_gen> sockaddr_unix(const std::string& path);
+sockaddr_gen sockaddr_ipv4(uint32_t ipaddr, int port);
+result<sockaddr_gen> sockaddr_ipv4(const std::string& host, int port);
 
 
 class socket: public fd {
-private:
-    void setup_ipv4_str() const;
-    void setup_unix_str() const;
-
-protected:
-    void setup_str() const;
-
 public:
     socket(const socket&) = delete;
     socket& operator=(const socket&) = delete;
@@ -62,24 +69,25 @@ public:
     static result<socket> make_socket(int domain, int type, int protocol = 0);
     static result<socket> tcp();	// AF_INET, SOCK_STREAM
     static result<socket> udp();	// AF_INET, SOCK_DGRAM
-    static result<socket> unix();	// AF_UNXI, SOCK_STREAM
+    static result<socket> unix();	// AF_UNIX, SOCK_STREAM
+    static result<socket> unix_dg();	// AF_UNIX, SOCK_DGRAM
 
-    result<> bind(const ::sockaddr_in& inaddr);
+    result<> bind(const sockaddr_gen& addr);
     result<> bind(uint32_t ipaddr, int port);
     result<> bind(const std::string& host, int port);
     result<> bind(const std::string& path);		// UNIX domain
 
-    result<> connect(const ::sockaddr_in& inaddr);
+    result<> connect(const sockaddr_gen& addr);
     result<> connect(uint32_t ipaddr, int port);
     result<> connect(const std::string& host, int port);
-    result<> connect(const std::string& path);	// UNIX domain
+    result<> connect(const std::string& path);		// UNIX domain
 
     result<> listen(int backlog = 0);
     
     result<socket> accept();
     
-    result<::sockaddr_in> self_ipv4() const;
-    result<::sockaddr_in> peer_ipv4() const;
+    result<sockaddr_gen> self() const;
+    result<sockaddr_gen> peer() const;
 
     result<> getsockopt(int level, int optname, void *optval, socklen_t *optlen) const;
     result<> setsockopt(int level, int optname, const void *optval, socklen_t optlen);
@@ -95,28 +103,51 @@ public:
     result<> shutdown_w();
     result<> shutdown_rw();
 
+    io_result recvfrom(void *buf, size_t bufsize, sockaddr_gen&, int flags = 0);
+    template <typename T>
+    io_result recvfrom(T *buf, size_t bufsize, sockaddr_gen& addr, int flags = 0) {
+	return recvfrom(static_cast<void *>(buf), bufsize, addr, flags);
+    }
+    template <typename T>
+    io_result recvfrom(T *buf, sockaddr_gen& addr, int flags = 0) {
+	return recvfrom(buf, sizeof(buf), addr, flags);
+    }
+
+    io_result sendto(const void *buf, size_t bufsize, const sockaddr_gen&, int flags = 0);
+    template <typename T>
+    io_result sendto(const T *buf, size_t bufsize, const sockaddr_gen& addr, int flags = 0) {
+	return sendto(static_cast<const void*>(buf), bufsize, addr, flags);
+    }
+    template <typename T>
+    io_result sendto(const T *buf, const sockaddr_gen& addr, int flags = 0) {
+	return sendto(buf, sizeof(*buf), addr, flags);
+    }
+
     std::string to_string(const std::string& spec) const override;
     void print(std::ostream& out, const std::string& spec) const override;
+
+protected:
+    void setup_str() const;
 };
 
 result<std::pair<socket, socket>> socketpair(bool stream = true);
 
-result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size = 0, int backlog = 0);
+result<socket> tcp_server(const sockaddr_gen& inaddr, int rcvbuf_size = 0, int backlog = 0);
 result<socket> tcp_server(uint32_t ipaddr, int port, int rcvbuf_size = 0, int backlog = 0);
 result<socket> tcp_server(const std::string& host, int port, int rcvbuf_size = 0, int backlog = 0);
-result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size = 0);
+result<socket> tcp_client(const sockaddr_gen& inaddr, int rcvbuf_size = 0);
 result<socket> tcp_client(uint32_t ipaddr, int port, int rcvbuf_size = 0);
 result<socket> tcp_client(const std::string& host, int port, int rcvbuf_size = 0);
 
-result<socket> udp_server(const ::sockaddr_in& inaddr);
-result<socket> udp_server(uint32_t ipaddr, int port);
-result<socket> udp_server(const std::string& host, int port);
-result<socket> udp_client(const ::sockaddr_in& inaddr);
-result<socket> udp_client(uint32_t ipaddr, int port);
-result<socket> udp_client(const std::string& host, int port);
+result<socket> udp_binded(const sockaddr_gen& inaddr);
+result<socket> udp_binded(uint32_t ipaddr, int port);
+result<socket> udp_binded(const std::string& host, int port);
 
 result<socket> unix_server(const std::string& addr, int backlog = 0);
 result<socket> unix_client(const std::string& addr);
+
+result<socket> unix_dg_binded(const std::string& addr);
+result<socket> unix_dg_binded();
 
 
 } // namespace c7

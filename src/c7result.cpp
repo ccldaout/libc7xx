@@ -90,6 +90,25 @@ void result_base::merge_iferror(result_base&& src)
 }
 
 
+void result_base::type_mismatch()
+{
+    c7::p_("value type mismatch: result data is lost.\n"
+	   "Please check:\n"
+	   "\tresult<TYPE_A> function(...) {\n"
+	   "\t    ...\n"
+	   "\t    return c7result_ok(VALUE_OF_TYPE_B);\n"
+	   "\t}\n");
+    std::abort();
+}
+
+
+void result_base::has_no_value()
+{
+    c7::p_("result has no value");
+    std::abort();
+}
+
+
 static bool translate_errno(std::ostream& o, int err)
 {
     char buff[128];

@@ -21,9 +21,6 @@
 namespace c7::event {
 
 
-typedef std::variant<std::string, ::sockaddr_in> socket_addr;
-
-
 class port_rw_extention {
     template <typename T> result<size_t> read(T *buf) {
 	return read(buf, sizeof(T));
@@ -88,7 +85,7 @@ public:
     result<> get_so_error(int *so_error);
 
     // connector
-    result<> connect(const socket_addr& addr);
+    result<> connect(const sockaddr_gen& addr);
 
     // receiver
     void close();
@@ -122,6 +119,8 @@ public:
     result<> shutdown_r();
     result<> shutdown_w();
     result<> shutdown_rw();
+    c7::socket *operator->() { return &sock_; }
+    const c7::socket *operator->() const { return &sock_; }
 
 private:
     c7::socket sock_;

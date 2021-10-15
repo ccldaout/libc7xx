@@ -9,6 +9,7 @@
 
 
 #include <c7socket.hpp>
+#include <c7utils.hpp>
 #include <unistd.h>
 #include <cstring>
 #include <netdb.h>
@@ -29,12 +30,6 @@ static const char *inaddr_name(const ::sockaddr_in& inaddr)
 }
 
 
-void print_type(std::ostream& out, const std::string&, const ::sockaddr_in& inaddr)
-{
-    c7::format(out, "ipv4<%{}:%{})", inaddr_name(inaddr), ntohs(inaddr.sin_port));
-}
-
-
 namespace c7 {
 
 
@@ -42,35 +37,70 @@ namespace c7 {
                                 socket address
 ----------------------------------------------------------------------------*/
 
-result<std::pair<::sockaddr_un, size_t>> sockaddr_unix(const std::string& path)
+void sockaddr_gen::clear()
 {
-    ::sockaddr_un unaddr;
-    (void)std::memset(&unaddr, 0, sizeof(unaddr));
-    if (sizeof(unaddr.sun_path) + 1 < path.size()) {
-	return c7result_err(EINVAL, "sockaddr_un: too long path: %{}", path);
-    }
-    (void)std::strcpy(unaddr.sun_path, path.c_str());
-    unaddr.sun_family = AF_UNIX;
-    size_t addrlen = SUN_LEN(&unaddr);
-    return c7result_ok(std::make_pair(unaddr, addrlen));
+    std::memset(static_cast<void *>(this), 0, sizeof(*this));
 }
 
-::sockaddr_in sockaddr_ipv4(uint32_t ipaddr, int port)
+void sockaddr_gen::set_port(int port)
 {
-    ::sockaddr_in inaddr;
+    ipv4.sin_port = htons(port);
+}
+
+bool sockaddr_gen::is_ipv4() const
+{
+    return (base.sa_family == AF_INET);
+}
+
+bool sockaddr_gen::is_unix() const
+{
+    return (base.sa_family == AF_UNIX);
+}
+
+::socklen_t sockaddr_gen::socklen() const
+{
+    if (is_ipv4()) {
+	return sizeof(ipv4);
+    } else {
+	return (unix.sun_path[0] == 0) ? sizeof(unix) : SUN_LEN(&unix);
+    }
+}
+
+void sockaddr_gen::print(std::ostream& out, const std::string&) const
+{
+    if (is_ipv4()) {
+	c7::format(out, "ipv4<%{}:%{}>", inaddr_name(ipv4), ntohs(ipv4.sin_port));
+    } else {
+	const auto& p = unix.sun_path;
+	c7::format(out, "unix<%{}%{}>", *p == 0 ? '!' : *p, p+1);
+    }
+}
+
+result<sockaddr_gen> sockaddr_unix(const std::string& path)
+{
+    sockaddr_gen addr;
+    auto& unaddr = addr.unix;
+    (void)std::memset(&unaddr, 0, sizeof(unaddr));
+    if (sizeof(unaddr.sun_path) < path.size() + 1) {
+	return c7result_err(EINVAL, "sockaddr_un: too long path: %{}", path);
+    }
+    (void)std::memcpy(unaddr.sun_path, path.c_str(), path.size());
+    unaddr.sun_family = AF_UNIX;
+    return c7result_ok(addr);
+}
+
+sockaddr_gen sockaddr_ipv4(uint32_t ipaddr, int port)
+{
+    sockaddr_gen addr;
+    auto& inaddr = addr.ipv4;
     (void)std::memset(&inaddr, 0, sizeof(inaddr));
     inaddr.sin_addr.s_addr = ipaddr;
     inaddr.sin_family = AF_INET;
     inaddr.sin_port   = htons(port);
-    return inaddr;
+    return addr;
 }
 
-void sockaddr_ipv4_port(::sockaddr_in& inaddr, int port)
-{
-    inaddr.sin_port = htons(port);
-}
-
-result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port)
+result<sockaddr_gen> sockaddr_ipv4(const std::string& host, int port)
 {
     uint32_t ipaddr;
 
@@ -95,48 +125,22 @@ result<::sockaddr_in> sockaddr_ipv4(const std::string& host, int port)
                                     socket
 ----------------------------------------------------------------------------*/
 
-void socket::setup_ipv4_str() const
-{
-    auto res1 = self_ipv4();
-    auto res2 = peer_ipv4();
-    if (!res1) {
-	name_ = "peer:?,self:?";
-	return;
-    }
-    auto& self = res1.value();
-    if (res2) {
-	auto& peer = res2.value();
-	name_ = c7::format("peer:%{}:%{} self:%{}",
-			   inaddr_name(peer), ntohs(peer.sin_port), ntohs(self.sin_port));
-    } else {
-	name_ = c7::format("peer:? self:%{}:%{}",
-			   inaddr_name(self), ntohs(self.sin_port));
-    }
-}
-
-void socket::setup_unix_str() const
-{
-    ::sockaddr_un unaddr;
-    socklen_t n = sizeof(unaddr);
-    int ret = ::getsockname(fdnum_, reinterpret_cast<::sockaddr *>(&unaddr), &n);
-    if (ret == C7_SYSERR) {
-	name_ = "unix:?";
-    } else {
-	name_ = c7::format("unix:%{}", unaddr.sun_path);
-    }
-}
-
 void socket::setup_str() const
 {
-    ::sockaddr addr;
-    socklen_t n = sizeof(addr);
-    int ret = ::getsockname(fdnum_, &addr, &n);
-    if (ret == C7_SYSOK && addr.sa_family == AF_INET) {
-	setup_ipv4_str();
-    } else if (ret == C7_SYSOK && addr.sa_family == AF_UNIX) {
-	setup_unix_str();
-    } else {
+    if (auto res = self(); !res) {
 	name_ = "?";
+    } else if (res.value().is_ipv4()) {
+	auto& self = res.value().ipv4;
+	if (auto res = peer(); res) {
+	    auto& peer = res.value().ipv4;
+	    name_ = c7::format("peer:%{}:%{} self:%{}",
+			       inaddr_name(peer), ntohs(peer.sin_port), ntohs(self.sin_port));
+	} else {
+	    name_ = c7::format("peer:? self:%{}:%{}",
+			       inaddr_name(self), ntohs(self.sin_port));
+	}
+    } else {
+	name_ = c7::format("%{}", res.value());
     }
 }
 
@@ -165,14 +169,17 @@ result<socket> socket::unix()
     return socket::make_socket(AF_UNIX, SOCK_STREAM);
 }
 
-result<> socket::bind(const ::sockaddr_in& inaddr)
+result<socket> socket::unix_dg()
+{
+    return socket::make_socket(AF_UNIX, SOCK_DGRAM);
+}
+
+result<> socket::bind(const sockaddr_gen& addr)
 {
     int reuse = 1;
     (void)::setsockopt(fdnum_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-    auto addr = reinterpret_cast<const ::sockaddr *>(&inaddr);
-    if (::bind(fdnum_, addr, sizeof(inaddr)) == C7_SYSERR) {
-	return c7result_err(errno,
-			    "bind(%{}, %{}) failed", *this, inaddr);
+    if (::bind(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
+	return c7result_err(errno, "bind(%{}, %{}) failed", *this, addr);
     }
     return c7result_ok();
 }
@@ -186,8 +193,7 @@ result<> socket::bind(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return c7result_err(std::move(res),
-			    "bind(%{}, %{}, %{}) failed", fdnum_, host, port);
+	return c7result_err(std::move(res), "bind(%{}, %{}, %{}) failed", fdnum_, host, port);
     }
     return socket::bind(res.value());
 
@@ -199,21 +205,18 @@ result<> socket::bind(const std::string& path)	// UNIX domain
     if (!res) {
 	return c7result_err(std::move(res), "bind(%{}, %{}) failed", fdnum_, path);
     }
-    auto [unaddr, addrlen] = res.value();
-    auto addr = reinterpret_cast<const ::sockaddr *>(&unaddr);
-    if (::bind(fdnum_, addr, addrlen) == C7_SYSERR) {
+    auto& addr = res.value();
+    if (::bind(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
 	return c7result_err(errno, "bind(%{}, %{}) failed", fdnum_, path);
     }
     return c7result_ok();
 }
 
-result<> socket::connect(const ::sockaddr_in& inaddr)
+result<> socket::connect(const sockaddr_gen& addr)
 {
-    (void)tcp_keepalive(true);	// called here for non-blocking connect.
-    auto addr = reinterpret_cast<const ::sockaddr *>(&inaddr);
-    if (::connect(fdnum_, addr, sizeof(inaddr)) == C7_SYSERR) {
-	return c7result_err(errno,
-			    "connect(%{}, %{}) failed", fdnum_, inaddr);
+    (void)tcp_keepalive(true);			// called here for non-blocking connect.
+    if (::connect(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
+	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, addr);
     }
     return c7result_ok();
 }
@@ -227,8 +230,7 @@ result<> socket::connect(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return c7result_err(std::move(res),
-			    "connect(%{}, %{}, %{}) failed", fdnum_, host, port);
+	return c7result_err(std::move(res), "connect(%{}, %{}, %{}) failed", fdnum_, host, port);
     }
     return socket::connect(res.value());
 }
@@ -239,9 +241,8 @@ result<> socket::connect(const std::string& path)	// UNIX domain
     if (!res) {
 	return c7result_err(std::move(res), "connect(%{}, %{}) failed", fdnum_, path);
     }
-    auto [unaddr, addrlen] = res.value();
-    auto addr = reinterpret_cast<const ::sockaddr *>(&unaddr);
-    if (::connect(fdnum_, addr, addrlen) == C7_SYSERR) {
+    auto& addr = res.value();
+    if (::connect(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
 	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, path);
     }
     return c7result_ok();
@@ -266,26 +267,28 @@ result<socket> socket::accept()
     return c7result_ok(std::move(newsock));
 }
     
-result<::sockaddr_in> socket::self_ipv4() const
+result<sockaddr_gen> socket::self() const
 {
-    ::sockaddr_in inaddr;
-    socklen_t n = sizeof(inaddr);
-    int ret = ::getsockname(fdnum_, reinterpret_cast<::sockaddr *>(&inaddr), &n);
+    sockaddr_gen addr;
+    socklen_t n = sizeof(addr);
+    addr.clear();
+    int ret = ::getsockname(fdnum_, &addr.base, &n);
     if (ret == C7_SYSERR) {
-	return c7result_err(errno, "getsockname(%{}) [IPv4] failed", fdnum_);
+	return c7result_err(errno, "getsockname(%{}) failed", fdnum_);
     }
-    return c7result_ok(inaddr);
+    return c7result_ok(addr);
 }
 
-result<::sockaddr_in> socket::peer_ipv4() const
+result<sockaddr_gen> socket::peer() const
 {
-    ::sockaddr_in inaddr;
-    socklen_t n = sizeof(inaddr);
-    int ret = ::getpeername(fdnum_, reinterpret_cast<::sockaddr *>(&inaddr), &n);
+    sockaddr_gen addr;
+    socklen_t n = sizeof(addr);
+    addr.clear();
+    int ret = ::getpeername(fdnum_, &addr.base, &n);
     if (ret == C7_SYSERR) {
-	return c7result_err(errno, "setpeername(%{}) [IPv4] failed", fdnum_);
+	return c7result_err(errno, "getpeername(%{}) failed", fdnum_);
     }
-    return c7result_ok(inaddr);
+    return c7result_ok(addr);
 }
 
 result<> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen) const
@@ -370,6 +373,33 @@ result<> socket::shutdown_rw()
     return c7result_ok();
 }
 
+io_result socket::recvfrom(void *buf, size_t bufsize, sockaddr_gen& addr, int flags)
+{
+    socklen_t len = sizeof(addr);
+    ssize_t n = ::recvfrom(fdnum_, buf, bufsize, flags, &addr.base, &len);
+    if (n > 0) {
+	return io_result::ok(n);
+    } else if (n == 0) {
+	return io_result::closed(*this);
+    } else {
+	return io_result::error(*this);
+    }
+}
+
+io_result socket::sendto(const void *buf, size_t bufsize, const sockaddr_gen& addr, int flags)
+{
+    ssize_t n = ::sendto(fdnum_, buf, bufsize, flags, &addr.base, addr.socklen());
+    if (static_cast<size_t>(n) == bufsize) {
+	return io_result::ok(n);
+    } else if (n > 0) {
+	return io_result::incomp(*this, n, bufsize - n);
+    } else if (n == 0) {
+	return io_result::closed(*this);
+    } else {
+	return io_result::error(*this);
+    }
+}
+
 std::string socket::to_string(const std::string&) const
 {
     if (name_.empty()) {
@@ -404,7 +434,7 @@ result<std::pair<socket, socket>> socketpair(bool stream)
 				      c7::socket(fdv[1])));
 }
 
-result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size, int backlog)
+result<socket> tcp_server(const sockaddr_gen& addr, int rcvbuf_size, int backlog)
 {
     auto res = socket::tcp();
     if (!res) {
@@ -414,7 +444,7 @@ result<socket> tcp_server(const ::sockaddr_in& inaddr, int rcvbuf_size, int back
     auto sock = std::move(res.value());
     auto defer = c7::defer([&sock](){ sock.close(); });
 
-    if (auto res = sock.bind(inaddr); !res) {
+    if (auto res = sock.bind(addr); !res) {
 	return std::move(res);
     }
     if (rcvbuf_size > 0) {
@@ -444,7 +474,7 @@ result<socket> tcp_server(const std::string& host, int port, int rcvbuf_size, in
     return tcp_server(res.value(), rcvbuf_size, backlog);
 }
 
-result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size)
+result<socket> tcp_client(const sockaddr_gen& addr, int rcvbuf_size)
 {
     auto res = socket::tcp();
     if (!res) {
@@ -459,7 +489,7 @@ result<socket> tcp_client(const ::sockaddr_in& inaddr, int rcvbuf_size)
 	    return std::move(res);
 	}
     }
-    if (auto res = sock.connect(inaddr); !res) {
+    if (auto res = sock.connect(addr); !res) {
 	return std::move(res);
     }
 
@@ -481,7 +511,7 @@ result<socket> tcp_client(const std::string& host, int port, int rcvbuf_size)
     return tcp_client(res.value(), rcvbuf_size);
 }
 
-result<socket> udp_server(const ::sockaddr_in& inaddr)
+result<socket> udp_binded(const sockaddr_gen& addr)
 {
     auto res = socket::udp();
     if (!res) {
@@ -491,7 +521,7 @@ result<socket> udp_server(const ::sockaddr_in& inaddr)
     auto sock = std::move(res.value());
     auto defer = c7::defer([&sock](){ sock.close(); });
 
-    if (auto res = sock.bind(inaddr); !res) {
+    if (auto res = sock.bind(addr); !res) {
 	return std::move(res);
     }
 
@@ -499,50 +529,18 @@ result<socket> udp_server(const ::sockaddr_in& inaddr)
     return c7result_ok(std::move(sock));
 }
 
-result<socket> udp_server(uint32_t ipaddr, int port)
+result<socket> udp_binded(uint32_t ipaddr, int port)
 {
-    return udp_server(sockaddr_ipv4(ipaddr, port));
+    return udp_binded(sockaddr_ipv4(ipaddr, port));
 }
 
-result<socket> udp_server(const std::string& host, int port)
+result<socket> udp_binded(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
 	return std::move(res);
     }
-    return udp_server(res.value());
-}
-
-result<socket> udp_client(const ::sockaddr_in& inaddr)
-{
-    auto res = socket::udp();
-    if (!res) {
-	return res;
-    }
-
-    auto sock = std::move(res.value());
-    auto defer = c7::defer([&sock](){ sock.close(); });
-
-    if (auto res = sock.connect(inaddr); !res) {
-	return std::move(res);
-    }
-
-    defer.cancel();
-    return c7result_ok(std::move(sock));
-}
-
-result<socket> udp_client(uint32_t ipaddr, int port)
-{
-    return udp_client(sockaddr_ipv4(ipaddr, port));
-}
-
-result<socket> udp_client(const std::string& host, int port)
-{
-    auto res = sockaddr_ipv4(host, port);
-    if (!res) {
-	return std::move(res);
-    }
-    return udp_client(res.value());
+    return udp_binded(res.value());
 }
 
 result<socket> unix_server(const std::string& path, int backlog)
@@ -583,6 +581,33 @@ result<socket> unix_client(const std::string& path)
 
     defer.cancel();
     return c7result_ok(std::move(sock));
+}
+
+result<socket> unix_dg_binded(const std::string& path)
+{
+    auto res = socket::unix_dg();
+    if (!res) {
+	return res;
+    }
+
+    auto sock = std::move(res.value());
+    auto defer = c7::defer([&sock](){ sock.close(); });
+
+    (void)::unlink(path.c_str());
+    if (auto res = sock.bind(path); !res) {
+	return std::move(res);
+    }
+
+    defer.cancel();
+    return c7result_ok(std::move(sock));
+}
+
+result<socket> unix_dg_binded()
+{
+    static std::atomic<uint64_t> counter;
+    auto path = c7::format(" .%{}.%{}.%{}", c7::time_us(), getpid(), counter++);
+    path[0] = 0;
+    return unix_dg_binded(path);
 }
 
 

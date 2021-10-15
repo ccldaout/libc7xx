@@ -17,7 +17,7 @@
 #include <algorithm>	// find_if
 #include <atomic>
 #include <functional>
-#include <deque>
+#include <list>
 #include <utility>	// std::pair
 
 
@@ -131,8 +131,9 @@ public:
     }
 
     delegate& operator=(delegate&& o) {
-	if (this != &o)
+	if (this != &o) {
 	    funcs_ = std::move(o.funcs_);
+	}
 	return *this;
     }
 
@@ -167,8 +168,9 @@ public:
     void remove(id target_id) {
 	auto it = std::find_if(funcs_.begin(), funcs_.end(),
 			       [target_id](func_item& p) { return p.first == target_id; });
-	if (it != funcs_.end())
+	if (it != funcs_.end()) {
 	    funcs_.erase(it);
+	}
     }
 
     bool is_empty() const {
@@ -196,7 +198,7 @@ public:
 
 private:
     typedef std::pair<id, func_type> func_item;
-    std::deque<func_item> funcs_;
+    std::list<func_item> funcs_;
 };
 
 

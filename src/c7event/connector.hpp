@@ -31,7 +31,7 @@ public:
 
     c7::delegate<void, Port&, const c7::result_base&> on_error;
 
-    static auto make(const socket_addr& addr, service_ptr svc, provider_hint hint) {
+    static auto make(const sockaddr_gen& addr, service_ptr svc, provider_hint hint) {
 	auto p = new connector(addr, std::move(svc), hint);
 	return std::unique_ptr<connector>(p);
     }
@@ -43,13 +43,13 @@ public:
     void on_event(monitor& mon, int prvfd, uint32_t) override;
 
 private:
-    socket_addr addr_;
+    sockaddr_gen addr_;
     service_ptr svc_;
     Port port_;
     c7::usec_t delay_s_ = 2;	// must be >= 2
     provider_hint hint_;
 
-    connector(const socket_addr&, service_ptr&&, provider_hint);
+    connector(const sockaddr_gen&, service_ptr&&, provider_hint);
     void start_timer(monitor& mon, int prvfd);
     void retry_connect(monitor& mon);
     result<> do_connect(monitor& mon);
@@ -60,7 +60,7 @@ private:
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-auto make_connector(const socket_addr& addr,
+auto make_connector(const sockaddr_gen& addr,
 		    std::shared_ptr<Service> svc,
 		    provider_hint hint = nullptr)
 {
@@ -73,9 +73,9 @@ auto make_connector(const socket_addr& addr,
 template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
-result<> manage_connector(const socket_addr& addr,
-			     std::shared_ptr<Service> svc,
-			     provider_hint hint = nullptr)
+result<> manage_connector(const sockaddr_gen& addr,
+			  std::shared_ptr<Service> svc,
+			  provider_hint hint = nullptr)
 {
     return manage(make_connector<Service, Receiver>(addr, svc, hint));
 }
@@ -85,9 +85,9 @@ template <typename Service,
 	  typename Receiver = receiver<typename Service::msgbuf_type,
 				       typename Service::port_type>>
 result<> manage_connector(monitor& mon,
-			     const socket_addr& addr,
-			     std::shared_ptr<Service> svc,
-			     provider_hint hint = nullptr)
+			  const sockaddr_gen& addr,
+			  std::shared_ptr<Service> svc,
+			  provider_hint hint = nullptr)
 {
     return mon.manage(make_connector<Service, Receiver>(addr, svc, hint));
 }

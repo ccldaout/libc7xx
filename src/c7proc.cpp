@@ -318,12 +318,16 @@ proc::impl::start(const std::string& prog,
 
     on_start(proc::proxy(self));
 
-    // If forked process exit immediately before process informaton is registered
-    // to procs at above code block, SIGCHLD handler already has been called, but
-    // it cannot update state of this process. So, next calling try_wait_raw() is
-    // important to prevent caller's proc::wait() from blocking.
+    // If forked process exit immediately and SIGCHLD handler is called before
+    // process informaton is registered to proc::impl::procs at above code block, 
+    // the handler cannot find this process and cannot update state of this process.
+    // So, state of this process is kept at RUNNING forever without calling 
+    // try_wait_raw() as follow.
     unlock_defer += [this, self](){ (void)try_wait_raw(self); };
+
     if (unguard_) {
+	// When callers call proc::guard_finish() before proc::start(), calling
+	// unlock_defer() is delayed until guard_finish defer is called.
 	unguard_ = std::move(unlock_defer);
     }
 

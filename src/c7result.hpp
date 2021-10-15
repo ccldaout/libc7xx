@@ -15,7 +15,6 @@
 
 
 #include <c7format.hpp>
-#include <stdexcept>
 #include <vector>
 
 
@@ -247,6 +246,9 @@ protected:
 
     void copy_from(const result_base&);
 
+    static void type_mismatch();
+    static void has_no_value();
+
 private:
     static const std::vector<errinfo> no_error_;
 };
@@ -281,8 +283,7 @@ public:
 
     result(result_base&& o): result_base(std::move(o)), value_(init_()) {
 	if (*this) {
-	    //result_base::set_error(__FILE__, __LINE__, "value type mismatch: data maybe lost");
-	    throw std::runtime_error("value type mismatch: data maybe lost");
+	    type_mismatch();
 	}
     }
 
@@ -314,14 +315,14 @@ public:
 
     R& value() {
 	if (errors_) {
-	    throw std::runtime_error("result has no value");
+	    has_no_value();
 	}
 	return value_;
     }
 
     const R& value() const {
 	if (errors_) {
-	    throw std::runtime_error("result has no value");
+	    has_no_value();
 	}
 	return value_;
     }
@@ -357,7 +358,7 @@ public:
 
     result(result_base&& o): result_base(std::move(o)), value_() {
 	if (!errors_) {
-	    throw std::runtime_error("value type mismatch: data maybe lost");
+	    type_mismatch();
 	}
     }
 
@@ -383,7 +384,7 @@ public:
 
     R value() const {
 	if (errors_) {
-	    throw std::runtime_error("result has no value");
+	    has_no_value();
 	}
 	return value_;
     }

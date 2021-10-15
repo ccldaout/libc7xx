@@ -90,15 +90,9 @@ result<> socket_port::get_so_error(int *so_error)
     return sock_.getsockopt(SOL_SOCKET, SO_ERROR, so_error, &so_size);
 }
 
-result<> socket_port::connect(const socket_addr& addr)
+result<> socket_port::connect(const sockaddr_gen& addr)
 {
-    if (auto un = std::get_if<std::string>(&addr); un) {
-	return sock_.connect(*un);
-    } else if (auto ip = std::get_if<::sockaddr_in>(&addr); ip) {
-	return sock_.connect(*ip);
-    } else {
-	return c7result_err(EINVAL, "socket_addr is empty.");
-    }
+    return sock_.connect(addr);
 }
 
 io_result socket_port::read_n(void *bufaddr, size_t req_n)

@@ -30,7 +30,7 @@ connector<Msgbuf, Port, Receiver>::~connector() = default;
 
 
 template <typename Msgbuf, typename Port, typename Receiver>
-connector<Msgbuf, Port, Receiver>::connector(const socket_addr& addr, service_ptr&& svc, provider_hint hint):
+connector<Msgbuf, Port, Receiver>::connector(const sockaddr_gen& addr, service_ptr&& svc, provider_hint hint):
     provider_interface(), addr_(addr), svc_(std::move(svc)), hint_(hint)
 {
     port_ = make_port();
@@ -150,10 +150,10 @@ result<> connector<Msgbuf, Port, Receiver>::do_connect(monitor& mon)
 template <typename Msgbuf, typename Port, typename Receiver>
 Port connector<Msgbuf, Port, Receiver>::make_port()
 {
-    if (std::get_if<std::string>(&addr_) != nullptr) {
-	return Port::unix();
-    } else if (std::get_if<::sockaddr_in>(&addr_) != nullptr) {
+    if (addr_.is_ipv4()) {
 	return Port::tcp();
+    } else if (addr_.is_unix()) {
+	return Port::unix();
     } else {
 	return Port();
     }

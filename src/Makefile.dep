@@ -55,7 +55,7 @@ $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
  c7common.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7socket.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7typefunc.hpp
+ c7typefunc.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7delegate.o: c7delegate.cpp c7delegate.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7event/monitor.o: c7event/monitor.cpp c7app.hpp \
  c7result.hpp c7common.hpp c7format.hpp c7defer.hpp c7delegate.hpp \
