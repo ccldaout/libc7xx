@@ -14,88 +14,102 @@
 #include <c7common.hpp>
 
 
-#include <c7event/monitor.hpp>
+#include <c7event/service.hpp>
 
 
 namespace c7::event {
 
 
-// extract event number from Msgbuf
-// --------------------------------
-
-template <typename Msgbuf>
-int32_t get_event(const Msgbuf& msgbuf);
-
-
 // event dispatch extention
 // ------------------------
 //
-//  dispatcher template require two typename parameters. First is target class which is
-//  about to be defined by you, and second is service base class. It is service_interface
-//  in many case, but you intend to use other extenstion, you shoud specify it as second.
+// - dispatcher template require two typename parameters. First is target class which
+//   hvae callback functions to be called by the dispathcer, and second is service base
+//   class. It is service_interface in many case, but you intend to use other extenstion,
+//   you shoud specify it as second.
 //
-//  [Basic]
-//    using extended_base = c7::event::fsm_service<service_interface<iov_msfbuf>>;
+//   [Example 1]
 //
-//    class my_service: public dispatcher<my_service, extended_base> {
-//    public:
-//        ...
-//        // You must define setup_dispatcher and you setup callbacsk by dispatcher_set().
-//        void dispatcher_setup() {
-//            dispatcher_set(EventNumber, &my_service::handle_event);
-//            ...
-//        }
-//          
-//        // You must define callback_default.
-//        void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) override;
+//      class my_service: public dispatcher<my_service, service_interface<iov_msgbuf>> {
+//         ...
 //
-//        // Event handler has same signature with on_message.
-//        void handle_event(monitor& mon, port_type& port, msgbuf_type& msg);
+//   [Example 2]
 //
-//        ...
+//     my_service <- forwarder <- dispatcher <- fsm_service <- service_interface
 //
-//    };
+//      class my_service:
+//         public forwarder<dispatcher<my_service, fsm_service<service_interface<iov_msgbuf>>>> {
+//         ...
 //
-//  [Advanced]
-//    You can omit setup codes in the dispatcher_setup by using setup_dispatcher.py if you
-//    specify callbacks declaration as follow.
+// - dispatcher template require instance of c7::event::get_event() template function.
 //
-//    class my_service: ... {
-//        ...
+// - setup callbacks
 //
-//        // [TYPE 1]
-//        // callback function name is delived by event mnemonic with callback_ prefix.
+//   [Basic]
 //
-//        void callback_EVENT_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//      class my_service: ... {
+//      public:
+//          ...
+//          // You define dispatcher_setup as inline member function.
+//          void dispatcher_setup() {
+//              dispatcher_set(EventNumber, &my_service::handle_event);
+//              ...
+//          }
 //
-//        // [TYPE 2]
-//        // you can assign one callback function to two or more events by specifying 
-//        // special comment //[[dispatcher:callback EVENT_RANGE ...] ahead of declaration.
-//        // EVENT_RANGE is single event number or CLOSED interval represented by two event
-//        // numbers with infix colon. 
+//          // You must define callback_default.
+//          void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) override;
 //
-//        //[dispatcher:callback EVENT_NAME_1:EVENT_NAME_2 ...]
-//        void callback_FAVORITE_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//          // Event handler has same signature with on_message.
+//          void handle_event(monitor& mon, port_type& port, msgbuf_type& msg);
 //
-//        ...
-//    };
+//          ...
 //
-//    // The dispatcher_setup must be defined out of class declaration and it include
-//    // two special comments //[dispatcher:setup begin] and //[dispatcher:setup end].
+//      };
 //
-//    // The setup_dispatcher.py replace the text surrounded by them with setup codes 
-//    // delived from class declaration.
+//   [Advanced]
 //
-//    // [Additional]  When multiple functions assign to one event number, one is selected
-//                     by their priotity. [TYPE 1] is higher than [TYPE 2]. First assigned
-//                     is higher than later assigned in same TYPE.
+//     You can omit setup codes in the dispatcher_setup by using setup_dispatcher.py if you
+//     specify callbacks declaration as follow.
 //
-//    void my_service::dispatcher_setup()
-//    {
-//        //[dispatcher:setup begin]
-//        //[dispatcher:setup end]
-//    }
-
+//      class my_service: ... {
+//          ...
+//          // You only declare dispatcher_setup.
+//          void dispatcher_setup();
+//
+//          // You must define callback_default.
+//          void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) override;
+//
+//          // [TYPE 1]
+//          // callback function name is delived by event mnemonic with callback_ prefix.
+//
+//          void callback_EVENT_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//
+//          // [TYPE 2]
+//          // you can assign one callback function to two or more events by specifying 
+//          // special comment //[[dispatcher:callback EVENT_RANGE ...] ahead of declaration.
+//          // EVENT_RANGE is single event number or CLOSED interval represented by two event
+//          // numbers with infix colon. 
+//
+//          //[dispatcher:callback EVENT_NAME_1:EVENT_NAME_2 ...]
+//          void callback_FAVORITE_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//
+//          // When multiple functions assign to one event number, one is selected by their
+//          // priotity. [TYPE 1] is higher than [TYPE 2]. First assigned is higher than later
+//          // assigned in same TYPE.
+//          ...
+//      };
+//
+//      void my_service::dispatcher_setup()
+//      {
+//          // The dispatcher_setup is defined out of class declaration and it include two
+//          // special comments //[dispatcher:setup begin] and //[dispatcher:setup end].
+//          // The setup_dispatcher.py replace the text surrounded by them with setup codes 
+//          // delived from class declaration.
+//
+//          //[dispatcher:setup begin]
+//          //[dispatcher:setup end]
+//      }
+//
 template <typename DelivedService, typename BaseService>
 class dispatcher: public BaseService {
 public:
@@ -108,7 +122,7 @@ public:
 	static_cast<DelivedService*>(this)->dispatcher_setup();
     }
 
-    void on_message(monitor& mon, port_type& port, msgbuf_type& msg) final {
+    void on_message(monitor& mon, port_type& port, msgbuf_type& msg) override {
 	auto& evmap = dispatcher_.event_map;
 	if (auto it = evmap.find(get_event(msg)); it != evmap.end()) {
 	    auto [_, vec_index] = (*it).second;
@@ -175,4 +189,4 @@ private:
 } // c7::event
 
 
-#endif // c7event/dispatcher.hpp
+#endif // c7event/ext/dispatcher.hpp

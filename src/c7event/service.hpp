@@ -21,6 +21,13 @@
 namespace c7::event {
 
 
+// extract event number from Msgbuf
+// ------------------------
+// This is only primary template declaration without definition.
+template <typename Msgbuf>
+int32_t get_event(const Msgbuf& msgbuf);
+
+
 typedef std::variant<void*, uint64_t> provider_hint;
 
 
@@ -60,7 +67,7 @@ public:
     // [IMPORTANT] 
     //
     // If your delived class from service_interface implement on_attached, it must call
-    // on_attached of base class like as following sample. This requirement is also same
+    // on_attached of base class like as following example. This requirement is also same
     // to on_detached.
     //
     //  class YourService: public YourBaseService {
@@ -72,21 +79,21 @@ public:
     //          return id;
     //	    }
     //
-    virtual attach_id on_attached(monitor&, Port&, provider_hint) { return attach_id(); }
-    virtual detach_id on_detached(monitor&, Port&, provider_hint) { return detach_id(); };
+    virtual attach_id on_attached(monitor&, port_type&, provider_hint) { return attach_id(); }
+    virtual detach_id on_detached(monitor&, port_type&, provider_hint) { return detach_id(); }
 
     // case: Msgbuf::recv() return io_result::status::OK
-    virtual void on_message(monitor&, Port&, Msgbuf&) = 0;
+    virtual void on_message(monitor&, port_type&, msgbuf_type&) = 0;
 
     // case: Msgbuf::recv() return io_result::status::CLOSED
     //       If Port object is alive when returned from on_disconnect,
     //       Receiver call Port::close.
-    virtual void on_disconnected(monitor&, Port&, io_result&) = 0;
+    virtual void on_disconnected(monitor&, port_type&, io_result&) {}
 
     // case: Msgbuf::recv() return others
     //       If Port object is alive when returned from on_disconnect,
     //       Receiver call Port::close.
-    virtual void on_error(monitor&, Port&, io_result&) = 0;
+    virtual void on_error(monitor&, port_type&, io_result&) {}
 
 
     // interface for connector
@@ -97,7 +104,7 @@ public:
     // [ADVISE] Here is the only chance of setting SO_RCVBUF option, because it's no effect
     //          to set SO_RCVBUF option after connection is established.
     //
-    virtual void on_pre_connect(monitor&, Port&) {}
+    virtual void on_pre_connect(monitor&, port_type&) {}
 };
 
 

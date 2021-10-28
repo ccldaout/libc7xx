@@ -125,4 +125,4 @@ fsm_service<BaseService>::bridge::setup(monitor& mon, const std::string& key)
 } // c7::event
 
 
-#endif // c7event/fsm.hpp
+#endif // c7event/ext/fsm.hpp

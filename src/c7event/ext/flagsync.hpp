@@ -140,4 +140,4 @@ flagsync_service<BaseService>::bridge::setup(monitor& mon)
 } // c7::event
 
 
-#endif // c7event/flagsync.hpp
+#endif // c7event/ext/flagsync.hpp
