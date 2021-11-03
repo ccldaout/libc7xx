@@ -68,6 +68,8 @@ public:
 
     void *hdraddr(size_t *hdrsize_b_op = nullptr);
     
+    void post_forked();
+
     bool put(c7::usec_t time_us, const char *src_name, int src_line,
 	     uint32_t level, uint32_t category, uint64_t minidata,
 	     const void *logaddr, size_t logsize_b);
@@ -133,6 +135,7 @@ public:
 	uint32_t level;
 	uint32_t category;
 	uint64_t minidata;
+	pid_t pid;
     };
 
 private:

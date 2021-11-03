@@ -17,6 +17,7 @@
 #include <c7path.hpp>
 #include <c7thread.hpp>
 #include <sys/mman.h>
+#include <unistd.h>
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -26,33 +27,37 @@
 // 2: lnk data lnk -> lnk data thread_name lnk
 // 3: thread name, source name
 // 4: record max length for thread name and source name
-#define _REVISION	4
+// 5: new linkage format & enable inter process lock
+#define _REVISION	5
 
 #define _IHDRSIZE		c7_align(sizeof(hdr_t), 16)
 
 // lnk_t internal control flags (6bits)
-#define _LNK_CONTROL_CHOICE	(1U << 0)
+#define _REC_CONTROL_CHOICE	(1U << 0)
 
 #define _TN_MAX			(63)	// tn_size:6
 #define _SN_MAX			(63)	// sn_size:6
 
-// header part
+typedef uint32_t raddr_t;
+
+// file header
 struct hdr_t {
     uint32_t rev;
+    volatile uint32_t lock;
+    raddr_t nextaddr;
+    raddr_t logsize_b;		// ring buffer size
     uint32_t cnt;
     uint32_t hdrsize_b;		// user header size
-    uint32_t logsize_b;		// ring buffer size
-    uint32_t nextlnkaddr;	// ring addrress to next lnk_t
-    char hint[64];
     uint8_t max_tn_size;	// maximum length of thread name
     uint8_t max_sn_size;	// maximum length of source name
+    char hint[64];
 };
 
-// linkage part
-struct lnk_t {
-    // prevlnkoff must be head of lnk_t (cf. comment of calling rbuf_put in update_lnk())
-    uint32_t prevlnkoff;	// offset to previous record
-    uint32_t nextlnkoff;	// offset to next record
+// record header
+struct rec_t {
+    // [CAUTION] size member must be located at first member
+    raddr_t size;		// record size (rec_t + log data + names + raddr)
+    uint32_t order;		// record serial number
     c7::usec_t time_us;		// time stamp in micro sec.
     uint64_t minidata;		// mini data (out of libc7)
     uint64_t level   :  3;	// log level 0..7
@@ -62,10 +67,9 @@ struct lnk_t {
     uint64_t src_line: 14;	// source line
     uint64_t control :  6;	// (internal control flags)
     uint64_t __rsv1  : 24;
+    uint32_t pid;		// process id
     uint32_t th_id;		// thread id
-    uint32_t order;		// record serial number
-    uint32_t size;		// record size (data + xxx name)
-    uint32_t __rsv2;
+    uint32_t br_order;		// ~order
 };
 
 // END
@@ -76,8 +80,6 @@ namespace c7 {
 
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
-
-typedef uint32_t raddr_t;
 
 class rbuffer {
 private:
@@ -143,8 +145,7 @@ private:
     size_t mmapsize_b_;
     size_t maxdsize_b_;
     uint32_t flags_;
-    c7::thread::spinlock lock_;
-    char snbuf_[_SN_MAX + 1];
+    uint32_t pid_;
 
 private:
     result<> setup_storage(const char *path,
@@ -152,9 +153,9 @@ private:
     void setup_context(size_t hdrsize_b, size_t logsize_b, const char *hint_op);
     void free_storage();
 
-    raddr_t update_lnk(size_t logsize, size_t tn_size, size_t sn_size, int src_line,
-		       c7::usec_t time_us, uint32_t level, uint32_t category,
-		       uint64_t minidata);
+    rec_t make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, int src_line,
+		      c7::usec_t time_us, uint32_t level, uint32_t category,
+		      uint64_t minidata);
 
 public:
     impl() {
@@ -176,6 +177,7 @@ public:
 	}
 	setup_context(hdrsize_b, logsize_b, hint);
 	flags_ = w_flags;
+	pid_ = getpid();
 	return c7result_ok();
     }
 
@@ -190,6 +192,10 @@ public:
 	    *hdrsize_b_op = hdr_->hdrsize_b;
 	}
 	return (char *)hdr_ + _IHDRSIZE;
+    }
+
+    void post_forked() {
+	pid_ = getpid();
     }
 };
 
@@ -216,7 +222,7 @@ mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logs
 	return c7result_err(EINVAL, "invalid logsize_b: %{}", logsize_b);
     }
     mmapsize_b_ = _IHDRSIZE + hdrsize_b + logsize_b;
-    maxdsize_b_ = logsize_b - 2*sizeof(lnk_t);
+    maxdsize_b_ = logsize_b - sizeof(rec_t) - sizeof(raddr_t);
 
     void *top;
     if (path == nullptr) {
@@ -253,65 +259,46 @@ mlog_writer::impl::setup_context(size_t hdrsize_b, size_t logsize_b, const char 
 	    (void)std::strncat(hdr_->hint, hint_op, sizeof(hdr_->hint) - 1);
 	}
     }
-
-    if (hdr_->cnt == 0 && hdr_->nextlnkaddr == 0) {
-	lnk_t lnk = {0};
-	lnk.prevlnkoff = hdr_->logsize_b * 2;
-	(void)rbuf_.put(0, sizeof(lnk), &lnk);
+    if (hdr_->cnt == 0 && hdr_->nextaddr == 0) {
+	clear();
     }
 }
 
 
 // logging --------------------------------------------------------
 
-raddr_t
-mlog_writer::impl::update_lnk(size_t logsize, size_t tn_size, size_t sn_size, int src_line,
-			      c7::usec_t time_us, uint32_t level, uint32_t category,
-			      uint64_t minidata)
+rec_t
+mlog_writer::impl::make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, int src_line,
+			       c7::usec_t time_us, uint32_t level, uint32_t category,
+			       uint64_t minidata)
 {
-    lnk_t lnk;
-    raddr_t const prevlnkaddr = hdr_->nextlnkaddr;
-    raddr_t addr;
+    rec_t rec;
     
     // null character is not counted for *_size, but it's put to rbuf.
     if (tn_size > 0) {
-	hdr_->max_tn_size = std::max<size_t>(hdr_->max_tn_size, tn_size);
 	logsize += (tn_size + 1);
     }
     if (sn_size > 0) {
-	hdr_->max_sn_size = std::max<size_t>(hdr_->max_sn_size, sn_size);
 	logsize += (sn_size + 1);
     }
+    logsize += sizeof(raddr_t);
+    logsize += sizeof(rec_t);
 
-    // put lnk as a new terminator
-    addr = prevlnkaddr + sizeof(lnk) + logsize;	// address of new terminator
-    lnk.prevlnkoff = addr - prevlnkaddr;
-    lnk.nextlnkoff = 0;				// it mean 'terminator'
-    lnk.order = 0;
-    lnk.control = 0;
-    (void)rbuf_.put(addr, sizeof(lnk), &lnk);
-    hdr_->nextlnkaddr = addr;
-    
-    // update previous terminator as lnk of last data
-    lnk.nextlnkoff = hdr_->nextlnkaddr - prevlnkaddr;
-    lnk.time_us = time_us;
-    lnk.order = ++hdr_->cnt;
-    lnk.size = logsize;
-    lnk.th_id = c7::thread::self::id();
-    lnk.tn_size = tn_size;
-    lnk.sn_size = sn_size;
-    lnk.src_line = src_line;
-    lnk.minidata = minidata;
-    lnk.level = level;
-    lnk.category = category;
-    lnk.control = 0;
-    // next rbuf_::put re-write tail part of a lnk to KEEP prevlnkaddr.
-    // this is depend on prevlnkaddr located at head of lnk.
-    (void)rbuf_.put(prevlnkaddr + sizeof(lnk.prevlnkoff),
-		    sizeof(lnk) - sizeof(lnk.prevlnkoff),
-		    (char *)&lnk + sizeof(lnk.prevlnkoff));
+    rec.size = logsize;
+    rec.time_us = time_us;
+    // rec.order is assigned later
+    rec.pid = pid_;
+    rec.th_id = c7::thread::self::id();
+    rec.tn_size = tn_size;
+    rec.sn_size = sn_size;
+    rec.src_line = src_line;
+    rec.minidata = minidata;
+    rec.level = level;
+    rec.category = category;
+    rec.control = 0;
+    // rec.br_order is assigned laster
 
-    return prevlnkaddr + sizeof(lnk);	// address of data
+    return rec;
 }
 
 bool
@@ -342,7 +329,6 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 	    src_name += (sn_size - _SN_MAX);
 	    sn_size = _SN_MAX;
 	}
-	// DON'T setup snbuf_ here, because thread-unsafe.
     }
 
     // check size to be written
@@ -350,26 +336,38 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 	return false;					// data size too large
     }
 
+    // build record header and calculate size of whole record.
+    auto rechdr = make_rechdr(logsize_b, tn_size, sn_size, src_line,
+			      time_us, level, category, minidata);
+
+    // [CRITICAL SECTION] update record pointer (hdr_->nextaddr) and counter (hdr_->cnt)
     if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
-	lock_._lock();
+	c7::spinlock_acquire(&hdr_->lock);
+    }
+    rechdr.order    = ++hdr_->cnt;
+    rechdr.br_order = ~rechdr.order;
+    raddr_t addr = hdr_->nextaddr;
+    hdr_->nextaddr += rechdr.size;
+    hdr_->nextaddr %= hdr_->logsize_b;
+    hdr_->max_tn_size = std::max<size_t>(hdr_->max_tn_size, tn_size);
+    hdr_->max_sn_size = std::max<size_t>(hdr_->max_sn_size, sn_size);
+    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
+	c7::spinlock_release(&hdr_->lock);
     }
 
-    // write two links and data (log, [thread name], [source name])
-    raddr_t addr = update_lnk(logsize_b, tn_size, sn_size, src_line,	// links
-			      time_us, level, category, minidata);
+    // write whole record: log data -> thread name -> source name	// (A) cf.(B)
+    addr = rbuf_.put(addr, sizeof(rechdr), &rechdr);			// record header
     addr = rbuf_.put(addr, logsize_b, logaddr);				// log data
     if (tn_size > 0) {
 	addr = rbuf_.put(addr, tn_size+1, th_name);			// +1 : null character
     }
     if (sn_size > 0) {
-	(void)c7::strbcpy(snbuf_, src_name, src_name + sn_size);	// snbuf_ is used to exclude suffix.
-	addr = rbuf_.put(addr, sn_size+1, snbuf_);			// +1 : null character
+	char ch = 0;
+	addr = rbuf_.put(addr, sn_size, src_name);			// exclude suffix
+	addr = rbuf_.put(addr, 1, &ch);
     }
-    hdr_->nextlnkaddr %= hdr_->logsize_b;
+    rbuf_.put(addr, sizeof(rechdr.size), &rechdr.size);			// put size data to tail
 
-    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
-	lock_.unlock();
-    }
     return true;
 }
 
@@ -379,11 +377,9 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 void
 mlog_writer::impl::clear()
 {
+    raddr_t addr = 0;
     hdr_->cnt = 0;
-    hdr_->nextlnkaddr = 0;
-    lnk_t lnk = {0};
-    lnk.prevlnkoff = hdr_->logsize_b * 2;
-    (void)rbuf_.put(0, sizeof(lnk), &lnk);
+    hdr_->nextaddr = rbuf_.put(addr, sizeof(addr), &addr);
 }
 
 
@@ -425,6 +421,11 @@ mlog_writer::init(const std::string& name,
 void *mlog_writer::hdraddr(size_t *hdrsize_b_op)
 {
     return pimpl->hdraddr(hdrsize_b_op);
+}
+
+void mlog_writer::post_forked()
+{
+    pimpl->post_forked();
 }
 
 bool mlog_writer::put(c7::usec_t time_us, const char *src_name, int src_line,
@@ -472,7 +473,8 @@ private:
     std::vector<char> dbuf_;
     info_t info_;
 
-    raddr_t find_origin(size_t maxcount,
+    raddr_t find_origin(raddr_t ret_addr,
+			size_t maxcount,
 			uint32_t order_min,
 			c7::usec_t time_us_min,
 			std::function<bool(const info_t&)> choice);
@@ -513,26 +515,29 @@ public:
 };
 
 static void
-make_info(mlog_reader::info_t& info, const lnk_t& lnk, const char *data)
+make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
 {
-    info.thread_id   = lnk.th_id;
-    info.source_line = lnk.src_line;
-    info.order       = lnk.order;
-    info.size_b      = lnk.size;
-    info.time_us     = lnk.time_us;
-    info.level       = lnk.level;
-    info.category    = lnk.category;
-    info.minidata    = lnk.minidata;
+    info.thread_id   = rec.th_id;
+    info.source_line = rec.src_line;
+    info.order       = rec.order;
+    info.size_b      = rec.size;
+    info.time_us     = rec.time_us;
+    info.level       = rec.level;
+    info.category    = rec.category;
+    info.minidata    = rec.minidata;
+    info.pid         = rec.pid;
 
-    if (lnk.sn_size > 0) {
-	info.size_b -= (lnk.sn_size + 1);
+    // (B) cf.(A)
+
+    if (rec.sn_size > 0) {
+	info.size_b -= (rec.sn_size + 1);
 	info.source_name = data + info.size_b;
     } else {
 	info.source_name = "";
     }
 
-    if (lnk.tn_size > 0) {
-	info.size_b -= (lnk.tn_size + 1);
+    if (rec.tn_size > 0) {
+	info.size_b -= (rec.tn_size + 1);
 	info.thread_name = data + info.size_b;
     } else {
 	info.thread_name = "";
@@ -555,50 +560,57 @@ mlog_reader::impl::load(const std::string& path)
 }
 
 raddr_t
-mlog_reader::impl::find_origin(size_t maxcount,
+mlog_reader::impl::find_origin(raddr_t ret_addr,
+			       size_t maxcount,
 			       uint32_t order_min,
 			       c7::usec_t time_us_min,
 			       std::function<bool(const info_t&)> choice)
 {
-    raddr_t rewindsize = sizeof(lnk_t);
-    raddr_t lnkaddr = hdr_->nextlnkaddr + hdr_->logsize_b * 2;
-    lnk_t lnk;
+    const raddr_t brk_addr = ret_addr - hdr_->logsize_b;
+    rec_t rec;
+    decltype(rec.order) prev_order = 0;
     
-    if (maxcount == 0) {
-	maxcount = -1UL;
-    }
-
-    rbuf_.get(lnkaddr, sizeof(lnk), &lnk);
-    rewindsize += lnk.prevlnkoff;
-    lnkaddr -= lnk.prevlnkoff;
+    maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : -1UL);
 
     for (;;) {
-	rbuf_.get(lnkaddr, sizeof(lnk), &lnk);
-	rewindsize += lnk.prevlnkoff;
+	raddr_t size;
+	rbuf_.get(ret_addr - sizeof(size), sizeof(size), &size);
+	const raddr_t addr = ret_addr - size;
 
-	dbuf_.clear();				// data.capacity() is not changed.
-	dbuf_.reserve(lnk.size);
-	rbuf_.get(lnkaddr + sizeof(lnk), lnk.size, dbuf_.data());
-	make_info(info_, lnk, dbuf_.data());
+	if (size == 0 || addr < brk_addr) {
+	    break;
+	}
+	rbuf_.get(addr, sizeof(rec), &rec);
+	if (rec.size != size || rec.order != ~rec.br_order) {
+	    break;
+	}
+	if (rec.order + 1 != prev_order && prev_order != 0) {
+	    break;
+	}
 
-	lnk.control &= ~_LNK_CONTROL_CHOICE;	// clear choiced flag previously stored
-	if (lnk.nextlnkoff != 0 && choice(info_)) {
-	    lnk.control |= _LNK_CONTROL_CHOICE;
+	dbuf_.clear();
+	dbuf_.reserve(size - sizeof(rec));
+	rbuf_.get(addr + sizeof(rec), size - sizeof(rec), dbuf_.data());
+	make_info(info_, rec, dbuf_.data());
+
+	rec.control &= ~_REC_CONTROL_CHOICE;		// clear choiced flag previously stored
+	if (choice(info_)) {
+	    rec.control |= _REC_CONTROL_CHOICE;
 	    maxcount--;
 	}
-	(void)rbuf_.put(lnkaddr, sizeof(lnk), &lnk);	// IMPORTANT
+	rbuf_.put(addr, sizeof(rec), &rec);		// store rec.control
 
 	if (maxcount == 0 ||
-	    lnk.order < order_min ||
-	    lnk.time_us < time_us_min ||
-	    rewindsize > hdr_->logsize_b ||
-	    lnk.prevlnkoff <= 0) {		// might be broken
+	    rec.order < order_min ||
+	    rec.time_us < time_us_min) {
 	    break;		
 	}
-	lnkaddr -= lnk.prevlnkoff;
+
+	ret_addr = addr;
+	prev_order = rec.order;
     }
 
-    return lnkaddr;
+    return ret_addr;
 }
 
 void
@@ -608,25 +620,24 @@ mlog_reader::impl::scan(size_t maxcount,
 			std::function<bool(const info_t&)> choice,
 			std::function<bool(const info_t&, void*)> access)
 {
-    raddr_t addr = find_origin(maxcount, order_min, time_us_min, choice);
+    const raddr_t ret_addr = hdr_->nextaddr + hdr_->logsize_b * 2;
+    raddr_t addr = find_origin(ret_addr, maxcount, order_min, time_us_min, choice);
 
-    for (;;) {
-	lnk_t lnk;
-	rbuf_.get(addr, sizeof(lnk), &lnk);
-	if (lnk.nextlnkoff == 0) {		// terminator
-	    break;
-	}
-	addr += sizeof(lnk);			// data address
-	if ((lnk.control & _LNK_CONTROL_CHOICE) != 0) {
-	    dbuf_.clear();		// data.capacity() is not changed.
-	    dbuf_.reserve(lnk.size);
-	    rbuf_.get(addr, lnk.size, dbuf_.data());
-	    make_info(info_, lnk, dbuf_.data());
+    while (addr < ret_addr) {
+	rec_t rec;
+	rbuf_.get(addr, sizeof(rec), &rec);
+	addr     += sizeof(rec);			// data address
+	rec.size -= sizeof(rec);			// data (log, names) size
+	if ((rec.control & _REC_CONTROL_CHOICE) != 0) {
+	    dbuf_.clear();
+	    dbuf_.reserve(rec.size);
+	    rbuf_.get(addr, rec.size, dbuf_.data());
+	    make_info(info_, rec, dbuf_.data());
 	    if (!access(info_, dbuf_.data())) {
 		break;
 	    }
 	}
-	addr += lnk.size;			// next lnk address
+	addr += rec.size;				// next address
     }
 }
 

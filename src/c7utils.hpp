@@ -119,7 +119,22 @@ static inline void reverse(uint8_t) {}
 static inline void reverse( int8_t) {}
 template <typename T> static inline T reverse_to(T u) { reverse(u); return u; }
 
-} // namespace [c7::]endian;
+} // namespace [c7::]endian
+
+
+/*----------------------------------------------------------------------------
+                                   spinlock
+----------------------------------------------------------------------------*/
+
+template <typename T>
+static inline void spinlock_acquire(volatile T *p) {
+    while (__sync_lock_test_and_set(p, 1) == 1);
+}
+
+template <typename T>
+static inline void spinlock_release(volatile T *p) {
+    __sync_lock_release(p);
+}
 
 
 /*----------------------------------------------------------------------------
