@@ -529,6 +529,9 @@ make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
 
     // (B) cf.(A)
 
+    info.size_b -= sizeof(rec);
+    info.size_b -= sizeof(raddr_t);
+
     if (rec.sn_size > 0) {
 	info.size_b -= (rec.sn_size + 1);
 	info.source_name = data + info.size_b;
@@ -626,18 +629,18 @@ mlog_reader::impl::scan(size_t maxcount,
     while (addr < ret_addr) {
 	rec_t rec;
 	rbuf_.get(addr, sizeof(rec), &rec);
-	addr     += sizeof(rec);			// data address
-	rec.size -= sizeof(rec);			// data (log, names) size
+	addr += sizeof(rec);				// data address
+	size_t data_size = rec.size - sizeof(rec);	// data (log, names) size
 	if ((rec.control & _REC_CONTROL_CHOICE) != 0) {
 	    dbuf_.clear();
-	    dbuf_.reserve(rec.size);
-	    rbuf_.get(addr, rec.size, dbuf_.data());
+	    dbuf_.reserve(data_size);
+	    rbuf_.get(addr, data_size, dbuf_.data());
 	    make_info(info_, rec, dbuf_.data());
 	    if (!access(info_, dbuf_.data())) {
 		break;
 	    }
 	}
-	addr += rec.size;				// next address
+	addr += data_size;				// next address
     }
 }
 
