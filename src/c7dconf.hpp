@@ -92,7 +92,11 @@ public:
     }
 
     // on both side
-    inline c7_dconf_val_t& operator[](int index) {
+    c7_dconf_val_t& operator[](int index) {
+	return storage_->array[index];
+    }
+
+    const c7_dconf_val_t& operator[](int index) const {
 	return storage_->array[index];
     }
 };

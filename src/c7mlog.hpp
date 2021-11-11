@@ -21,6 +21,11 @@
 #include <string>
 
 
+// API support flags
+
+#define C7_MLOG_API_set_callback	(1U<<0)		// set_callback, enable_stdout
+
+
 // BEGIN: same definition with c7mlog.[ch]
 
 #define C7_MLOG_DIR_ENV		"C7_MLOG_DIR"
@@ -37,7 +42,7 @@
 // w_flags
 #define C7_MLOG_F_THREAD_NAME	(1U << 0)	// record thread name
 #define C7_MLOG_F_SOURCE_NAME	(1U << 1)	// record source name
-#define C7_MLOG_F_SPINLOCK	(1U << 2)	// use spinlock
+#define C7_MLOG_F_SPINLOCK	(1U << 2)	// (DON'T EFFECT)
 
 // END
 
@@ -51,6 +56,11 @@ private:
     impl *pimpl;
 
 public:
+    using callback_t = 
+	std::function<void(c7::usec_t time_us, const char *src_name, int src_line,
+			   uint32_t level, uint32_t category, uint64_t minidata,
+			   const void *logaddr, size_t logsize_b)>;
+
     mlog_writer(const mlog_writer&) = delete;
     mlog_writer& operator=(const mlog_writer&) = delete;
 
@@ -65,6 +75,10 @@ public:
 		      size_t logsize_b,
 		      uint32_t w_flags,
 		      const char *hint = nullptr);
+
+    void set_callback(callback_t);
+
+    void enable_stdout();	// set_callback with internal print function
 
     void *hdraddr(size_t *hdrsize_b_op = nullptr);
     
@@ -87,26 +101,26 @@ public:
 	     const char *s);
 
     template <typename... Args>
-    inline void format(c7::usec_t time_us, const char *src_name, int src_line,
-		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const std::string& format, const Args&... args) {
+    void format(c7::usec_t time_us, const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const std::string& format, const Args&... args) {
 	auto s = c7::format(format, args...);
 	(void)put(time_us, src_name, src_line, level, category, minidata,
 		  s.c_str(), s.size() + 1);
     }
 
     template <typename... Args>
-    inline void format(const char *src_name, int src_line,
-		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const std::string& format, const Args&... args) {
+    void format(const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const std::string& format, const Args&... args) {
 	auto s = c7::format(format, args...);
 	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
 		  s.c_str(), s.size() + 1);
     }
 
-    inline void error(c7::usec_t time_us, const char *src_name, int src_line,
-		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const c7::result_base& res) {
+    void error(c7::usec_t time_us, const char *src_name, int src_line,
+	       uint32_t level, uint32_t category, uint64_t minidata,
+	       const c7::result_base& res) {
 	std::stringstream ss;
 	c7::format_traits<result_base>::convert(ss, "", res);
 	auto s = ss.str();
@@ -114,9 +128,9 @@ public:
 		  s.c_str(), s.size() + 1);
     }
 
-    inline void error(const char *src_name, int src_line,
-		      uint32_t level, uint32_t category, uint64_t minidata,
-		      const c7::result_base& res) {
+    void error(const char *src_name, int src_line,
+	       uint32_t level, uint32_t category, uint64_t minidata,
+	       const c7::result_base& res) {
 	(void)error(c7::time_us(), src_name, src_line, level, category, minidata, res);
     }
 };
@@ -129,7 +143,7 @@ public:
 	uint64_t thread_id;
 	const char *source_name;
 	int source_line;
-	uint32_t order;		// record serial number
+	uint32_t weak_order;	// record serial number (NOT STRICT)
 	int32_t size_b;		// record size
 	c7::usec_t time_us;	// time stamp in micro sec.
 	uint32_t level;

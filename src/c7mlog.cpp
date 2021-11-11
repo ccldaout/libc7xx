@@ -28,11 +28,13 @@
 // 3: thread name, source name
 // 4: record max length for thread name and source name
 // 5: new linkage format & enable inter process lock
-#define _REVISION	5
+// 6: lock free, no max_{tn|sn}_size
+#define _REVISION		(6)
 
 #define _IHDRSIZE		c7_align(sizeof(hdr_t), 16)
+#define _DUMMY_LOG_SIZE		(16)
 
-// lnk_t internal control flags (6bits)
+// rec_t internal control flags (6bits)
 #define _REC_CONTROL_CHOICE	(1U << 0)
 
 #define _TN_MAX			(63)	// tn_size:6
@@ -43,21 +45,17 @@ typedef uint32_t raddr_t;
 // file header
 struct hdr_t {
     uint32_t rev;
-    volatile uint32_t lock;
-    raddr_t nextaddr;
+    volatile raddr_t nextaddr;
+    volatile uint32_t cnt;
     raddr_t logsize_b;		// ring buffer size
-    uint32_t cnt;
     uint32_t hdrsize_b;		// user header size
-    uint8_t max_tn_size;	// maximum length of thread name
-    uint8_t max_sn_size;	// maximum length of source name
     char hint[64];
 };
 
 // record header
 struct rec_t {
-    // [CAUTION] size member must be located at first member
     raddr_t size;		// record size (rec_t + log data + names + raddr)
-    uint32_t order;		// record serial number
+    uint32_t order;		// (weak) record order
     c7::usec_t time_us;		// time stamp in micro sec.
     uint64_t minidata;		// mini data (out of libc7)
     uint64_t level   :  3;	// log level 0..7
@@ -138,18 +136,20 @@ public:
                               mlog_writer::impl
 ----------------------------------------------------------------------------*/
 
+static char _DummyBuffer[_IHDRSIZE + _DUMMY_LOG_SIZE];
+
 class mlog_writer::impl {
 private:
+    callback_t callback_;
     rbuffer rbuf_;
     hdr_t *hdr_ = nullptr;
-    size_t mmapsize_b_;
-    size_t maxdsize_b_;
+    size_t mmapsize_b_;			// 0:_DummyBuffer, >0:mmaped storage
     uint32_t flags_;
     uint32_t pid_;
 
 private:
     result<> setup_storage(const char *path,
-			       size_t hdrsize_b, size_t logsize_b);
+			   size_t hdrsize_b, size_t logsize_b);
     void setup_context(size_t hdrsize_b, size_t logsize_b, const char *hint_op);
     void free_storage();
 
@@ -159,26 +159,18 @@ private:
 
 public:
     impl() {
-	if (!init(nullptr, 0, C7_MLOG_SIZE_MIN, 0, nullptr))
-	    throw std::runtime_error("cannot allocate minimal storage");
-	mmapsize_b_ = 0;	// allocated by malloc instead of mmap.
+	init(nullptr, 0, _DUMMY_LOG_SIZE, 0, nullptr);
     }
 
     ~impl() {
 	free_storage();
     }
 
-    result<> init(const char *path,
-		      size_t hdrsize_b, size_t logsize_b,
-		      uint32_t w_flags, const char *hint) {
-	auto res = setup_storage(path, hdrsize_b, logsize_b);
-	if (!res) {
-	    return res;
-	}
-	setup_context(hdrsize_b, logsize_b, hint);
-	flags_ = w_flags;
-	pid_ = getpid();
-	return c7result_ok();
+    result<> init(const char *path, size_t hdrsize_b, size_t logsize_b,
+		  uint32_t w_flags, const char *hint);
+
+    void set_callback(callback_t callback) {
+	callback_ = callback;
     }
 
     bool put(c7::usec_t time_us, const char *src_name, int src_line,
@@ -200,42 +192,56 @@ public:
 };
 
 
+static void print_stdout(c7::usec_t time_us, const char *src_name, int src_line,
+			 uint32_t level, uint32_t category, uint64_t minidata,
+			 const void *logaddr, size_t logsize_b)
+{
+    src_name = c7path_name(src_name);
+    if (auto n = std::strlen(src_name); n > 16) {
+	src_name += (n - 16);
+    }
+    c7::p_("%{t} %{>16}:%{03} @%{02}: %{}",
+	   time_us, src_name, src_line, c7::thread::self::id(), static_cast<const char *>(logaddr));
+}
+
+
 // constructor/destructor -----------------------------------------
 
-void
-mlog_writer::impl::free_storage()
+result<>
+mlog_writer::impl::init(const char *path,
+			size_t hdrsize_b, size_t logsize_b,
+			uint32_t w_flags, const char *hint)
 {
-    if (hdr_ != nullptr) {
-	if (mmapsize_b_ == 0) {
-	    std::free(hdr_);		// maybe allocated at default constructor
-	} else {
-	    ::munmap(hdr_, mmapsize_b_);
-	}
+    auto res = setup_storage(path, hdrsize_b, logsize_b);
+    if (!res) {
+	return res;
     }
-    hdr_ = nullptr;
+    setup_context(hdrsize_b, logsize_b, hint);
+    flags_ = w_flags;
+    pid_ = getpid();
+    return c7result_ok();
 }
 
 result<>
 mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logsize_b)
 {
-    if (logsize_b < C7_MLOG_SIZE_MIN || logsize_b > C7_MLOG_SIZE_MAX) {
-	return c7result_err(EINVAL, "invalid logsize_b: %{}", logsize_b);
-    }
     mmapsize_b_ = _IHDRSIZE + hdrsize_b + logsize_b;
-    maxdsize_b_ = logsize_b - sizeof(rec_t) - sizeof(raddr_t);
 
     void *top;
     if (path == nullptr) {
-	top = std::calloc(mmapsize_b_, 1);
-	if (top == nullptr) {
-	    return c7result_err(errno, "cannot allocate storage");
-	}
+	top = _DummyBuffer;
+	mmapsize_b_ = 0;		// use _DummyBuffer
+	callback_ = print_stdout;
     } else {
+	if (logsize_b < C7_MLOG_SIZE_MIN || logsize_b > C7_MLOG_SIZE_MAX) {
+	    return c7result_err(EINVAL, "invalid logsize_b: %{}", logsize_b);
+	}
 	auto res = c7::file::mmap_rw(path, mmapsize_b_, true);
 	if (!res) {
 	    return std::move(res);
 	}
 	top = res.value().release();
+	callback_ = nullptr;
     }
 
     free_storage();
@@ -264,6 +270,15 @@ mlog_writer::impl::setup_context(size_t hdrsize_b, size_t logsize_b, const char 
     }
 }
 
+void
+mlog_writer::impl::free_storage()
+{
+    if (hdr_ != nullptr && mmapsize_b_ != 0) {
+	::munmap(hdr_, mmapsize_b_);
+    }
+    hdr_ = nullptr;
+}
+
 
 // logging --------------------------------------------------------
 
@@ -285,8 +300,8 @@ mlog_writer::impl::make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, i
     logsize += sizeof(rec_t);
 
     rec.size = logsize;
-    rec.time_us = time_us;
     // rec.order is assigned later
+    rec.time_us = time_us;
     rec.pid = pid_;
     rec.th_id = c7::thread::self::id();
     rec.tn_size = tn_size;
@@ -296,7 +311,7 @@ mlog_writer::impl::make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, i
     rec.level = level;
     rec.category = category;
     rec.control = 0;
-    // rec.br_order is assigned laster
+    // rec.br_order is assigned later
 
     return rec;
 }
@@ -306,6 +321,11 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 		       uint32_t level, uint32_t category, uint64_t minidata,
 		       const void *logaddr, size_t logsize_b)
 {
+    if (callback_) {
+	callback_(time_us, src_name, src_line, level, category,
+		  minidata, logaddr, logsize_b);
+    }
+
     // thread name size
     const char *th_name = nullptr;
     if ((flags_ & C7_MLOG_F_THREAD_NAME) != 0) {
@@ -331,29 +351,27 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 	}
     }
 
-    // check size to be written
-    if ((logsize_b + tn_size + sn_size + 2) > maxdsize_b_) {
-	return false;					// data size too large
-    }
-
     // build record header and calculate size of whole record.
     auto rechdr = make_rechdr(logsize_b, tn_size, sn_size, src_line,
 			      time_us, level, category, minidata);
 
-    // [CRITICAL SECTION] update record pointer (hdr_->nextaddr) and counter (hdr_->cnt)
-    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
-	c7::spinlock_acquire(&hdr_->lock);
+    // check size to be written
+    if (rechdr.size > (hdr_->logsize_b + 32)) {		// (C) ensure rechdr.size < hdr_->logsize_b
+	return false;					// data size too large
     }
-    rechdr.order    = ++hdr_->cnt;
+
+    // lock-free operation: get address of out record and update hdr_->nextaddr.
+    raddr_t addr, next;
+    do {
+	addr = hdr_->nextaddr;
+	next = (addr + rechdr.size) % hdr_->logsize_b;
+	// addr != next is ensured by above check (C)
+    } while (__sync_val_compare_and_swap(&hdr_->nextaddr, addr, next) != addr);
+
+    // lock-free operation: update record sequence number.
+    //                    : next rechdr.order is not strict, but we accept it.
+    rechdr.order = __sync_add_and_fetch(&hdr_->cnt, 1);
     rechdr.br_order = ~rechdr.order;
-    raddr_t addr = hdr_->nextaddr;
-    hdr_->nextaddr += rechdr.size;
-    hdr_->nextaddr %= hdr_->logsize_b;
-    hdr_->max_tn_size = std::max<size_t>(hdr_->max_tn_size, tn_size);
-    hdr_->max_sn_size = std::max<size_t>(hdr_->max_sn_size, sn_size);
-    if ((flags_ & C7_MLOG_F_SPINLOCK) != 0) {
-	c7::spinlock_release(&hdr_->lock);
-    }
 
     // write whole record: log data -> thread name -> source name	// (A) cf.(B)
     addr = rbuf_.put(addr, sizeof(rechdr), &rechdr);			// record header
@@ -418,6 +436,16 @@ mlog_writer::init(const std::string& name,
     return pimpl->init(path.c_str(), hdrsize_b, logsize_b, w_flags, hint);
 }
 
+void mlog_writer::set_callback(callback_t callback)
+{
+    return pimpl->set_callback(callback);
+}
+
+void mlog_writer::enable_stdout()
+{
+    set_callback(print_stdout);
+}
+
 void *mlog_writer::hdraddr(size_t *hdrsize_b_op)
 {
     return pimpl->hdraddr(hdrsize_b_op);
@@ -472,6 +500,8 @@ private:
     hdr_t *hdr_ = nullptr;
     std::vector<char> dbuf_;
     info_t info_;
+    int max_tn_size_ = 0;
+    int max_sn_size_ = 0;
 
     raddr_t find_origin(raddr_t ret_addr,
 			size_t maxcount,
@@ -502,11 +532,11 @@ public:
     }
 
     int thread_name_size() {
-	return hdr_->max_tn_size;
+	return max_tn_size_;
     }
 
     int source_name_size() {
-	return hdr_->max_sn_size;
+	return max_sn_size_;
     }
 
     const char *hint() {
@@ -519,7 +549,7 @@ make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
 {
     info.thread_id   = rec.th_id;
     info.source_line = rec.src_line;
-    info.order       = rec.order;
+    info.weak_order  = rec.order;
     info.size_b      = rec.size;
     info.time_us     = rec.time_us;
     info.level       = rec.level;
@@ -571,7 +601,6 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
 {
     const raddr_t brk_addr = ret_addr - hdr_->logsize_b;
     rec_t rec;
-    decltype(rec.order) prev_order = 0;
     
     maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : -1UL);
 
@@ -587,9 +616,9 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
 	if (rec.size != size || rec.order != ~rec.br_order) {
 	    break;
 	}
-	if (rec.order + 1 != prev_order && prev_order != 0) {
-	    break;
-	}
+
+	max_sn_size_ = std::max(max_sn_size_, static_cast<int>(rec.sn_size));
+	max_tn_size_ = std::max(max_tn_size_, static_cast<int>(rec.tn_size));
 
 	dbuf_.clear();
 	dbuf_.reserve(size - sizeof(rec));
@@ -610,7 +639,6 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
 	}
 
 	ret_addr = addr;
-	prev_order = rec.order;
     }
 
     return ret_addr;
