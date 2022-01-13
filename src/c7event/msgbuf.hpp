@@ -16,6 +16,7 @@
 
 #include <c7event/iovec_proxy.hpp>
 #include <c7event/portgroup.hpp>
+#include <c7utils.hpp>			// c7::storage
 
 
 // message buffer (default implementation)
@@ -25,38 +26,25 @@ namespace c7::event {
 
 
 template <typename Header, int N>
-class multipart_impl;
-
-
-template <typename Header, int N>
 class multipart_msgbuf {
-private:
-    template <typename, int>
-    friend class multipart_msgbuf;
-
-    std::unique_ptr<multipart_impl<Header, N>> impl_;
-
 public:
     static constexpr int n_part = N;
-    Header& header;
+    Header header;
 
-    ~multipart_msgbuf();
+    ~multipart_msgbuf() = default;
     multipart_msgbuf();
     multipart_msgbuf(const multipart_msgbuf& o) = delete;
     multipart_msgbuf(multipart_msgbuf&& o);
     multipart_msgbuf& operator=(const multipart_msgbuf& o) = delete;
     multipart_msgbuf& operator=(multipart_msgbuf&& o);
-
-    void change_impl(std::unique_ptr<multipart_impl<Header, N>> impl);
+    template <typename H2> multipart_msgbuf& operator=(multipart_msgbuf<H2, N>&& src);
 
     void clear();
     multipart_msgbuf deep_copy() const;
     multipart_msgbuf& deep_copy_from(const multipart_msgbuf& src);
 
-    template <typename H2> multipart_msgbuf<H2, N> deep_copy_iov() const;
+    template <typename H2=Header> multipart_msgbuf<H2, N> deep_copy_iov() const;
     template <typename H2> multipart_msgbuf& deep_copy_iov_from(const multipart_msgbuf<H2, N>& src);
-    template <typename H2> multipart_msgbuf<H2, N> move_iov() const;
-    template <typename H2> multipart_msgbuf& move_iov_from(multipart_msgbuf<H2, N>&& src);
     template <typename H2> multipart_msgbuf& borrow_iov_from(const multipart_msgbuf<H2, N>& src);
 
     template <typename Port> io_result recv(Port& port);
@@ -64,8 +52,31 @@ public:
     template <typename Port> result<> send(portgroup<Port>& ports);
     void dump() const;
 
-    iovec_proxy operator[](int n);
-    const iovec_proxy operator[](int n) const;
+    iovec_proxy operator[](int n) { return iovec_proxy{&iov_[n]}; }
+    const iovec_proxy operator[](int n) const { return iovec_proxy{&iov_[n]}; }
+
+private:
+    template <typename, int>
+    friend class multipart_msgbuf;
+
+    static constexpr int part_align_ = 8;
+    static constexpr int whole_align_ = 8192;
+
+    struct internal_header {
+	Header header;
+	int32_t size[N];
+    };
+
+    ::iovec iov_[N + 1];
+    c7::storage storage_ {whole_align_};
+
+    void setup_iov_len(const internal_header&, ::iovec (&)[N+1]);
+    result<> setup_iov_base(c7::storage&, ::iovec (&)[N+1]);
+    template <typename H2> void copy_contents(const multipart_msgbuf<H2, N>& o);
+    template <typename H2> void move_contents(multipart_msgbuf<H2, N>& o);
+
+    static_assert(sizeof(Header)+sizeof(int32_t[N]) == sizeof(internal_header),
+		  "Combination Header and N has whole.");
 };
 
 

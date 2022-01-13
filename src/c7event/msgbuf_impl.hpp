@@ -16,102 +16,64 @@
 
 #include <c7app.hpp>
 #include <c7event/msgbuf.hpp>
-#include <c7utils.hpp>
 #include <cstring>
 
 
 namespace c7::event {
 
 
-/*----------------------------------------------------------------------------
-                                multipart_impl
-----------------------------------------------------------------------------*/
-
 template <typename Header, int N>
-class multipart_impl {
-public:
-    static constexpr int n_part = N;
-    Header& header { header_.header };
-
-    ~multipart_impl() = default;
-    multipart_impl();
-    multipart_impl(const multipart_impl& o) = delete;
-    multipart_impl(multipart_impl&& o) = delete;
-    multipart_impl& operator=(const multipart_impl& o) = delete;
-    multipart_impl& operator=(multipart_impl&& o) = delete;
-
-    void clear();
-    multipart_impl deep_copy() const;
-    multipart_impl& deep_copy_from(const multipart_impl& src);
-
-    template <typename H2> multipart_impl<H2, N> deep_copy_iov() const;
-    template <typename H2> multipart_impl& deep_copy_iov_from(const multipart_impl<H2, N>& src);
-    template <typename H2> multipart_impl<H2, N> move_iov() const;
-    template <typename H2> multipart_impl& move_iov_from(multipart_impl<H2, N>&& src);
-    template <typename H2> multipart_impl& borrow_iov_from(const multipart_impl<H2, N>& src);
-
-    template <typename Port> io_result recv(Port& port);
-    template <typename Port> io_result send(Port& port);
-    template <typename Port> result<> send(portgroup<Port>& ports);
-    void dump() const;
-
-    iovec_proxy operator[](int n) { return iovec_proxy{&iov_[n]}; }
-    const iovec_proxy operator[](int n) const { return iovec_proxy{&iov_[n]}; }
-
-private:
-    template <typename, int>
-    friend class multipart_impl;
-
-    static constexpr int part_align_ = 8;
-    static constexpr int whole_align_ = 8192;
-
-    struct internal_header {
-	Header header;
-	int32_t size[N];
-    };
-
-    internal_header header_;
-    ::iovec iov_[N + 1];
-    c7::storage storage_ {whole_align_};
-
-    void setup_iov_0();
-    void setup_iov_len(const internal_header&, ::iovec (&)[N+1]);
-    result<> setup_iov_base(c7::storage&, ::iovec (&)[N+1]);
-    template <typename H2> void copy_contents(const multipart_impl<H2, N>& o);
-    template <typename H2> void move_contents(multipart_impl<H2, N>&& o);
-
-    static_assert(sizeof(Header)+sizeof(int32_t[N]) == sizeof(internal_header),
-		  "Combination Header and N has whole.");
-};
-
-
-template <typename Header, int N>
-multipart_impl<Header, N>::multipart_impl()
+multipart_msgbuf<Header, N>::multipart_msgbuf():
+    header(Header()), iov_({{nullptr,0}})
 {
-    std::memset(&header_, 0, sizeof(header_));
-    std::memset(iov_, 0, sizeof(iov_));
-    setup_iov_0();
+}
+
+template <typename Header, int N>
+multipart_msgbuf<Header, N>::multipart_msgbuf(multipart_msgbuf&& o):
+    header(o.header), iov_(o.iov_), storage_(std::move(o.storage_))
+{
+}
+
+template <typename Header, int N>
+auto
+multipart_msgbuf<Header, N>::operator=(multipart_msgbuf&& o) -> multipart_msgbuf&
+{
+    header = o.header;
+    std::memcpy(iov_, o.iov_, sizeof(iov_));
+    storage_ = std::move(o.storage_);
+    return *this;
+}
+
+template <typename Header, int N>
+template <typename H2>
+auto
+multipart_msgbuf<Header, N>::operator=(multipart_msgbuf<H2, N>&& o) -> multipart_msgbuf&
+{
+    if (static_cast<void*>(&o) != this) {
+	move_contents(o);
+    }
+    return *this;
 }
 
 template <typename Header, int N>
 void
-multipart_impl<Header, N>::clear()
+multipart_msgbuf<Header, N>::clear()
 {
     std::memset(&iov_[1], 0, sizeof(iov_) - sizeof(iov_[0]));
 }
 
 template <typename Header, int N>
 auto
-multipart_impl<Header, N>::deep_copy() const -> multipart_impl
+multipart_msgbuf<Header, N>::deep_copy() const -> multipart_msgbuf
 {
-    multipart_impl b;
+    multipart_msgbuf b;
     b.copy_contents(*this);
     return b;
 }
 
 template <typename Header, int N>
 auto
-multipart_impl<Header, N>::deep_copy_from(const multipart_impl& o) -> multipart_impl&
+multipart_msgbuf<Header, N>::deep_copy_from(const multipart_msgbuf& o) -> multipart_msgbuf&
 {
     if (&o != this) {
 	copy_contents(o);
@@ -122,9 +84,9 @@ multipart_impl<Header, N>::deep_copy_from(const multipart_impl& o) -> multipart_
 template <typename Header, int N>
 template <typename H2>
 auto
-multipart_impl<Header, N>::deep_copy_iov() const -> multipart_impl<H2, N>
+multipart_msgbuf<Header, N>::deep_copy_iov() const -> multipart_msgbuf<H2, N>
 {
-    multipart_impl<H2, N> b;
+    multipart_msgbuf<H2, N> b;
     b.copy_contents(*this);
     return b;
 }
@@ -132,7 +94,7 @@ multipart_impl<Header, N>::deep_copy_iov() const -> multipart_impl<H2, N>
 template <typename Header, int N>
 template <typename H2>
 auto
-multipart_impl<Header, N>::deep_copy_iov_from(const multipart_impl<H2, N>& o) -> multipart_impl&
+multipart_msgbuf<Header, N>::deep_copy_iov_from(const multipart_msgbuf<H2, N>& o) -> multipart_msgbuf&
 {
     if (static_cast<const void*>(&o) != this) {
 	copy_contents(o);
@@ -143,32 +105,10 @@ multipart_impl<Header, N>::deep_copy_iov_from(const multipart_impl<H2, N>& o) ->
 template <typename Header, int N>
 template <typename H2>
 auto
-multipart_impl<Header, N>::move_iov() const -> multipart_impl<H2, N>
-{
-    multipart_impl<H2, N> b;
-    b.move_contents(*this);
-    return b;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_impl<Header, N>::move_iov_from(multipart_impl<H2, N>&& o) -> multipart_impl&
-{
-    if (static_cast<void*>(&o) != this) {
-	move_contents(o);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_impl<Header, N>::borrow_iov_from(const multipart_impl<H2, N>& o) -> multipart_impl&
+multipart_msgbuf<Header, N>::borrow_iov_from(const multipart_msgbuf<H2, N>& o) -> multipart_msgbuf&
 {
     if (static_cast<const void*>(&o) != this) {
 	std::memcpy(iov_, o.iov_, sizeof(iov_));
-	setup_iov_0();
     }
     return *this;
 }
@@ -176,18 +116,21 @@ multipart_impl<Header, N>::borrow_iov_from(const multipart_impl<H2, N>& o) -> mu
 template <typename Header, int N>
 template <typename Port>
 io_result
-multipart_impl<Header, N>::recv(Port& port)
+multipart_msgbuf<Header, N>::recv(Port& port)
 {
-    auto iores = port.read_n(&header_, sizeof(header_));
+    internal_header header;
+
+    auto iores = port.read_n(&header, sizeof(header));
     if (!iores) {
 	return iores;
     }
+    this->header = header.header;
     if (port.is_different_endian()) {
-	for (auto& v: header_.size) {
+	for (auto& v: header.size) {
 	    c7::endian::reverse(v);
 	}
     }
-    setup_iov_len(header_, iov_);
+    setup_iov_len(header, iov_);
     if (auto res = setup_iov_base(storage_, iov_); !res) {
 	return io_result::error(port, std::move(res));
     }
@@ -205,18 +148,24 @@ multipart_impl<Header, N>::recv(Port& port)
 template <typename Header, int N>
 template <typename Port>
 io_result
-multipart_impl<Header, N>::send(Port& port)
+multipart_msgbuf<Header, N>::send(Port& port)
 {
+    internal_header header;
+
+    header.header = this->header;
+    iov_[0].iov_base = &header;
+    iov_[0].iov_len  = sizeof(header);
+
     if (port.is_different_endian()) {
 	for (int i = 1; i <= N; i++) {
-	    // BUG: header_.size[i] = reverse_to(iov_[i].iov_len);
-	    //      because sizeof(iov_len) > sizeof(header_.size[i])
-	    header_.size[i-1] = iov_[i].iov_len;
-	    c7::endian::reverse(header_.size[i-1]);
+	    // BUG: header.size[i] = reverse_to(iov_[i].iov_len);
+	    //      because sizeof(iov_len) > sizeof(header.size[i])
+	    header.size[i-1] = iov_[i].iov_len;
+	    c7::endian::reverse(header.size[i-1]);
 	}
     } else {
 	for (int i = 1; i <= N; i++) {
-	    header_.size[i-1] = iov_[i].iov_len;
+	    header.size[i-1] = iov_[i].iov_len;
 	}
     }
 	
@@ -233,7 +182,7 @@ multipart_impl<Header, N>::send(Port& port)
 template <typename Header, int N>
 template <typename Port>
 result<>
-multipart_impl<Header, N>::send(portgroup<Port>& ports)
+multipart_msgbuf<Header, N>::send(portgroup<Port>& ports)
 {
     ports.clear_errors();
     for (auto pp: ports) {
@@ -254,13 +203,12 @@ multipart_impl<Header, N>::send(portgroup<Port>& ports)
 template <typename Header, int N>
 template <typename H2>
 void
-multipart_impl<Header, N>::copy_contents(const multipart_impl<H2, N>& o)
+multipart_msgbuf<Header, N>::copy_contents(const multipart_msgbuf<H2, N>& o)
 {
     if (std::is_same_v<Header, H2>) {
-	std::memcpy(&header_, &o.header_, sizeof(header_));
+	std::memcpy(&header, &o.header, sizeof(header));
     }
     std::memcpy(iov_, o.iov_, sizeof(iov_));
-    setup_iov_0();
 
     if (auto res = setup_iov_base(storage_, iov_); !res) {
 	throw std::runtime_error(c7::format("%{}", res));
@@ -273,31 +221,21 @@ multipart_impl<Header, N>::copy_contents(const multipart_impl<H2, N>& o)
 template <typename Header, int N>
 template <typename H2>
 void
-multipart_impl<Header, N>::move_contents(multipart_impl<H2, N>&& o)
+multipart_msgbuf<Header, N>::move_contents(multipart_msgbuf<H2, N>& o)
 {
     if (std::is_same_v<Header, H2>) {
-	std::memcpy(&header_, &o.header_, sizeof(header_));
-	std::memset(&o.header_, 0, sizeof(o.header_));
+	std::memcpy(&header, &o.header, sizeof(header));
+	std::memset(&o.header, 0, sizeof(o.header));
     }
     std::memcpy(iov_, o.iov_, sizeof(iov_));
     std::memset(o.iov_, 0, sizeof(o.iov_));
-    setup_iov_0();
-    o.setup_iov_0();
 
     storage_ = std::move(o.storage_);
 }
 
 template <typename Header, int N>
 void
-multipart_impl<Header, N>::setup_iov_0()
-{
-    iov_[0].iov_base = &header_;
-    iov_[0].iov_len  = sizeof(header_);
-}
-
-template <typename Header, int N>
-void
-multipart_impl<Header, N>::setup_iov_len(const internal_header& h, ::iovec (&iov)[N+1])
+multipart_msgbuf<Header, N>::setup_iov_len(const internal_header& h, ::iovec (&iov)[N+1])
 {
     for (int i = 1; i <= N; i++) {
 	iov[i].iov_len = h.size[i-1];
@@ -306,7 +244,7 @@ multipart_impl<Header, N>::setup_iov_len(const internal_header& h, ::iovec (&iov
 
 template <typename Header, int N>
 result<>
-multipart_impl<Header, N>::setup_iov_base(c7::storage& storage, ::iovec (&iov)[N+1])
+multipart_msgbuf<Header, N>::setup_iov_base(c7::storage& storage, ::iovec (&iov)[N+1])
 {
     size_t new_size = 0;
     for (int i = 1; i <= N; i++) {
@@ -329,7 +267,7 @@ multipart_impl<Header, N>::setup_iov_base(c7::storage& storage, ::iovec (&iov)[N
 
 template <typename Header, int N>
 void
-multipart_impl<Header, N>::dump() const
+multipart_msgbuf<Header, N>::dump() const
 {
     std::string data;
     if constexpr (!std::is_same_v<typename c7::formatter_tag<Header>::type, c7::formatter_error_tag>) {
@@ -352,173 +290,6 @@ multipart_impl<Header, N>::dump() const
 	       i, iov_[i].iov_len, iov_[i].iov_base, data);
     }
 }
-
-
-/*----------------------------------------------------------------------------
-                               multipart_msgbuf
-----------------------------------------------------------------------------*/
-
-template <typename Header, int N>
-multipart_msgbuf<Header, N>::~multipart_msgbuf() = default;
-
-template <typename Header, int N>
-multipart_msgbuf<Header, N>::multipart_msgbuf():
-    impl_(new multipart_impl<Header, N>()), header(impl_->header)
-{
-}
-
-template <typename Header, int N>
-multipart_msgbuf<Header, N>::multipart_msgbuf(multipart_msgbuf&& o):
-    impl_(std::move(o.impl_)), header(impl_->header)
-{
-}
-
-template <typename Header, int N>
-auto
-multipart_msgbuf<Header, N>::operator=(multipart_msgbuf&& o) -> multipart_msgbuf&
-{
-    if (&o != this) {
-	impl_ = std::move(o.impl_);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-void
-multipart_msgbuf<Header, N>::change_impl(std::unique_ptr<multipart_impl<Header, N>> impl)
-{
-    impl_ = std::move(impl_);
-}
-
-template <typename Header, int N>
-void
-multipart_msgbuf<Header, N>::clear()
-{
-    impl_->clear();
-}
-
-template <typename Header, int N>
-auto
-multipart_msgbuf<Header, N>::deep_copy() const -> multipart_msgbuf
-{
-    multipart_msgbuf b;
-    b.deep_copy_from(*this);
-    return b;
-}
-
-template <typename Header, int N>
-auto
-multipart_msgbuf<Header, N>::deep_copy_from(const multipart_msgbuf& o) -> multipart_msgbuf&
-{
-    if (&o != this) {
-	impl_->deep_copy_from(*o.impl_);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_msgbuf<Header, N>::deep_copy_iov() const -> multipart_msgbuf<H2, N>
-{
-    multipart_msgbuf<H2, N> b;
-    b.deep_copy_iov_from(*this);
-    return b;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_msgbuf<Header, N>::deep_copy_iov_from(const multipart_msgbuf<H2, N>& o) -> multipart_msgbuf&
-{
-    if (static_cast<const void*>(&o) != this) {
-	impl_->deep_copy_iov_from(*o.impl_);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_msgbuf<Header, N>::move_iov() const -> multipart_msgbuf<H2, N>
-{
-    multipart_msgbuf b;
-    b.move_iov_from(*this);
-    return b;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_msgbuf<Header, N>::move_iov_from(multipart_msgbuf<H2, N>&& o) -> multipart_msgbuf&
-{
-    if (static_cast<void*>(&o) != this) {
-	impl_->move_iov_from(*o.impl_);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-template <typename H2>
-auto
-multipart_msgbuf<Header, N>::borrow_iov_from(const multipart_msgbuf<H2, N>& o) -> multipart_msgbuf&
-{
-    if (static_cast<const void*>(&o) != this) {
-	impl_->borrow_iov_from(*o.impl_);
-    }
-    return *this;
-}
-
-template <typename Header, int N>
-template <typename Port>
-io_result
-multipart_msgbuf<Header, N>::recv(Port& port)
-{
-    return impl_->recv(port);
-}
-
-template <typename Header, int N>
-template <typename Port>
-io_result
-multipart_msgbuf<Header, N>::send(Port& port)
-{
-    return impl_->send(port);
-}
-
-template <typename Header, int N>
-template <typename Port>
-result<>
-multipart_msgbuf<Header, N>::send(portgroup<Port>& ports)
-{
-    return impl_->send(ports);
-}
-
-template <typename Header, int N>
-iovec_proxy multipart_msgbuf<Header, N>::operator[](int n)
-{
-    return (*impl_)[n];
-}
-
-template <typename Header, int N>
-const iovec_proxy multipart_msgbuf<Header, N>::operator[](int n) const
-{
-    return (*impl_)[n];
-}
-
-template <typename Header, int N>
-void
-multipart_msgbuf<Header, N>::dump() const
-{
-    if (impl_ == nullptr) {
-	c7::p_("already broken (maybe moved)");
-    } else {
-	impl_->dump();
-    }
-}
-
-
-/*----------------------------------------------------------------------------
-----------------------------------------------------------------------------*/
 
 
 } // namespace c7::event
