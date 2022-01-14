@@ -76,7 +76,7 @@ public:
 	auto defer = trylock();
 	if (defer)
 	    critical();
-	return defer;
+	return static_cast<bool>(defer);
     }
 
     template <typename R>
@@ -142,7 +142,7 @@ public:
 	auto defer = trylock();
 	if (defer)
 	    critical();
-	return defer;
+	return static_cast<bool>(defer);
     }
 
     template <typename R>
@@ -211,7 +211,7 @@ public:
 	auto defer = trylock();
 	if (defer)
 	    critical();
-	return defer;
+	return static_cast<bool>(defer);
     }
 
     template <typename R>

@@ -90,8 +90,16 @@ public:
 	return *this;
     }
 
-    operator bool() const {
+    explicit operator bool() const {
 	return (status_ == status::OK);
+    }
+
+    operator const c7::result_base&() const {
+	return result_;
+    }
+
+    operator c7::result_base&() {
+	return result_;
     }
 
     c7::result_base& get_result() {
@@ -161,7 +169,7 @@ public:
 	return fdnum_;
     }
 
-    operator bool() const {
+    explicit operator bool() const {
 	return fdnum_ != -1;
     }
 

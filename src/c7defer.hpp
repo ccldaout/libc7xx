@@ -83,12 +83,16 @@ public:
 	f();
     }
 
-    operator bool() const {
-	return bool(func_);
+    explicit operator bool() const {
+	return static_cast<bool>(func_);
     }
 
     void cancel() {
 	func_ = nullptr;
+    }
+
+    bool print_as() const {
+	return static_cast<bool>(*this);
     }
 
     ~defer() {
