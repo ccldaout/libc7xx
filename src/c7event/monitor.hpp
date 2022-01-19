@@ -59,7 +59,7 @@ public:
     ~monitor();
 
     result<> init();
-    void loop();
+    [[noreturn]] void loop();
 
     result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
     result<> manage(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
@@ -121,7 +121,9 @@ result<std::shared_ptr<T>> find(const std::string& key)
 {
     return default_event_monitor().find<T>(key);
 }
-void forever();
+result<> start_thread();
+result<> wait_thread();
+[[noreturn]] void forever();
     
 
 /*----------------------------------------------------------------------------

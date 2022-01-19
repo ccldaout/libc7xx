@@ -338,13 +338,25 @@ result<> unmanage(int prvfd)
     return default_monitor.unmanage(prvfd);
 }
 
-void forever()
+result<> start_thread()
 {
     std::call_once(once_init, init);
+    default_thread.target([]() { default_monitor.loop(); });
+    return default_thread.start();
+}
+
+result<> wait_thread()
+{
     default_thread.join();
     if (default_thread.status() != c7::thread::thread::EXIT) {
-	c7echo(default_thread.terminate_result(), "event loop thread has been crashed.");
+	return std::move(default_thread.terminate_result());
     }
+    return c7result_ok();
+}
+
+void forever()
+{
+    default_monitor.loop();
 }
 
 
