@@ -1,5 +1,5 @@
 /*
- * c7event/dispatcher.hpp
+ * c7event/ext/dispatcher.hpp
  *
  * Copyright (c) 2021 ccldaout@gmail.com
  *
@@ -9,15 +9,15 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_EVENT_DISPATCHER_HPP_LOADED__
-#define C7_EVENT_DISPATCHER_HPP_LOADED__
+#ifndef C7_EVENT_EXT_DISPATCHER_HPP_LOADED__
+#define C7_EVENT_EXT_DISPATCHER_HPP_LOADED__
 #include <c7common.hpp>
 
 
 #include <c7event/service.hpp>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 // event dispatch extention
@@ -115,7 +115,7 @@ class dispatcher: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    using monitor   = c7::event::monitor;
+    //using monitor   = c7::event::monitor;
     using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, msgbuf_type&);
 
     dispatcher() {
@@ -186,7 +186,7 @@ private:
 };
 
 
-} // c7::event
+} // c7::event::ext
 
 
 #endif // c7event/ext/dispatcher.hpp

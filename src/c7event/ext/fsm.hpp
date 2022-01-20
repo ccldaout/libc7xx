@@ -1,5 +1,5 @@
 /*
- * c7event/fsm.hpp
+ * c7event/ext/fsm.hpp
  *
  * Copyright (c) 2021 ccldaout@gmail.com
  *
@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_EVENT_FSM_HPP_LOADED__
-#define C7_EVENT_FSM_HPP_LOADED__
+#ifndef C7_EVENT_EXT_FSM_HPP_LOADED__
+#define C7_EVENT_EXT_FSM_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -21,7 +21,7 @@
 #include <queue>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 class fsm_provider: public provider_interface {
@@ -122,7 +122,7 @@ fsm_service<BaseService>::bridge::setup(monitor& mon, const std::string& key)
 }
 
 
-} // c7::event
+} // c7::event::ext
 
 
 #endif // c7event/ext/fsm.hpp

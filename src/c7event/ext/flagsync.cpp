@@ -12,7 +12,7 @@
 #include <sys/eventfd.h>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 void flagsync_provider::on_event(monitor&, int, uint32_t)
@@ -107,7 +107,7 @@ void flagsync_provider::update(flags_t on, flags_t off)
 }
 
 std::atomic<uint64_t> flagsync_provider::id_counter_;
-const char * const flagsync_provider::manage_key = "c7::event::syncflag_provider";
+const char * const flagsync_provider::manage_key = "c7::event::ext::syncflag_provider";
 
 
-} // namespace c7::event
+} // c7::event::ext

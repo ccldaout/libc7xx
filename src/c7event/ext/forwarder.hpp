@@ -1,5 +1,5 @@
 /*
- * c7event/forwarder.hpp
+ * c7event/ext/forwarder.hpp
  *
  * Copyright (c) 2021 ccldaout@gmail.com
  *
@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_EVENT_FORWARDER_HPP_LOADED__
-#define C7_EVENT_FORWARDER_HPP_LOADED__
+#ifndef C7_EVENT_EXT_FORWARDER_HPP_LOADED__
+#define C7_EVENT_EXT_FORWARDER_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -19,7 +19,7 @@
 #include <unordered_set>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 template <typename BaseService>
@@ -27,7 +27,7 @@ class forwarder: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    using monitor   = c7::event::monitor;
+    //using monitor   = c7::event::monitor;
 
     class broker {
     private:
@@ -49,7 +49,6 @@ public:
 	    void unsubscribe() {
 		interests_.clear();
 	    }
-	    ~proxy() { broker_.uncontract(this); }
 
 	private:
 	    friend class broker;
@@ -88,18 +87,6 @@ public:
 	    }
 	}
 
-	void uncontract(proxy *p) {
-	    auto unlock = mutex_.lock();
-	    for (auto it = proxies_.begin(); it != proxies_.end();) {
-		auto sp = (*it).lock();
-		if (!sp || sp.get() == p) {
-		    it = proxies_.erase(it);
-		} else {
-		    ++it;
-		}
-	    }
-	}
-
     public:
 	std::shared_ptr<proxy> operator()() {
 	    auto unlock = mutex_.lock();
@@ -135,7 +122,7 @@ private:
 };
 
 
-} // c7::event
+} // c7::event::ext
 
 
 #endif // c7event/ext/forwarder.hpp

@@ -109,7 +109,7 @@ public:
 
 
 template <typename Msgbuf, typename Port>
-using shared_service_ptr =std::shared_ptr<service_interface<Msgbuf, Port>>;
+using shared_service_ptr = std::shared_ptr<service_interface<Msgbuf, Port>>;
 
 
 } // namespace c7::event

@@ -12,7 +12,7 @@
 #include <sys/eventfd.h>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 fsm_provider::fsm_provider(int evfd, c7::fsm::driver<void>&& fsm):
@@ -57,7 +57,7 @@ void fsm_provider::commit(event_t event)
     evfd_.write_n(&counter);
 }
 
-const char * const fsm_provider::manage_key = "c7::event::fsm_provider";
+const char * const fsm_provider::manage_key = "c7::event::ext::fsm_provider";
 
 
-} // namespace c7::event
+} // c7::event::ext

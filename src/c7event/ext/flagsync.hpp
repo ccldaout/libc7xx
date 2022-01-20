@@ -1,5 +1,5 @@
 /*
- * c7event/flagsync.hpp
+ * c7event/ext/flagsync.hpp
  *
  * Copyright (c) 2021 ccldaout@gmail.com
  *
@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_EVENT_FLAGSYNC_HPP_LOADED__
-#define C7_EVENT_FLAGSYNC_HPP_LOADED__
+#ifndef C7_EVENT_EXT_FLAGSYNC_HPP_LOADED__
+#define C7_EVENT_EXT_FLAGSYNC_HPP_LOADED__
 #include <c7common.hpp>
 
 
@@ -20,7 +20,7 @@
 #include <queue>
 
 
-namespace c7::event {
+namespace c7::event::ext {
 
 
 // provider
@@ -137,7 +137,7 @@ flagsync_service<BaseService>::bridge::setup(monitor& mon)
 }
 
 
-} // c7::event
+} // c7::event::ext
 
 
 #endif // c7event/ext/flagsync.hpp

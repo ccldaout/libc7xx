@@ -288,11 +288,6 @@ static void init()
     if (auto res = default_monitor.init(); !res) {
 	c7error(res);
     }
-
-    default_thread.target([]() { default_monitor.loop(); });
-    if (auto res = default_thread.start(); !res) {
-	c7error(res);
-    }
 }
 
 monitor& default_event_monitor()
