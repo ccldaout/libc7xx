@@ -240,6 +240,7 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 
 	  case '#':
 	    fm.alt = true;
+	    fm.pos = format_info::CENTER;
 	    break;
 
 	  default:
