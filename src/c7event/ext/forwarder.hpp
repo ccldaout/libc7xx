@@ -22,81 +22,99 @@
 namespace c7::event::ext {
 
 
+template <typename>
+class forwarder;
+
+
+template <typename, typename>
+class forwarder_broker;
+
+
+template <typename Msgbuf, typename Port = socket_port>
+class forwarder_proxy {
+public:
+    using broker = forwarder_broker<Msgbuf, Port>;
+    using callback_t = void(monitor&, Port&, io_result&, Msgbuf&);
+
+    void set_callback(const std::function<callback_t>& cb) {
+	callback_ = cb;
+    }
+    void subscribe(const std::vector<int32_t> interests) {
+	interests_.insert(interests.begin(), interests.end());
+    }
+    void unsubscribe(const std::vector<int32_t> interests) {
+	for (auto e: interests) {
+	    interests_.erase(e);
+	}
+    }
+    void unsubscribe() {
+	interests_.clear();
+    }
+
+private:
+    template <typename, typename>
+    friend class forwarder_broker;
+	    
+    std::unordered_set<int32_t> interests_;
+    std::function<callback_t> callback_;
+    broker& broker_;
+
+    explicit forwarder_proxy(broker& b): broker_(b) {}
+
+    void call(monitor& mon, Port& port, io_result& res, Msgbuf& msg) {
+	if (interests_.find(get_event(msg)) != interests_.end() || !res) {
+	    callback_(mon, port, res, msg);
+	}
+    }
+};
+
+
+template <typename Msgbuf, typename Port = socket_port>
+class forwarder_broker {
+private:
+    using proxy = forwarder_proxy<Msgbuf, Port>;
+
+    template <typename>
+    friend class forwarder;
+
+    c7::thread::mutex mutex_;
+    std::list<std::weak_ptr<proxy>> proxies_;
+
+    void forward(monitor& mon, Port& port, io_result& res, Msgbuf& msg) {
+	std::vector<std::shared_ptr<proxy>> spv;
+	auto unlock = mutex_.lock();
+	for (auto it = proxies_.begin(); it != proxies_.end();) {
+	    auto sp = (*it).lock();
+	    if (!sp) {
+		it = proxies_.erase(it);
+	    } else {
+		++it;
+		spv.push_back(std::move(sp));
+	    }
+	}
+	unlock();
+	for (auto sp: spv) {
+	    sp->call(mon, port, res, msg);
+	}
+    }
+
+public:
+    std::shared_ptr<proxy> operator()() {
+	auto unlock = mutex_.lock();
+	auto p = std::shared_ptr<proxy>(new proxy(*this));
+	proxies_.push_back(p);
+	return p;
+    }
+};
+
+
 template <typename BaseService>
 class forwarder: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    //using monitor   = c7::event::monitor;
 
-    class broker {
-    private:
-	class proxy {
-	public:
-	    using callback_t = void(monitor&, port_type&, io_result&, msgbuf_type&);
-	    explicit proxy(broker& b): broker_(b) {}
-	    void set_callback(const std::function<callback_t>& cb) {
-		callback_ = cb;
-	    }
-	    void subscribe(const std::vector<int32_t> interests) {
-		interests_.insert(interests.begin(), interests.end());
-	    }
-	    void unsubscribe(const std::vector<int32_t> interests) {
-		for (auto e: interests) {
-		    interests_.erase(e);
-		}
-	    }
-	    void unsubscribe() {
-		interests_.clear();
-	    }
-
-	private:
-	    friend class broker;
-	    
-	    std::unordered_set<int32_t> interests_;
-	    std::function<callback_t> callback_;
-	    broker& broker_;
-
-	    void call(monitor& mon, port_type& port, io_result& res, msgbuf_type& msg) {
-		if (interests_.find(get_event(msg)) != interests_.end() || !res) {
-		    callback_(mon, port, res, msg);
-		}
-	    }
-	};
-
-	friend class forwarder;
-
-	c7::thread::mutex mutex_;
-	std::list<std::weak_ptr<proxy>> proxies_;
-
-	void forward(monitor& mon, port_type& port, io_result& res, msgbuf_type& msg) {
-	    std::vector<std::shared_ptr<proxy>> spv;
-	    auto unlock = mutex_.lock();
-	    for (auto it = proxies_.begin(); it != proxies_.end();) {
-		auto sp = (*it).lock();
-		if (!sp) {
-		    it = proxies_.erase(it);
-		} else {
-		    ++it;
-		    spv.push_back(std::move(sp));
-		}
-	    }
-	    unlock();
-	    for (auto sp: spv) {
-		sp->call(mon, port, res, msg);
-	    }
-	}
-
-    public:
-	std::shared_ptr<proxy> operator()() {
-	    auto unlock = mutex_.lock();
-	    auto p = std::make_shared<proxy>(*this);
-	    proxies_.push_back(p);
-	    return p;
-	}
-    };
-
-    broker ext_forwarder;
+    forwarder_broker<msgbuf_type, port_type> ext_forwarder;
 
     forwarder() {}
 
