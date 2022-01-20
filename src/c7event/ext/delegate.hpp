@@ -26,7 +26,6 @@ class delegate: public BaseService {
 public:
     using port_type    = typename BaseService::port_type;
     using msgbuf_type  = typename BaseService::msgbuf_type;
-    //using monitor      = c7::event::monitor;
     using service_type = service_interface<msgbuf_type, port_type>;
 
     class broker {

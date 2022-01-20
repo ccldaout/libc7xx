@@ -25,7 +25,6 @@ class noop_service: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    //using monitor   = c7::event::monitor;
 
     noop_service() {}
     void on_message(monitor&, port_type&, msgbuf_type&) override {}

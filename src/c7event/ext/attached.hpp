@@ -26,7 +26,6 @@ class attached: public BaseService {
 public:
     using port_type    = typename BaseService::port_type;
     using msgbuf_type  = typename BaseService::msgbuf_type;
-    //using monitor      = c7::event::monitor;
 
     portgroup<port_type> ext_attached;
 

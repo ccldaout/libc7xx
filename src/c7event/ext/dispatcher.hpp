@@ -115,7 +115,6 @@ class dispatcher: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    //using monitor   = c7::event::monitor;
     using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, msgbuf_type&);
 
     dispatcher() {
