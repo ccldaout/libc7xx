@@ -140,7 +140,7 @@ class Replacer(object):
         self.__wf = open(self.__tmppath, "w")
         self.__clss = clss
 
-        pattern = r'void ([a-zA-Z_]\w+)(<.*>)?::dispatcher_setup\(\)'
+        pattern = r'[ \t]*(void)?[ \t]*([a-zA-Z_]\w+)(<.*>)?::dispatcher_setup\(\)'
         self.__reg = re.compile(pattern)
         self.__beg = '//[dispatcher:setup begin]'
         self.__end = '//[dispatcher:setup end]'
@@ -159,7 +159,7 @@ class Replacer(object):
             m = self.__reg.match(line)
             if m:
                 self.__wf.write(line)
-                cls = self.__find(m.group(1))
+                cls = self.__find(m.group(2))
             elif self.__beg in line:
                 self.__wf.write(line)
                 if cls:
