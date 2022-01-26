@@ -90,6 +90,16 @@ public:
 	return *this;
     }
 
+    io_result& copy_from(const io_result& o) {
+	if (this != &o) {
+	    result_.copy_from(o.result_);
+	    status_ = o.status_;
+	    done_   = o.done_;
+	    remain_ = o.remain_;
+	}
+	return *this;
+    }
+
     explicit operator bool() const {
 	return (status_ == status::OK);
     }

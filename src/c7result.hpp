@@ -196,6 +196,8 @@ public:
 	target.copy_from(*this);
     }
 
+    void copy_from(const result_base&);
+
     void merge_iferror(result_base&& source);
 
     result_base& operator<<(result_base&& source) {
@@ -243,8 +245,6 @@ protected:
     void add_errinfo(const char *file, int line, int what, const std::string& msg, const Arg1& arg1, const Args&... args) {
 	add_errinfo(file, line, what, c7::format(msg, arg1, args...));
     }
-
-    void copy_from(const result_base&);
 
     static void type_mismatch();
     static void has_no_value();

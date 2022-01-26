@@ -40,21 +40,54 @@ private:
     class iov_base_t {
     public:
 	explicit iov_base_t(::iovec *&iov): iov_(iov) {}
-	iov_base_t& operator=(void *p) { iov_->iov_base = p; return *this; }
-	iov_base_t& operator=(const void *p) { iov_->iov_base = const_cast<void*>(p); return *this; }
-	iov_base_t& operator=(const char *s) { iov_->iov_base = const_cast<char*>(s); iov_->iov_len = std::strlen(s) + 1; return *this; }
-	iov_base_t& operator=(const std::string& s) { return operator=(s.c_str()); }
-	template <typename T> iov_base_t& operator=(T *p) { iov_->iov_base = p; iov_->iov_len = sizeof(T); return *this; }
-	template <typename T> iov_base_t& operator=(const T *p) { return operator=(const_cast<T*>(p)); }
+	iov_base_t& operator=(void *p) {
+	    iov_->iov_base = p;
+	    return *this;
+	}
+	iov_base_t& operator=(const void *p) {
+	    iov_->iov_base = const_cast<void*>(p);
+	    return *this;
+	}
+	iov_base_t& operator=(const char *s) {
+	    iov_->iov_base = const_cast<char*>(s);
+	    iov_->iov_len = std::strlen(s) + 1;
+	    return *this;
+	}
+	iov_base_t& operator=(const std::string& s) {
+	    iov_->iov_base = const_cast<char*>(s.c_str());
+	    iov_->iov_len = s.size();
+	    return *this;
+	}
+	template <typename T> iov_base_t& operator=(T *p) {
+	    iov_->iov_base = p;
+	    iov_->iov_len = sizeof(T);
+	    return *this;
+	}
+	template <typename T> iov_base_t& operator=(const T *p) {
+	    return operator=(const_cast<T*>(p));
+	}
 	template <typename T> iov_base_t& operator=(const std::vector<T>& v) {
 	    iov_->iov_base = const_cast<void*>(static_cast<const void*>(v.data()));
 	    iov_->iov_len = sizeof(T) * v.size();
 	    return *this;
 	}
-	operator void* () { return iov_->iov_base; }
-	template <typename T> operator T* () { return as<T>(); }
-	template <typename T> T* as() { return static_cast<T*>(iov_->iov_base); }
-	auto print_as() const { return iov_->iov_base; }
+	template <typename T, size_t N> iov_base_t& operator=(const std::array<T, N>& v) {
+	    iov_->iov_base = const_cast<void*>(static_cast<const void*>(v.data()));
+	    iov_->iov_len = sizeof(T) * N;
+	    return *this;
+	}
+	operator void* () {
+	    return iov_->iov_base;
+	}
+	template <typename T> operator T* () {
+	    return as<T>();
+	}
+	template <typename T> T* as() {
+	    return static_cast<T*>(iov_->iov_base);
+	}
+	auto print_as() const {
+	    return iov_->iov_base;
+	}
     private:
 	::iovec *&iov_;
     };

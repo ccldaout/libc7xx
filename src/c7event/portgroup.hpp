@@ -61,6 +61,9 @@ public:
     void add_error(Port& port, io_result&& io_res) {
 	errs_.emplace_back(&port, std::move(io_res));
     }
+    auto& errors() {
+	return errs_;
+    }
     auto& errors() const {
 	return errs_;
     }
