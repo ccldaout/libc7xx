@@ -53,7 +53,6 @@ class service_interface:
 public:
     using attach_id = c7::event::attach_id;
     using detach_id = c7::event::detach_id;
-    using base_type = service_interface<Msgbuf, Port>;
     using msgbuf_type = Msgbuf;
     using port_type = Port;
 
@@ -105,6 +104,9 @@ public:
     //          to set SO_RCVBUF option after connection is established.
     //
     virtual void on_pre_connect(monitor&, port_type&) {}
+
+private:
+    using base_type = service_interface<Msgbuf, Port>;
 };
 
 
