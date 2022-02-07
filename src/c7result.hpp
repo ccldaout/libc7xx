@@ -254,6 +254,11 @@ private:
 };
 
 
+class result_err: public result_base {
+    using result_base::result_base;
+};
+
+
 // primary template
 
 template <typename R = void, typename Tag = result_category_t<R>>
@@ -281,10 +286,11 @@ public:
 	result_base(std::move(o)), value_(std::move(o.value_)) {
     }
 
-    result(result_base&& o): result_base(std::move(o)), value_(init_()) {
-	if (*this) {
-	    type_mismatch();
-	}
+    result(result_err&& o): result_base(std::move(o)), value_(init_()) {
+    }
+
+    result_err&& as_error() {
+	return reinterpret_cast<result_err&&>(*this);
     }
 
     template <typename... Args>
@@ -356,10 +362,14 @@ public:
 
     result(result&& o): result_base(std::move(o)), value_(o.value_) {}
 
-    result(result_base&& o): result_base(std::move(o)), value_() {
+    result(result_err&& o): result_base(std::move(o)), value_() {
 	if (!errors_) {
 	    type_mismatch();
 	}
+    }
+
+    result_err&& as_error() {
+	return reinterpret_cast<result_err&&>(*this);
     }
 
     template <typename... Args>
@@ -406,6 +416,10 @@ public:
 
     result(result_base&& o): result_base(std::move(o)) {}
 
+    result_err&& as_error() {
+	return reinterpret_cast<result_err&&>(*this);
+    }
+
     template <typename... Args>
     result& set_error(const Args&... args) {
 	result_base::set_error(args...);
@@ -425,6 +439,15 @@ template <>
 struct format_traits<result_base> {
     static c7::delegate<bool, std::ostream&, int> translate_what;
     static void convert(std::ostream& out, const std::string& format, const result_base& arg);
+};
+
+
+template <>
+struct format_traits<result_err> {
+    static c7::delegate<bool, std::ostream&, int> translate_what;
+    static void convert(std::ostream& out, const std::string& format, const result_err& arg) {
+	format_traits<result_base>::convert(out, format, arg);
+    }
 };
 
 
@@ -450,7 +473,7 @@ inline auto c7result_ok()
     return c7::result<>();
 }
 
-#define c7result_err(...)		c7::result_base(__FILE__, __LINE__, __VA_ARGS__)
+#define c7result_err(...)		c7::result_err(__FILE__, __LINE__, __VA_ARGS__)
 #define c7result_seterr(r, ...)		std::move(((r).set_error(__FILE__, __LINE__, __VA_ARGS__)))
 
 

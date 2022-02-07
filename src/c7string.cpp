@@ -185,7 +185,7 @@ static result<const char*> evalvarref(std::string& out, const char *in, const ev
 }
 
 c7::result<> eval(std::string& out, const std::string& in_, char mark, char escape,
-		      c7::str::evalvar evalvar)
+		  c7::str::evalvar evalvar)
 {
     const char brks[] = { mark, escape, '}', 0 };
     evalprm prm = {
@@ -223,7 +223,7 @@ c7::result<> eval(std::string& out, const std::string& in_, char mark, char esca
 }
 
 c7::result<> eval(std::stringstream& out, const std::string& in, char mark, char escape,
-		      c7::str::evalvar evalvar)
+		  c7::str::evalvar evalvar)
 {
     std::string tmp;
     auto r = eval(tmp, in, mark, escape, evalvar);
@@ -242,7 +242,7 @@ c7::result<std::string> eval(const std::string& in, char mark, char escape,
     if (r) {
 	return c7result_ok(std::move(out));
     }
-    return result<std::string>(std::move(r));
+    return r.as_error();
 }
 
 

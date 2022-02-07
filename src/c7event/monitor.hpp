@@ -96,7 +96,7 @@ template <typename T>
 result<std::shared_ptr<T>> monitor::find(const std::string& key)
 {
     if (auto res = find_provider(key); !res) {
-	return std::move(res);
+	return res.as_error();
     } else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {
 	return c7result_err(EINVAL, "downcast failed: key: %{}", key);
     } else {

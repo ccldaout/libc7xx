@@ -177,7 +177,7 @@ c7::result<std::vector<dconf_def>> dconf::load(const std::string& name)
 {
     auto res = loaddconf(name);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     storage_ = std::move(res.value());
     return c7result_ok(makedef(storage_.get()));

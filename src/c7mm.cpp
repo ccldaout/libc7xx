@@ -48,19 +48,18 @@ c7::result<std::pair<void *, size_t>>
 anon_mmap_manager::reserve(size_t size)
 {
     size = c7_align(size, PAGESIZE);
-    if (size <= map_size_) {
-	return c7result_ok();
+    if (size > map_size_) {
+	void *addr = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	if (addr == MAP_FAILED) {
+	    return c7result_err(errno, "mmap(, %{}, ...) failed", size);
+	}
+	if (map_addr_ != nullptr) {
+	    (void)std::memcpy(addr, map_addr_, map_size_);
+	    (void)::munmap(map_addr_, map_size_);
+	}
+	map_addr_ = addr;
+	map_size_ = size;
     }
-    void *addr = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if (addr == MAP_FAILED) {
-	return c7result_err(errno, "mmap(, %{}, ...) failed", size);
-    }
-    if (map_addr_ != nullptr) {
-	(void)std::memcpy(addr, map_addr_, map_size_);
-	(void)::munmap(map_addr_, map_size_);
-    }
-    map_addr_ = addr;
-    map_size_ = size;
     return c7result_ok(std::make_pair(map_addr_, map_size_));
 }
 

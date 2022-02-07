@@ -238,7 +238,7 @@ c7::result<ssize_t> read_into(const std::string& path, void *buf, size_t size)
 {
     auto res = ropen(path);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     auto fd = res.value();
     ssize_t az = ::read(fd, buf, size);
@@ -329,7 +329,7 @@ result<void*> read_impl(const std::string& path, size_t& size)
     struct ::stat st;
     auto o_res = rx_open(path, &st);
     if (!o_res) {
-	return std::move(o_res);
+	return o_res.as_error();
     }
 
     int fd = o_res.value();
@@ -360,7 +360,7 @@ result<std::vector<std::string>> readlines(const std::string& path)
 {
     auto res = read<char>(path);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     return c7result_ok(c7::str::split(res.value().get(), '\n'));
 }

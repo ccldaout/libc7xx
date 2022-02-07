@@ -174,7 +174,7 @@ result<bool> fd::get_cloexec()
 {
     auto ret = get_flag(F_GETFD);
     if (!ret) {
-	return std::move(ret);
+	return ret.as_error();
     }
     return c7result_ok((ret.value() & FD_CLOEXEC) != 0);
 }
@@ -188,7 +188,7 @@ result<bool> fd::get_nonblocking()
 {
     auto ret = get_flag(F_GETFL);
     if (!ret) {
-	return std::move(ret);
+	return ret.as_error();
     }
     return c7result_ok((ret.value() & O_NONBLOCK) != 0);
 }
@@ -401,7 +401,7 @@ result<uint32_t> fd::wait(uint32_t which, c7::usec_t tmo_us)
     }
 
     if (ret == 0) {
-	return c7result_ok(0);			// timeout 
+	return c7result_ok(0U);			// timeout 
     }
 
     which = 0;

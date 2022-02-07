@@ -246,7 +246,7 @@ public:
     result<bool> wait_readable(c7::usec_t tmo_us = -1) {
 	auto res = wait(READABLE, tmo_us);
 	if (!res)  {
-	    return std::move(res);
+	    return res.as_error();
 	}
 	return c7result_ok((res.value() & READABLE) != 0);
     }
@@ -254,7 +254,7 @@ public:
     result<bool> wait_writable(c7::usec_t tmo_us = -1) {
 	auto res = wait(WRITABLE, tmo_us);
 	if (!res) {
-	    return std::move(res);
+	    return res.as_error();
 	}
 	return c7result_ok((res.value() & WRITABLE) != 0);
     }

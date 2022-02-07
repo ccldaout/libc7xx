@@ -24,14 +24,15 @@ namespace c7::event {
 
 template <typename Header, int N>
 multipart_msgbuf<Header, N>::multipart_msgbuf():
-    header(Header()), iov_({{nullptr,0}})
+    header(Header()), iov_{}
 {
 }
 
 template <typename Header, int N>
 multipart_msgbuf<Header, N>::multipart_msgbuf(multipart_msgbuf&& o):
-    header(o.header), iov_(o.iov_), storage_(std::move(o.storage_))
+    header(o.header), storage_(std::move(o.storage_))
 {
+    std::memcpy(iov_, o.iov_, sizeof(iov_));
 }
 
 template <typename Header, int N>

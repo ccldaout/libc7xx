@@ -216,7 +216,7 @@ static result<pid_t> forkexec(int conf_fd,
     char errval;
 
     if (auto res = fork_x(newpid, chkpipe); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     if (newpid == 0) {

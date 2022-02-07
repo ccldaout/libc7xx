@@ -445,15 +445,15 @@ result<socket> tcp_server(const sockaddr_gen& addr, int rcvbuf_size, int backlog
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(addr); !res) {
-	return std::move(res);
+	return res.as_error();
     }
     if (rcvbuf_size > 0) {
 	if (auto res = sock.set_rcvbuf(rcvbuf_size); !res) {
-	    return std::move(res);
+	    return res.as_error();
 	}
     }
     if (auto res = sock.listen(backlog); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();
@@ -469,7 +469,7 @@ result<socket> tcp_server(const std::string& host, int port, int rcvbuf_size, in
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     return tcp_server(res.value(), rcvbuf_size, backlog);
 }
@@ -486,11 +486,11 @@ result<socket> tcp_client(const sockaddr_gen& addr, int rcvbuf_size)
 
     if (rcvbuf_size > 0) {
 	if (auto res = sock.set_rcvbuf(rcvbuf_size); !res) {
-	    return std::move(res);
+	    return res.as_error();
 	}
     }
     if (auto res = sock.connect(addr); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();
@@ -506,7 +506,7 @@ result<socket> tcp_client(const std::string& host, int port, int rcvbuf_size)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     return tcp_client(res.value(), rcvbuf_size);
 }
@@ -515,14 +515,14 @@ result<socket> udp_binded(const sockaddr_gen& addr)
 {
     auto res = socket::udp();
     if (!res) {
-	return res;
+	return res.as_error();
     }
 
     auto sock = std::move(res.value());
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.bind(addr); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();
@@ -538,7 +538,7 @@ result<socket> udp_binded(const std::string& host, int port)
 {
     auto res = sockaddr_ipv4(host, port);
     if (!res) {
-	return std::move(res);
+	return res.as_error();
     }
     return udp_binded(res.value());
 }
@@ -555,10 +555,10 @@ result<socket> unix_server(const std::string& path, int backlog)
 
     (void)::unlink(path.c_str());
     if (auto res = sock.bind(path); !res) {
-	return std::move(res);
+	return res.as_error();
     }
     if (auto res = sock.listen(backlog); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();
@@ -576,7 +576,7 @@ result<socket> unix_client(const std::string& path)
     auto defer = c7::defer([&sock](){ sock.close(); });
 
     if (auto res = sock.connect(path); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();
@@ -595,7 +595,7 @@ result<socket> unix_dg_binded(const std::string& path)
 
     (void)::unlink(path.c_str());
     if (auto res = sock.bind(path); !res) {
-	return std::move(res);
+	return res.as_error();
     }
 
     defer.cancel();

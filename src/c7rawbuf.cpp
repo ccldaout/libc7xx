@@ -39,16 +39,15 @@ std_memory_manager::operator=(std_memory_manager&& o)
 c7::result<std::pair<void *, size_t>>
 std_memory_manager::reserve(size_t size)
 {
-    if (size <= size_) {
-	return c7result_ok();
+    if (size > size_) {
+	if (void *addr = std::realloc(addr_, size); addr == nullptr) {
+	    return c7result_err(errno, "std::realloc(, %{}) failed", size);
+	} else {
+	    addr_ = addr;
+	    size_ = size;
+	}
     }
-    if (void *addr = std::realloc(addr_, size); addr == nullptr) {
-	return c7result_err(errno, "std::realloc(, %{}) failed", size);
-    } else {
-	addr_ = addr;
-	size_ = size;
-	return c7result_ok(std::make_pair(addr_, size_));
-    }
+    return c7result_ok(std::make_pair(addr_, size_));
 }
 
 void
