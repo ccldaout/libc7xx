@@ -55,7 +55,7 @@ private:
 	}
 	iov_base_t& operator=(const std::string& s) {
 	    iov_->iov_base = const_cast<char*>(s.c_str());
-	    iov_->iov_len = s.size();
+	    iov_->iov_len = s.size() + 1;
 	    return *this;
 	}
 	template <typename T> iov_base_t& operator=(T *p) {
