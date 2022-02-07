@@ -602,7 +602,8 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
     const raddr_t brk_addr = ret_addr - hdr_->logsize_b;
     rec_t rec;
     
-    maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : -1UL);
+    maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : (-1UL - 1));
+    maxcount++;
 
     for (;;) {
 	raddr_t size;
