@@ -32,14 +32,14 @@ public:
     attached() {}
 
     attach_id on_attached(monitor& mon, port_type& port, provider_hint hint) override {
-	auto id = BaseService::on_attached(mon, port, hint);
 	ext_attached.add(port);
+	auto id = BaseService::on_attached(mon, port, hint);
 	return id;
     }
 
     detach_id on_detached(monitor& mon, port_type& port, provider_hint hint) override {
-	auto id = BaseService::on_detached(mon, port, hint);
 	ext_attached.remove(port);
+	auto id = BaseService::on_detached(mon, port, hint);
 	return id;
     }
 
