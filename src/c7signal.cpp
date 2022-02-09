@@ -44,6 +44,7 @@ public:
 
 	c7::thread::thread loop_thread;
 	loop_thread.target([this, wait_mask](){ loop(wait_mask); });
+	loop_thread.set_name("sigloop");
 	return loop_thread.start();
     }
 

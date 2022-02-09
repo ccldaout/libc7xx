@@ -337,6 +337,7 @@ result<> start_thread()
 {
     std::call_once(once_init, init);
     default_thread.target([]() { default_monitor.loop(); });
+    default_thread.set_name("evloop");
     return default_thread.start();
 }
 

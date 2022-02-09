@@ -433,6 +433,7 @@ public:
 	(void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
 	if (this == &main_thread) {
 	    current_thread = this;
+	    name_ = "main";
 	}
 	if (id_ == 0) {
 	    std::atexit(mark_exiting);
