@@ -363,9 +363,6 @@ public:
     result(result&& o): result_base(std::move(o)), value_(o.value_) {}
 
     result(result_err&& o): result_base(std::move(o)), value_() {
-	if (!errors_) {
-	    type_mismatch();
-	}
     }
 
     result_err&& as_error() {
