@@ -57,10 +57,10 @@ namespace c7::event::ext {
 //          }
 //
 //          // You must define callback_default.
-//          void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) override;
+//          void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) override;
 //
 //          // Event handler has same signature with on_message.
-//          void handle_event(monitor& mon, port_type& port, msgbuf_type& msg);
+//          void handle_event(monitor& mon, port_type& port, const msgbuf_type& msg);
 //
 //          ...
 //
@@ -77,12 +77,12 @@ namespace c7::event::ext {
 //          void dispatcher_setup();
 //
 //          // You must define callback_default.
-//          void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) override;
+//          void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) override;
 //
 //          // [TYPE 1]
 //          // callback function name is delived by event mnemonic with callback_ prefix.
 //
-//          void callback_EVENT_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//          void callback_EVENT_NAME(monitor& mon, port_type& port, const msgbuf_type& msg);
 //
 //          // [TYPE 2]
 //          // you can assign one callback function to two or more events by specifying 
@@ -91,7 +91,7 @@ namespace c7::event::ext {
 //          // numbers with infix colon. 
 //
 //          //[dispatcher:callback EVENT_NAME_1:EVENT_NAME_2 ...]
-//          void callback_FAVORITE_NAME(monitor& mon, port_type& port, msgbuf_type& msg);
+//          void callback_FAVORITE_NAME(monitor& mon, port_type& port, const msgbuf_type& msg);
 //
 //          // When multiple functions assign to one event number, one is selected by their
 //          // priotity. [TYPE 1] is higher than [TYPE 2]. First assigned is higher than later
@@ -115,7 +115,7 @@ class dispatcher: public BaseService {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, msgbuf_type&);
+    using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, const msgbuf_type&);
 
     dispatcher() {
 	static_cast<DelivedService*>(this)->dispatcher_setup();
@@ -131,7 +131,7 @@ public:
 	}
     }
 
-    virtual void callback_default(monitor& mon, port_type& port, msgbuf_type& msg) = 0;
+    virtual void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) = 0;
 
 protected:
     // high priority assign:

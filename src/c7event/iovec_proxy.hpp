@@ -80,10 +80,19 @@ private:
 	operator void* () {
 	    return iov_->iov_base;
 	}
+	operator const void* () const {
+	    return iov_->iov_base;
+	}
 	template <typename T> operator T* () {
 	    return as<T>();
 	}
+	template <typename T> operator const T* () const {
+	    return as<T>();
+	}
 	template <typename T> T* as() {
+	    return static_cast<T*>(iov_->iov_base);
+	}
+	template <typename T> const T* as() const {
 	    return static_cast<T*>(iov_->iov_base);
 	}
 
@@ -110,7 +119,7 @@ public:
     iovec_proxy& operator-=(int n) { iov_ -= n; return *this; }
 
     template <typename T>
-    c7::result<> strict_ptr(T*& p) {
+    c7::result<> strict_ptr(T*& p) const {
 	if (iov_->iov_base != nullptr && iov_->iov_len == sizeof(T)) {
 	    p = static_cast<T*>(iov_->iov_base);
 	    return c7result_ok();
@@ -121,7 +130,7 @@ public:
 	}
     }
     template <typename T>
-    c7::result<> strict_ptr(T*& p, size_t& n) {
+    c7::result<> strict_ptr(T*& p, size_t& n) const {
 	if (iov_->iov_base != nullptr && (iov_->iov_len % sizeof(T)) == 0) {
 	    p = static_cast<T*>(iov_->iov_base);
 	    n = iov_->iov_len / sizeof(T);
@@ -134,7 +143,7 @@ public:
 	}
     }
     template <typename T>
-    c7::result<> relaxed_ptr(T*& p) {
+    c7::result<> relaxed_ptr(T*& p) const {
 	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
 	    p = static_cast<T*>(iov_->iov_base);
 	    return c7result_ok();
@@ -145,7 +154,7 @@ public:
 	}
     }
     template <typename T>
-    c7::result<> relaxed_ptr(T*& p, size_t& n) {
+    c7::result<> relaxed_ptr(T*& p, size_t& n) const {
 	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
 	    p = static_cast<T*>(iov_->iov_base);
 	    n = iov_->iov_len / sizeof(T);
