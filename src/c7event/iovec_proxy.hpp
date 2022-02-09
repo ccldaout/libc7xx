@@ -76,6 +76,7 @@ private:
 	    iov_->iov_len = sizeof(T) * N;
 	    return *this;
 	}
+
 	operator void* () {
 	    return iov_->iov_base;
 	}
@@ -85,6 +86,7 @@ private:
 	template <typename T> T* as() {
 	    return static_cast<T*>(iov_->iov_base);
 	}
+
 	auto print_as() const {
 	    return iov_->iov_base;
 	}
@@ -106,6 +108,55 @@ public:
     iovec_proxy& operator--() { iov_--; return *this; }
     iovec_proxy& operator+=(int n) { iov_ += n; return *this; }
     iovec_proxy& operator-=(int n) { iov_ -= n; return *this; }
+
+    template <typename T>
+    c7::result<> strict_ptr(T*& p) {
+	if (iov_->iov_base != nullptr && iov_->iov_len == sizeof(T)) {
+	    p = static_cast<T*>(iov_->iov_base);
+	    return c7result_ok();
+	} else {
+	    p = nullptr;
+	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
+				sizeof(T), iov_->iov_len);
+	}
+    }
+    template <typename T>
+    c7::result<> strict_ptr(T*& p, size_t& n) {
+	if (iov_->iov_base != nullptr && (iov_->iov_len % sizeof(T)) == 0) {
+	    p = static_cast<T*>(iov_->iov_base);
+	    n = iov_->iov_len / sizeof(T);
+	    return c7result_ok();
+	} else {
+	    p = nullptr;
+	    n = 0;
+	    return c7result_err(EINVAL, "type size mismatch: require:%{}xN, actual:%{}",
+				sizeof(T), iov_->iov_len);
+	}
+    }
+    template <typename T>
+    c7::result<> relaxed_ptr(T*& p) {
+	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
+	    p = static_cast<T*>(iov_->iov_base);
+	    return c7result_ok();
+	} else {
+	    p = nullptr;
+	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
+				sizeof(T), iov_->iov_len);
+	}
+    }
+    template <typename T>
+    c7::result<> relaxed_ptr(T*& p, size_t& n) {
+	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
+	    p = static_cast<T*>(iov_->iov_base);
+	    n = iov_->iov_len / sizeof(T);
+	    return c7result_ok();
+	} else {
+	    p = nullptr;
+	    n = 0;
+	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
+				sizeof(T), iov_->iov_len);
+	}
+    }
 };
 
 
