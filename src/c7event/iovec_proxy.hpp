@@ -103,6 +103,11 @@ private:
 	::iovec *&iov_;
     };
 
+    c7::result<> size_error(size_t elm_size) const {
+	return c7result_err(EINVAL, "type size mismatch: sizeof():%{}, actual:%{}",
+			    elm_size, iov_->iov_len);
+    }
+
 public:
     iov_len_t iov_len;
     iov_base_t iov_base;
@@ -120,50 +125,67 @@ public:
 
     template <typename T>
     c7::result<> strict_ptr(T*& p) const {
-	if (iov_->iov_base != nullptr && iov_->iov_len == sizeof(T)) {
-	    p = static_cast<T*>(iov_->iov_base);
+	p = static_cast<T*>(iov_->iov_base);
+	if (iov_->iov_len == sizeof(T)) {
 	    return c7result_ok();
 	} else {
-	    p = nullptr;
-	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
-				sizeof(T), iov_->iov_len);
+	    return size_error(sizeof(T));
+	}
+    }
+    template <typename T>
+    c7::result<> strict_ptr_nullable(T*& p) const {
+	p = static_cast<T*>(iov_->iov_base);
+	if (iov_->iov_len == sizeof(T) || p == nullptr) {
+	    return c7result_ok();
+	} else {
+	    return size_error(sizeof(T));
 	}
     }
     template <typename T>
     c7::result<> strict_ptr(T*& p, size_t& n) const {
-	if (iov_->iov_base != nullptr && (iov_->iov_len % sizeof(T)) == 0) {
-	    p = static_cast<T*>(iov_->iov_base);
-	    n = iov_->iov_len / sizeof(T);
+	p = static_cast<T*>(iov_->iov_base);
+	n = iov_->iov_len / sizeof(T);
+	if (n > 0 && (iov_->iov_len % sizeof(T)) == 0) {
 	    return c7result_ok();
 	} else {
-	    p = nullptr;
-	    n = 0;
-	    return c7result_err(EINVAL, "type size mismatch: require:%{}xN, actual:%{}",
-				sizeof(T), iov_->iov_len);
+	    return size_error(sizeof(T));
+	}
+    }
+    template <typename T>
+    c7::result<> strict_ptr_nullable(T*& p, size_t& n) const {
+	p = static_cast<T*>(iov_->iov_base);
+	n = iov_->iov_len / sizeof(T);
+	if (n >= 0 && (iov_->iov_len % sizeof(T)) == 0) {
+	    return c7result_ok();
+	} else {
+	    return size_error(sizeof(T));
+	}
+    }
+    template <typename T>
+    c7::result<> strict_ptr_just(T*& p, size_t n) const {
+	p = static_cast<T*>(iov_->iov_base);
+	if ((iov_->iov_len / sizeof(T)) == n) {
+	    return c7result_ok();
+	} else {
+	    return size_error(sizeof(T));
 	}
     }
     template <typename T>
     c7::result<> relaxed_ptr(T*& p) const {
-	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
-	    p = static_cast<T*>(iov_->iov_base);
+	p = static_cast<T*>(iov_->iov_base);
+	if (iov_->iov_len > sizeof(T)) {
 	    return c7result_ok();
 	} else {
-	    p = nullptr;
-	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
-				sizeof(T), iov_->iov_len);
+	    return size_error(sizeof(T));
 	}
     }
     template <typename T>
-    c7::result<> relaxed_ptr(T*& p, size_t& n) const {
-	if (iov_->iov_base != nullptr && iov_->iov_len > sizeof(T)) {
-	    p = static_cast<T*>(iov_->iov_base);
-	    n = iov_->iov_len / sizeof(T);
+    c7::result<> relaxed_ptr_nullable(T*& p) const {
+	p = static_cast<T*>(iov_->iov_base);
+	if (iov_->iov_len > sizeof(T) || p == nullptr) {
 	    return c7result_ok();
 	} else {
-	    p = nullptr;
-	    n = 0;
-	    return c7result_err(EINVAL, "type size mismatch: require:%{}, actual:%{}",
-				sizeof(T), iov_->iov_len);
+	    return size_error(sizeof(T));
 	}
     }
 };
