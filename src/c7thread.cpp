@@ -67,22 +67,6 @@ spinlock::spinlock()
     pimpl = new spinlock::impl();
 }
 
-spinlock::spinlock(spinlock&& o)
-{
-    pimpl = o.pimpl;
-    o.pimpl = nullptr;
-}
-
-spinlock& spinlock::operator=(spinlock&& o)
-{
-    if (this != &o) {
-	delete pimpl;
-	pimpl = o.pimpl;
-	o.pimpl = nullptr;
-    }
-    return *this;
-}
-
 spinlock::~spinlock()
 {
     delete pimpl;
@@ -151,22 +135,6 @@ public:
 mutex::mutex(bool recursive)
 {
     pimpl = new mutex::impl(recursive);
-}
-
-mutex::mutex(mutex&& o)
-{
-    pimpl = o.pimpl;
-    o.pimpl = nullptr;
-}
-
-mutex& mutex::operator=(mutex&& o)
-{
-    if (this != &o) {
-	delete pimpl;
-	pimpl = o.pimpl;
-	o.pimpl = nullptr;
-    }
-    return *this;
 }
 
 mutex::~mutex()
@@ -273,22 +241,6 @@ condvar::condvar()
 condvar::condvar(mutex& mutex)
 {
     pimpl = new condvar::impl(&mutex);
-}
-
-condvar::condvar(condvar&& o)
-{
-    pimpl = o.pimpl;
-    o.pimpl = nullptr;
-}
-
-condvar& condvar::operator=(condvar&& o)
-{
-    if (this != &o) {
-	delete pimpl;
-	pimpl = o.pimpl;
-	o.pimpl = nullptr;
-    }
-    return *this;
 }
 
 condvar::~condvar()

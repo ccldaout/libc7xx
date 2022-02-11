@@ -82,7 +82,7 @@ private:
     typedef std::pair<state_t, callback_id_t> table_val_t;
 
     uint64_t id_;
-    c7::thread::mutex lock_;
+    std::unique_ptr<c7::thread::mutex> lock_;
     std::vector<state_t> initials_;
     std::vector<state_t> currents_;
     std::unordered_map<table_key_t, table_val_t> table_;

@@ -45,8 +45,8 @@ public:
     spinlock& operator=(const spinlock&) = delete;
 
     spinlock();
-    spinlock(spinlock&& o);
-    spinlock& operator=(spinlock&& o);
+    spinlock(spinlock&& o) = delete;
+    spinlock& operator=(spinlock&& o) = delete;
     ~spinlock();
 
     void _lock();
@@ -111,8 +111,8 @@ public:
     mutex& operator=(const mutex&) = delete;
 
     explicit mutex(bool recursive = false);
-    mutex(mutex&& o);
-    mutex& operator=(mutex&& o);
+    mutex(mutex&& o) = delete;
+    mutex& operator=(mutex&& o) = delete;
     ~mutex();
 
     void _lock();
@@ -175,8 +175,8 @@ public:
 
     condvar();
     explicit condvar(mutex& mutex);
-    condvar(condvar&&);
-    condvar& operator=(condvar&&);
+    condvar(condvar&&) = delete;
+    condvar& operator=(condvar&&) = delete;
     ~condvar();
 
     void _lock();

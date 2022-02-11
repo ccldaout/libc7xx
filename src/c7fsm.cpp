@@ -18,7 +18,7 @@ static std::atomic<uint64_t> id_counter;
 
 
 driver_base::driver_base():
-    id_(++id_counter), table_(128), callbacks_(128),
+    id_(++id_counter), lock_(new c7::thread::mutex()), table_(128), callbacks_(128),
     def_partials_(32), ena_partials_(32), combined_(16)
 {
 }
@@ -82,7 +82,7 @@ bool driver_base::try_get_combined(event_t& ev)
 
 bool driver_base::step(state_t& cur, event_t ev, void *ctx)
 {
-    auto unlock = lock_.lock();
+    auto unlock = lock_->lock();
 
     auto it = table_.find(table_key_t(cur, ev));
     if (it == table_.end()) {
