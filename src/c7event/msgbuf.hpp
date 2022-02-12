@@ -52,8 +52,8 @@ public:
     template <typename Port> result<> send(portgroup<Port>& ports);
     void dump() const;
 
-    iovec_proxy operator[](int n) { return iovec_proxy{&iov_[n]}; }
-    const iovec_proxy operator[](int n) const { return iovec_proxy{&iov_[n]}; }
+    iovec_proxy operator[](int n) { return iovec_proxy{iov_[n]}; }
+    const iovec_proxy operator[](int n) const { return iovec_proxy{iov_[n]}; }
 
 private:
     template <typename, int>

@@ -10,7 +10,7 @@
 
 #include <c7app.hpp>
 #include <c7signal.hpp>
-#include <c7threadsync.hpp>
+#include <c7thread.hpp>
 #include <unistd.h>
 #include <sys/signal.h>
 #include <mutex>
