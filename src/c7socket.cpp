@@ -218,6 +218,12 @@ result<> socket::connect(const sockaddr_gen& addr)
     if (::connect(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
 	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, addr);
     }
+    if (addr.is_unix()) {
+	// getsockname return sun_path as empty string in case of UNIX domain socket
+	// active opened. therefore name_ is assigned here.
+	const auto& p = addr.unix.sun_path;
+	name_ = c7::format("unix<%{}%{}>", *p == 0 ? '!' : *p, p+1);
+    }
     return c7result_ok();
 }
 

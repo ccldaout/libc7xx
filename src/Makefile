@@ -31,13 +31,16 @@ HDRS := $(wildcard *.hpp */*.hpp */*/*.hpp)
 SRCS := $(wildcard *.cpp */*.cpp */*/*.cpp)
 OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.cpp,%.o,$(SRCS)))
 
-C7_DIRS += $(C7_OUT_OBJDIR)/c7event $(C7_OUT_OBJDIR)/c7event/ext
+C7_DIRS += $(C7_OUT_OBJDIR)/c7event $(C7_OUT_OBJDIR)/c7event/ext $(C7_OUT_OBJDIR)/c7thread
 
 
 $(C7_OUT_OBJDIR)/c7event/%.o: %.cpp
 	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
 
 $(C7_OUT_OBJDIR)/c7event/ext/%.o: %.cpp
+	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
+
+$(C7_OUT_OBJDIR)/c7thread/%.o: %.cpp
 	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
 
 

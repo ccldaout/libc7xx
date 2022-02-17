@@ -80,7 +80,9 @@ public:
     void operator()() {
 	auto f = func_;
 	func_ = nullptr;
-	f();
+	if (f) {
+	    f();
+	}
     }
 
     explicit operator bool() const {

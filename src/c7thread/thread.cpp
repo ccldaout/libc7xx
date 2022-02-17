@@ -1,5 +1,5 @@
 /*
- * c7thread.cpp
+ * c7thread/thread.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -8,291 +8,24 @@
  */
 
 
-#include <c7thread.hpp>
 #include <atomic>
-#include <exception>
-#include <pthread.h>
 #include <signal.h>	// pthread_kill
-#include <stdexcept>
+#include "condvar.hpp"
+#include "thread.hpp"
+#include "_private.hpp"
 
 
-namespace c7 {
-namespace thread {
+namespace c7::thread {
 
 
-static bool process_alive = true;
+bool process_alive = true;
 
-
-/*----------------------------------------------------------------------------
-                                    spinlock
-----------------------------------------------------------------------------*/
-
-class spinlock::impl {
-private:
-    pthread_spinlock_t m_;
-
-public:
-    impl() {
-	(void)pthread_spin_init(&m_, PTHREAD_PROCESS_PRIVATE);
-    }
-
-    ~impl() {
-	(void)pthread_spin_destroy(&m_);
-    }
-
-    bool _lock(bool wait) {
-	int ret = wait ? pthread_spin_lock(&m_) : pthread_spin_trylock(&m_);
-	if (ret != C7_SYSOK) {
-	    if (ret == EBUSY) {
-		return false;
-	    }
-	    if (process_alive) {
-		throw thread_error(ret, "pthread_spinlock_[try]lock");
-	    }
-	}
-	return true;
-    }
-
-    void unlock() {
-	(void)pthread_spin_unlock(&m_);
-    }
-
-    pthread_spinlock_t& __pthread_spinlock() {
-	return m_;
-    }
-};
-
-spinlock::spinlock()
-{
-    pimpl = new spinlock::impl();
-}
-
-spinlock::~spinlock()
-{
-    delete pimpl;
-    pimpl = nullptr;
-}
-
-void spinlock::_lock()
-{
-    (void)pimpl->_lock(true);
-}
-
-bool spinlock::_trylock()
-{
-    return pimpl->_lock(false);
-}
-
-void spinlock::unlock()
-{
-    pimpl->unlock();
-}
-
-
-/*----------------------------------------------------------------------------
-                                    mutex
-----------------------------------------------------------------------------*/
-
-class mutex::impl {
-private:
-    pthread_mutex_t m_;
-
-public:
-    impl(bool recursive) {
-	pthread_mutexattr_t attr;
-	(void)pthread_mutexattr_init(&attr);
-	if (recursive)
-	    (void)pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	(void)pthread_mutex_init(&m_, &attr);
-    }
-
-    ~impl() {
-	(void)pthread_mutex_destroy(&m_);
-    }
-
-    bool _lock(bool wait) {
-	int ret = wait ? pthread_mutex_lock(&m_) : pthread_mutex_trylock(&m_);
-	if (ret != C7_SYSOK) {
-	    if (ret == EBUSY) {
-		return false;
-	    }
-	    if (process_alive) {
-		throw thread_error(ret, "pthread_mutex_[try]lock");
-	    }
-	}
-	return true;
-    }
-
-    void unlock() {
-	(void)pthread_mutex_unlock(&m_);
-    }
-
-    pthread_mutex_t& __pthread_mutex() {
-	return m_;
-    }
-};
-
-mutex::mutex(bool recursive)
-{
-    pimpl = new mutex::impl(recursive);
-}
-
-mutex::~mutex()
-{
-    delete pimpl;
-    pimpl = nullptr;
-}
-
-void mutex::_lock()
-{
-    (void)pimpl->_lock(true);
-}
-
-bool mutex::_trylock()
-{
-    return pimpl->_lock(false);
-}
-
-void mutex::unlock()
-{
-    pimpl->unlock();
-}
-
-
-/*----------------------------------------------------------------------------
-                              condition variable
-----------------------------------------------------------------------------*/
-
-class condvar::impl {
-private:
-    pthread_cond_t c_ = PTHREAD_COND_INITIALIZER;
-    mutex::impl* mimpl_;
-    bool allocated_;
-
-public:
-    impl(mutex* mutex) {
-	allocated_ = (mutex == nullptr);
-	if (mutex == nullptr) {
-	    mimpl_ = new mutex::impl(false);
-	} else {
-	    mimpl_ = mutex->pimpl;
-	}
-    }
-
-    ~impl() {
-	(void)pthread_cond_destroy(&c_);
-	if (allocated_) {
-	    delete mimpl_;
-	}
-    }
-
-    bool _lock(bool wait) {
-	return mimpl_->_lock(wait);
-    }
-
-    void unlock() {
-	mimpl_->unlock();
-    }
-
-    bool wait(const ::timespec *timeout_abs) {
-	int ret;
-	if (timeout_abs == nullptr) {
-	    ret = pthread_cond_wait(&c_, &mimpl_->__pthread_mutex());
-	} else {
-	    do {
-		ret = pthread_cond_timedwait(&c_, &mimpl_->__pthread_mutex(), timeout_abs);
-	    } while (ret == EINTR);
-	}
-	if (ret != C7_SYSOK) {
-	    if (ret == ETIMEDOUT) {
-		return false;
-	    }
-	    if (process_alive) {
-		throw thread_error(ret, "pthread_cond_[timed]wait");
-	    }
-	}
-	return true;
-    }
-
-    void notify() {
-	int ret = pthread_cond_signal(&c_);
-	if (ret != C7_SYSOK) {
-	    if (process_alive) {
-		throw thread_error(ret, "pthread_cond_signal");
-	    }
-	}
-    }
-
-    void notify_all() {
-	int ret = pthread_cond_broadcast(&c_);
-	if (ret != C7_SYSOK) {
-	    if (process_alive) {
-		throw thread_error(ret, "pthread_cond_broadcast");
-	    }
-	}
-    }
-};
-
-condvar::condvar()
-{
-    pimpl = new condvar::impl(nullptr);
-}
-
-condvar::condvar(mutex& mutex)
-{
-    pimpl = new condvar::impl(&mutex);
-}
-
-condvar::~condvar()
-{
-    delete pimpl;
-    pimpl = nullptr;
-}
-
-void condvar::_lock()
-{
-    (void)pimpl->_lock(true);
-}
-
-bool condvar::_trylock()
-{
-    return pimpl->_lock(false);
-}
-
-void condvar::unlock()
-{
-    pimpl->unlock();
-}
-
-void condvar::wait()
-{
-    pimpl->wait(nullptr);
-}
-
-bool condvar::wait(const ::timespec* timeout_abs)
-{
-    return pimpl->wait(timeout_abs);
-}
-
-void condvar::notify()
-{
-    pimpl->notify();
-}
-
-void condvar::notify_all()
-{
-    pimpl->notify_all();
-}
-
-
-/*----------------------------------------------------------------------------
-                                   thread
-----------------------------------------------------------------------------*/
 
 static void mark_exiting()
 {
     process_alive = false;
 }
+
 
 class thread::impl {
     // ------------ types ------------
@@ -379,7 +112,7 @@ public:
     impl& operator=(impl&&) = delete;
 
     impl():
-	id_(id_counter_++), name_("thread<" + std::to_string(id_) + ">"),
+	id_(id_counter_++), name_("th<" + std::to_string(id_) + ">"),
 	exit_(thread::NA_IDLE), state_(IDLE) {
 	(void)pthread_attr_init(&attr_);
 	(void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
@@ -490,9 +223,11 @@ public:
     }
 };
 
+
 std::atomic<uint64_t> thread::impl::id_counter_;
 thread::impl  thread::impl::main_thread;
 thread_local thread::impl* thread::impl::current_thread;
+
 
 // thread class
 
@@ -593,6 +328,7 @@ void thread::signal(int sig)
     pimpl->signal(sig);
 }
 
+
 // self
 
 const char *self::name()
@@ -662,9 +398,4 @@ bool operator==(const thread& t, const proxy& p)
 }
 
 
-/*----------------------------------------------------------------------------
-----------------------------------------------------------------------------*/
-
-
-} // namespace thread
-} // namespace c7
+} // namespace c7::thread

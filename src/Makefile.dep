@@ -8,24 +8,19 @@ $(C7_OUT_OBJDIR)/c7file.o: c7file.cpp c7file.hpp c7common.hpp \
 $(C7_OUT_OBJDIR)/c7app.o: c7app.cpp c7app.hpp c7result.hpp c7common.hpp \
  c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp c7path.hpp \
  c7string.hpp c7coroutine.hpp c7seq.hpp
-$(C7_OUT_OBJDIR)/c7threadsync.o: c7threadsync.cpp c7threadsync.hpp \
- c7common.hpp c7thread.hpp c7delegate.hpp c7utils.hpp c7result.hpp \
- c7format.hpp c7defer.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7common.o: c7common.cpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7path.o: c7path.cpp c7path.hpp c7common.hpp \
  c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp c7result.hpp \
  c7format.hpp c7defer.hpp c7seq.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7fd.o: c7fd.cpp c7fd.hpp c7common.hpp c7delegate.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7typefunc.hpp c7utils.hpp
-$(C7_OUT_OBJDIR)/c7thread.o: c7thread.cpp c7thread.hpp c7common.hpp \
- c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
  c7typefunc.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7signal.o: c7signal.cpp c7app.hpp c7result.hpp \
  c7common.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
- c7signal.hpp c7threadsync.hpp c7thread.hpp c7utils.hpp
+ c7signal.hpp c7thread.hpp c7thread/spinlock.hpp c7thread/mutex.hpp \
+ c7thread/condvar.hpp c7thread/thread.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7dconf.o: c7dconf.cpp c7dconf.hpp c7common.hpp \
  c7file.hpp c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp \
  c7typefunc.hpp c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp \
@@ -37,18 +32,21 @@ $(C7_OUT_OBJDIR)/c7string.o: c7string.cpp c7string.hpp c7common.hpp \
  c7defer.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7mlog.o: c7mlog.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
- c7utils.hpp c7mlog.hpp c7thread.hpp c7path.hpp c7string.hpp \
- c7coroutine.hpp c7seq.hpp
+ c7utils.hpp c7mlog.hpp c7thread.hpp c7thread/spinlock.hpp \
+ c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7mm.o: c7mm.cpp c7mm.hpp c7common.hpp c7fd.hpp \
  c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp c7typefunc.hpp \
  c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7seq.hpp
 $(C7_OUT_OBJDIR)/c7fsm.o: c7fsm.cpp c7fsm.hpp c7common.hpp c7result.hpp \
  c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp c7thread.hpp \
- c7utils.hpp
+ c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
+ c7thread/thread.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7defer.hpp c7delegate.hpp c7typefunc.hpp \
- c7string.hpp c7coroutine.hpp c7seq.hpp c7thread.hpp c7utils.hpp \
- c7signal.hpp
+ c7string.hpp c7coroutine.hpp c7seq.hpp c7thread.hpp \
+ c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
+ c7thread/thread.hpp c7utils.hpp c7signal.hpp
 $(C7_OUT_OBJDIR)/c7format.o: c7format.cpp c7format.hpp c7common.hpp \
  c7defer.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
@@ -59,20 +57,52 @@ $(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7socket.hpp c7common.hpp \
 $(C7_OUT_OBJDIR)/c7delegate.o: c7delegate.cpp c7delegate.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7event/monitor.o: c7event/monitor.cpp c7app.hpp \
  c7result.hpp c7common.hpp c7format.hpp c7defer.hpp c7delegate.hpp \
- c7typefunc.hpp c7event/monitor.hpp c7thread.hpp c7utils.hpp c7signal.hpp
+ c7typefunc.hpp c7event/monitor.hpp c7thread.hpp c7thread/spinlock.hpp \
+ c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp c7utils.hpp \
+ c7signal.hpp
 $(C7_OUT_OBJDIR)/c7event/timer.o: c7event/timer.cpp c7event/timer.hpp \
- c7common.hpp c7event/monitor.hpp c7thread.hpp c7delegate.hpp c7utils.hpp \
- c7result.hpp c7format.hpp c7defer.hpp c7typefunc.hpp
+ c7common.hpp c7event/monitor.hpp c7thread.hpp c7thread/spinlock.hpp \
+ c7defer.hpp c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp \
+ c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7event/port.o: c7event/port.cpp c7event/port.hpp \
  c7common.hpp c7socket.hpp c7fd.hpp c7delegate.hpp c7result.hpp \
  c7format.hpp c7defer.hpp c7typefunc.hpp
+$(C7_OUT_OBJDIR)/c7thread/thread.o: c7thread/thread.cpp \
+ c7thread/condvar.hpp c7common.hpp c7defer.hpp c7thread/thread.hpp \
+ c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7typefunc.hpp \
+ c7thread/_private.hpp c7thread/mutex.hpp
+$(C7_OUT_OBJDIR)/c7thread/rendezvous.o: c7thread/rendezvous.cpp \
+ c7thread/rendezvous.hpp c7common.hpp c7thread/condvar.hpp c7defer.hpp \
+ c7utils.hpp c7result.hpp c7format.hpp c7delegate.hpp c7typefunc.hpp
+$(C7_OUT_OBJDIR)/c7thread/mutex.o: c7thread/mutex.cpp c7thread/mutex.hpp \
+ c7common.hpp c7defer.hpp c7thread/_private.hpp
+$(C7_OUT_OBJDIR)/c7thread/group.o: c7thread/group.cpp c7thread/group.hpp \
+ c7common.hpp c7thread/thread.hpp c7delegate.hpp c7utils.hpp c7result.hpp \
+ c7format.hpp c7defer.hpp c7typefunc.hpp c7thread/condvar.hpp
+$(C7_OUT_OBJDIR)/c7thread/spinlock.o: c7thread/spinlock.cpp \
+ c7thread/spinlock.hpp c7common.hpp c7defer.hpp c7thread/_private.hpp \
+ c7thread/mutex.hpp
+$(C7_OUT_OBJDIR)/c7thread/mask.o: c7thread/mask.cpp c7thread/mask.hpp \
+ c7common.hpp c7thread/condvar.hpp c7defer.hpp c7utils.hpp c7result.hpp \
+ c7format.hpp c7delegate.hpp c7typefunc.hpp
+$(C7_OUT_OBJDIR)/c7thread/event.o: c7thread/event.cpp c7thread/event.hpp \
+ c7common.hpp c7thread/condvar.hpp c7defer.hpp c7delegate.hpp c7utils.hpp \
+ c7result.hpp c7format.hpp c7typefunc.hpp
+$(C7_OUT_OBJDIR)/c7thread/counter.o: c7thread/counter.cpp \
+ c7thread/counter.hpp c7common.hpp c7thread/condvar.hpp c7defer.hpp \
+ c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7typefunc.hpp
+$(C7_OUT_OBJDIR)/c7thread/condvar.o: c7thread/condvar.cpp \
+ c7thread/condvar.hpp c7common.hpp c7defer.hpp c7thread/_private.hpp \
+ c7thread/mutex.hpp
 $(C7_OUT_OBJDIR)/c7event/ext/fsm.o: c7event/ext/fsm.cpp \
  c7event/ext/fsm.hpp c7common.hpp c7fd.hpp c7delegate.hpp c7result.hpp \
  c7format.hpp c7defer.hpp c7typefunc.hpp c7fsm.hpp c7thread.hpp \
- c7utils.hpp c7event/monitor.hpp c7event/service.hpp c7event/port.hpp \
- c7socket.hpp
+ c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
+ c7thread/thread.hpp c7utils.hpp c7event/monitor.hpp c7event/service.hpp \
+ c7event/port.hpp c7socket.hpp
 $(C7_OUT_OBJDIR)/c7event/ext/flagsync.o: c7event/ext/flagsync.cpp \
  c7event/ext/flagsync.hpp c7common.hpp c7event/monitor.hpp c7thread.hpp \
- c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7typefunc.hpp c7event/service.hpp c7event/port.hpp c7socket.hpp \
- c7fd.hpp
+ c7thread/spinlock.hpp c7defer.hpp c7thread/mutex.hpp \
+ c7thread/condvar.hpp c7thread/thread.hpp c7delegate.hpp c7utils.hpp \
+ c7result.hpp c7format.hpp c7typefunc.hpp c7event/service.hpp \
+ c7event/port.hpp c7socket.hpp c7fd.hpp

@@ -222,7 +222,7 @@ private:
 
     template <typename T>
     inline void handle_arg(state_t s, const T& arg, formatter_enum_tag) noexcept {
-	out_ << ssize_t(arg);
+	handle_arg<ssize_t>(s, static_cast<ssize_t>(arg), formatter_int_tag());
     }
 
     template <typename T>

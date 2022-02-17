@@ -334,22 +334,19 @@ void formatter::handle_arg(state_t s, T arg, formatter_int_tag) noexcept
 	return;
 
     default:
-	switch (ext_[0]) {
-	case 'o':
-	    out_ << std::oct;
-	    break;
-	case 'x':
-	    out_ << std::hex;
-	    break;
-	case 0:
-	case 'd':
-	    out_ << std::dec;
-	    break;
-	default:
+	if (ext_.size() == 0) {
+	    out_ << std::dec << arg;
+	} else if (ext_ == "x") {
+	    out_ << std::hex << arg;
+	} else if (ext_ == "d") {
+	    out_ << std::dec << arg;
+	} else if (ext_ == "o") {
+	    out_ << std::oct << arg;
+	} else if (ext_ == "c") {
+	    out_ << static_cast<char>(arg);
+	} else {
 	    format_traits<ssize_t>::convert(out_, ext_, static_cast<ssize_t>(arg));
-	    return;
 	}
-	out_ << arg;
     }
 }
 
@@ -376,15 +373,11 @@ void formatter::handle_arg(state_t s, T arg, formatter_uint8_tag) noexcept
 template <typename T>
 void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
 {
-    switch (ext_[0]) {
-    case 'e':
-	out_ << std::scientific;
-	break;
-    case 'f':
+    if (ext_ == "f") {
 	out_ << std::fixed;
-	break;
-    case 'g':
-    default:
+    } else if (ext_ == "e") {
+	out_ << std::scientific;
+    } else {
 	out_ << std::defaultfloat;
     }
     out_ << arg;
