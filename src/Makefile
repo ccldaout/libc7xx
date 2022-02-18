@@ -9,11 +9,9 @@
 
 
 C7_TARGET_BASE = libc7++
-C7_VER_MAJOR = 4
-C7_VER_MINOR = 0
-C7_VER_PATCH = 0
 C7_CC_IPATH = .
 
+include ../Makefile.version
 include ../Makefile.common
 
 CXXFLAGS += -fPIC
@@ -45,7 +43,9 @@ $(C7_OUT_OBJDIR)/c7thread/%.o: %.cpp
 
 
 .PHONY: build
-build: init headers $(C7_TARGET_LIB)
+build:
+	@$(MAKE) --no-print-directory init headers
+	@$(MAKE) --no-print-directory -j$(MAKE_JOBS) $(C7_TARGET_LIB)
 
 $(C7_TARGET_LIB): $(OBJS) .
 	$(call cmd_o,c++ -shared $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS))
@@ -56,6 +56,7 @@ $(C7_TARGET_LIB): $(OBJS) .
 headers:
 	@mkdir -p $(C7_OUT_INCDIR) >/dev/null 2>&1
 	@tar cf - $(HDRS) | tar xpf - -C $(C7_OUT_INCDIR)
+	@find $(C7_OUT_INCDIR) -name _private.hpp | xargs rm -f
 
 .PHONY: depend
 depend:
