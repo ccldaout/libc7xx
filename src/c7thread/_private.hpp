@@ -36,11 +36,12 @@ private:
     pthread_mutex_t m_;
 
 public:
-    impl(bool recursive) {
+    explicit impl(bool recursive) {
 	pthread_mutexattr_t attr;
 	(void)pthread_mutexattr_init(&attr);
-	if (recursive)
+	if (recursive) {
 	    (void)pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	}
 	(void)pthread_mutex_init(&m_, &attr);
     }
 
@@ -65,7 +66,7 @@ public:
 	(void)pthread_mutex_unlock(&m_);
     }
 
-    pthread_mutex_t& __pthread_mutex() {
+    pthread_mutex_t& pthread_mutex__() {
 	return m_;
     }
 };

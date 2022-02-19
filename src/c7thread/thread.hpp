@@ -88,6 +88,10 @@ public:
 struct self {
     static const char *name();
     static uint64_t id();
+    static thread::exit_type status();
+    static const c7::result<>& terminate_result();
+    static std::string to_string();
+
     [[noreturn]] static void exit();
     [[noreturn]] static void abort();
     [[noreturn]] static void abort(c7::result<>&&);
@@ -96,19 +100,21 @@ struct self {
 
 class proxy {
 private:
-    thread::impl *pimpl;
+    std::shared_ptr<thread::impl> pimpl;
 
 public:
-    explicit proxy(thread::impl *pimpl);
+    explicit proxy(std::shared_ptr<thread::impl> pimpl);
     explicit proxy(const thread& th);
 
-    thread::exit_type status() const;
     const char *name() const;
     uint64_t id() const;
+    thread::exit_type status() const;
+    const c7::result<>& terminate_result() const;
+
     void print(std::ostream& out, const std::string& format) const;
 
     bool operator==(const thread& t) const {
-	return pimpl == t.pimpl.get();
+	return pimpl == t.pimpl;
     }
 };
 
