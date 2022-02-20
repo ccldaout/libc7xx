@@ -432,6 +432,30 @@ public:
 };
 
 
+template <typename L, typename RFunc>
+auto operator>>(c7::result<L>&& res, RFunc func)
+    -> decltype(func(std::move(res.value())))
+{
+    if (res) {
+	return func(std::move(res.value()));
+    } else {
+	return res.as_error();
+    }
+}
+
+
+template <typename RFunc>
+auto operator>>(c7::result<void>&& res, RFunc func)
+    -> decltype(func())
+{
+    if (res) {
+	return func();
+    } else {
+	return res.as_error();
+    }
+}
+
+
 template <>
 struct format_traits<result_base> {
     static c7::delegate<bool, std::ostream&, int> translate_what;
