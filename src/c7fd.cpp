@@ -340,7 +340,6 @@ io_result fd::write_n(const void *buf, size_t const req_n)
 
 io_result fd::write_v(::iovec*& iov, int& ioc)
 {
-    const int ioc_save = ioc;
     size_t n = 0;	// actual writen bytes
 
     while (ioc > 0) {
@@ -351,18 +350,21 @@ io_result fd::write_v(::iovec*& iov, int& ioc)
 	}
 	ssize_t z = ::writev(fdnum_, iov, ioc);
 	if (z <= 0) {
+	    for (int i = 0, z = 0; i < ioc; i++) {
+		z += iov[i].iov_len;
+	    }
 	    if (errno == EWOULDBLOCK) {
-		return io_result(io_result::status::BUSY, ioc_save - ioc, ioc,
+		return io_result(io_result::status::BUSY, n, z,
 				 c7result_err(errno,
 					      "write_v(%{}) (busy)", *this));
 	    } else {
-		return io_result(io_result::status::ERR, ioc_save - ioc, ioc,
+		return io_result(io_result::status::ERR, n, z,
 				 c7result_err(errno,
 					      "write_v(%{}) (error)", *this));
 	    }
 	}
+	n += z;
 	while (z > 0) {
-	    n += z;
 	    if (iov->iov_len <= (size_t)z) {
 		z -= iov->iov_len;
 		iov->iov_len = 0;

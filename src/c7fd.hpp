@@ -235,6 +235,12 @@ public:
 	return write_n(buf, sizeof(T)*N);
     }
 
+    io_result write_v(::iovec* const iov, const int& ioc) {
+	::iovec *iovp = iov;
+	int ioc_io = ioc;
+	return write_v(iovp, ioc_io);
+    }
+
     io_result write_v(::iovec*& iov_io, int& ioc_io);
 
     result<uint32_t> wait(uint32_t which, c7::usec_t tmo_us);
