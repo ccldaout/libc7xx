@@ -20,10 +20,10 @@
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <c7utils.hpp>	// c_array_iterator
 
 
-namespace c7 {
-namespace seq {
+namespace c7::seq {
 
 
 /*----------------------------------------------------------------------------
@@ -493,6 +493,39 @@ filter_seq<C&&> filter(C&& c, typename filter_seq<C&&>::predicate pred)
 
 
 /*----------------------------------------------------------------------------
+                          C array - T (&)[N], T* & N
+----------------------------------------------------------------------------*/
+
+template <typename T>
+class c_array {
+public:
+    using iterator = c7::c_array_iterator<T>;
+
+    template <size_t N>
+    explicit c_array(T (&c)[N]): c_array(c, N) {}
+    c_array(T *p, size_t n): top_(p), n_(n) {}
+
+    c_array(const c_array& o): top_(o.top_), n_(o.n_) {}
+    c_array(c_array&& o): top_(o.top_), n_(o.n_) {
+	o.top_ = nullptr;
+	o.n_ = 0;
+    }
+
+    iterator begin() {
+	return iterator(top_, 0);
+    }
+
+    iterator end() {
+	return iterator(top_, n_);
+    }
+
+private:
+    T *top_;
+    size_t n_;
+};
+
+
+/*----------------------------------------------------------------------------
                       null terminated array to sequence
 ----------------------------------------------------------------------------*/
 
@@ -592,8 +625,7 @@ auto charp_array(CharPP array)
 ----------------------------------------------------------------------------*/
 
 
-} // namespace seq
-} // namespace c7
+} // namespace c7::seq
 
 
 #endif // c7seq.hpp
