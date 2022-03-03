@@ -358,11 +358,16 @@ result<void*> read_impl(const std::string& path, size_t& size)
 
 result<std::vector<std::string>> readlines(const std::string& path)
 {
-    auto res = read<char>(path);
+    size_t size = 0;
+    auto res = read<char>(path, size);
     if (!res) {
 	return res.as_error();
     }
-    return c7result_ok(c7::str::split(res.value().get(), '\n'));
+    auto p = res.value().get();
+    if (p[size-1] == '\n') {
+	p[size-1] = 0;
+    }
+    return c7result_ok(c7::str::split(p, '\n'));
 }
 
 
