@@ -10,6 +10,7 @@
 
 #include <c7app.hpp>
 #include <c7event/monitor.hpp>
+#include <c7thread/thread.hpp>
 #include <c7signal.hpp>
 #include <unistd.h>
 #include <mutex>		// once_flag

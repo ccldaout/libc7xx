@@ -14,7 +14,7 @@
 #include <c7common.hpp>
 
 
-#include <c7thread.hpp>
+#include <c7thread/mutex.hpp>
 #include <c7utils.hpp>
 #include <sys/epoll.h>
 #include <memory>
