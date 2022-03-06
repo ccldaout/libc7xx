@@ -36,7 +36,7 @@ public:
 
     static auto make(Port&& port, service_ptr svc, provider_hint hint) {
 	auto p = new receiver(std::move(port), std::move(svc), hint);
-	return std::unique_ptr<receiver>(p);
+	return std::shared_ptr<receiver>(p);
     }
 
 private:

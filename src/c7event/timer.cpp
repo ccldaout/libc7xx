@@ -55,7 +55,7 @@ timer_provider::manage(monitor& mon,
 			  c7::usec_t beg, c7::usec_t interval, callback_t callback,
 			  bool is_abs)
 {
-    auto timer = std::unique_ptr<timer_provider>(new timer_provider(std::move(callback)));
+    auto timer = std::shared_ptr<timer_provider>(new timer_provider(std::move(callback)));
     if (timer == nullptr) {
 	return c7result_err("timer_provider() failed");
     }

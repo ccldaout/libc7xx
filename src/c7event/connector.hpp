@@ -33,7 +33,7 @@ public:
 
     static auto make(const sockaddr_gen& addr, service_ptr svc, provider_hint hint) {
 	auto p = new connector(addr, std::move(svc), hint);
-	return std::unique_ptr<connector>(p);
+	return std::shared_ptr<connector>(p);
     }
 
     ~connector() override;

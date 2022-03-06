@@ -33,7 +33,7 @@ public:
 
     static auto make(Port&& port, service_ptr svc, provider_hint hint) {
 	auto p = new acceptor(std::move(port), std::move(svc), hint);
-	return std::unique_ptr<acceptor>(p);
+	return std::shared_ptr<acceptor>(p);
     }
 
     ~acceptor() override {}
