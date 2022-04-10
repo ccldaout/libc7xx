@@ -72,7 +72,7 @@ submit_provider::on_event(c7::event::monitor&, int prvfd, uint32_t events)
     for (uint64_t i = 0; i < submit_count; i++) {
 	if (auto q_res = callbacks_.get(0); !q_res) {
 	    auto res = c7result_err(std::move(q_res.as_error()),
-				    "rest submit count:%{} (from eventfd)", submit_count - 1);
+				    "rest submit count:%{} (from eventfd)", submit_count - i);
 	    on_error(res);
 	} else {
 	    q_res.value()();
