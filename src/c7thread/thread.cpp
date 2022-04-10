@@ -48,13 +48,11 @@ private:
     };
 
     // ------------ static data ------------
-public:
-    static impl main_thread;
-    static thread_local impl* current_thread;
     static std::atomic<uint64_t> id_counter_;
+    static impl main_thread_;
+    static thread_local impl* current_thread_;
 
     // ------------ instance data ------------
-private:
     uint64_t id_;
     std::string name_;
     pthread_attr_t attr_;
@@ -141,6 +139,10 @@ public:
 
     void print(std::ostream& out, const std::string&) const;
 
+    static impl *current() {
+	return current_thread_;
+    }
+
     [[noreturn]]
     static void exit() {
 	throw exit_thread();
@@ -153,15 +155,15 @@ public:
 
     [[noreturn]]
     static void abort(c7::result<>&& res) {
-	current_thread->term_result_ = std::move(res);
+	current_thread_->term_result_ = std::move(res);
 	throw abort_thread();
     }
 };
 
 
 std::atomic<uint64_t> thread::impl::id_counter_;
-thread::impl  thread::impl::main_thread;
-thread_local thread::impl* thread::impl::current_thread;
+thread::impl  thread::impl::main_thread_;
+thread_local thread::impl* thread::impl::current_thread_;
 
 
 thread::impl::impl():
@@ -172,8 +174,8 @@ thread::impl::impl():
 {
     (void)pthread_attr_init(&attr_);
     (void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
-    if (this == &main_thread) {
-	current_thread = this;
+    if (this == &main_thread_) {
+	current_thread_ = this;
 	name_ = "main";
     }
     if (id_ == 0) {
@@ -212,7 +214,7 @@ thread::impl::entry_point(void *__arg)
 {
     auto spp = static_cast<std::shared_ptr<impl>*>(__arg);
     auto shared_this = *spp;
-    current_thread = shared_this.get();
+    current_thread_ = shared_this.get();
     shared_this->thread();
     return nullptr;
 }
@@ -368,7 +370,7 @@ bool thread::is_alive() const
 
 bool thread::is_self() const
 {
-    return pimpl.get() == impl::current_thread;
+    return pimpl.get() == impl::current();
 }
 
 const char *thread::name() const
@@ -393,28 +395,28 @@ void thread::signal(int sig)
 
 const char *self::name()
 {
-    return thread::impl::current_thread->name();
+    return thread::impl::current()->name();
 }
 
 uint64_t self::id()
 {
-    return thread::impl::current_thread->id();
+    return thread::impl::current()->id();
 }
 
 thread::exit_type self::status()
 {
-    return thread::impl::current_thread->status();
+    return thread::impl::current()->status();
 }
 
 const c7::result<>& self::terminate_result()
 {
-    return thread::impl::current_thread->terminate_result();
+    return thread::impl::current()->terminate_result();
 }
 
 std::string self::to_string()
 {
     std::stringstream ss;
-    thread::impl::current_thread->print(ss, "");
+    thread::impl::current()->print(ss, "");
     return ss.str();
 }
 
@@ -427,7 +429,7 @@ void self::abort()
 {
     self::abort(c7result_err(ECANCELED,
 			     "thread (%{}) is aborted by self.",
-			     *thread::impl::current_thread));
+			     *thread::impl::current()));
 }
 
 void self::abort(c7::result<>&& res)
