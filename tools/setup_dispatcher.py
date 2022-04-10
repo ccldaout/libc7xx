@@ -29,6 +29,9 @@ class CxxClass(object):
                 ev_beg = ev_end = name
                 fobj.write('    this->dispatcher_set(%s, &%s::callback_%s);\n' %
                            (name, self.name, name))
+            elif ev_end is None:
+                fobj.write('    this->dispatcher_set(%s, &%s::callback_%s);\n' %
+                           (ev_beg, self.name, name))
             else:
                 fobj.write('    this->dispatcher_set(%s, %s, &%s::callback_%s);\n' %
                            (ev_beg, ev_end, self.name, name))
@@ -71,8 +74,8 @@ class Parser(object):
                         end = tk
                     else:
                         raise Exception('ev_beg:ev_end syntax error: %s' % tk)
+                    tk = self.__get()
                 evlist.append((beg, end))
-                tk = self.__get()
             elif tk == ',':
                 tk = self.__get()
             elif tk == ']':
@@ -94,7 +97,6 @@ class Parser(object):
             elif tk == ';' or tk == '(':
                 evlist = []
             elif tk == '//[' and nest == 1:
-                evlist = []
                 tk = self.__parse_attr(evlist)
             elif tk == '#' and nest == 1:
                 tk = self.__get()
@@ -107,7 +109,11 @@ class Parser(object):
                     name = ident[len('callback_'):]
                     if evlist:
                         for beg, end in evlist:
-                            cls.add_callback(name, beg.s, end.s)
+                            if end is None:
+                                cls.add_callback(name, beg.s, None)
+                            else:
+                                cls.add_callback(name, beg.s, end.s)
+                        evlist = []
                     else:
                         cls.add_callback(name)
 
