@@ -24,7 +24,7 @@ namespace c7::event {
 
 class submit_provider: public c7::event::provider_interface {
 public:
-    static constexpr const char * const manage_key = "jbx.ipc.submit_provider";
+    static constexpr const char * const manage_key = "c7event.submit_provider";
 
     c7::delegate<void, c7::result_base&> on_error;
 
