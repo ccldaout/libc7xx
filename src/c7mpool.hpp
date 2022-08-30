@@ -135,7 +135,7 @@ public:
 	if (p) {
 	    *p = s_->data;
 	}
-	return std::move(p);
+	return p;
     }
 
 private:

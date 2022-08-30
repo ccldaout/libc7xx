@@ -59,7 +59,7 @@ private:
 	// DON'T decrement uncommitted_jobs_ here.
 	auto item = std::move(que_.front());
 	que_.pop_front();
-	return std::move(item);
+	return item;
     }
 
     void clear_queue() {
@@ -144,7 +144,7 @@ private:
 	auto item = std::move(iw.first);
 	weight = iw.second;
 	que_.pop_front();
-	return std::move(item);
+	return item;
     }
 
     void clear_queue() {

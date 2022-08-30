@@ -177,7 +177,7 @@ multipart_msgbuf<Header, N>::send(Port& port)
     std::memcpy(iov, iov_, sizeof(iov));
     auto res = port.write_v(iovp, ioc);
 
-    return std::move(res);
+    return res;
 }
 
 template <typename Header, int N>

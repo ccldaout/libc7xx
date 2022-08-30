@@ -49,7 +49,7 @@ private:
     T get_item(size_t& weight) {
 	auto item = std::move(que_.front());
 	que_.pop_front();
-	return std::move(item);
+	return item;
     }
 
     void clear_queue() {

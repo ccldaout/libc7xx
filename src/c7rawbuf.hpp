@@ -208,7 +208,7 @@ rawbuf<T, MM>::reserve(size_t n_req)
     if (n_req > n_rsv_) {
 	auto res = mm_.reserve(n_req * sizeof(T));
 	if (!res) {
-	    return std::move(res);
+	    return res;
 	}
 	auto [addr, size] = std::move(res.value());
 	top_ = static_cast<T*>(addr);
@@ -245,7 +245,7 @@ rawbuf<T, MM>::append_from(c7::fd& fd)
 {
     size_t n_read;
     if (auto res = fd.stat(); !res) {
-	return std::move(res);
+	return res;
     } else {
 	n_read = res.value().st_size / sizeof(T);
     }

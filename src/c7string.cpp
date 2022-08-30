@@ -209,7 +209,7 @@ c7::result<> eval(std::string& out, const std::string& in_, char mark, char esca
 	} else if (*p == mark) {
 	    res = evalvarref(out, p + 1, prm);
 	    if (!res) {
-		return std::move(res);
+		return res;
 	    }
 	    in = res.value();
 	} else {
