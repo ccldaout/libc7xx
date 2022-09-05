@@ -169,7 +169,7 @@ public:
     template <typename T>
     c7::result<> relaxed_ptr(T*& p) const {
 	p = static_cast<T*>(iov_.iov_base);
-	if (iov_.iov_len > sizeof(T)) {
+	if (iov_.iov_len >= sizeof(T)) {
 	    return c7result_ok();
 	} else {
 	    return size_error(sizeof(T));
@@ -178,7 +178,7 @@ public:
     template <typename T>
     c7::result<> relaxed_ptr_nullable(T*& p) const {
 	p = static_cast<T*>(iov_.iov_base);
-	if (iov_.iov_len > sizeof(T) || p == nullptr) {
+	if (iov_.iov_len >= sizeof(T) || p == nullptr) {
 	    return c7result_ok();
 	} else {
 	    return size_error(sizeof(T));
