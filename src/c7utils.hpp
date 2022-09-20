@@ -277,6 +277,31 @@ public:
 
 
 /*----------------------------------------------------------------------------
+       movable and non-copyable object warapper (for functional object)
+----------------------------------------------------------------------------*/
+
+template <typename T>
+class movable_capture: private T {
+public:
+    movable_capture(T& obj): T(std::move(obj)) {}
+    movable_capture(const movable_capture& o):
+	T(std::move(static_cast<T&&>(const_cast<movable_capture&>(o)))) {
+    }
+    movable_capture& operator=(const movable_capture& o) {
+	return T::operator=(static_cast<T&&>(const_cast<movable_capture&>(o)));
+    }
+    movable_capture(movable_capture&& o):
+	T(std::move(static_cast<T&&>(o))) {
+    }
+    movable_capture& operator=(movable_capture&& o) {
+	return T::operator=(static_cast<T&&>(o));
+    }
+    T&& unwrap() { return *this; }
+    T&& unwrap() const { return const_cast<T&&>(static_cast<const T&&>(*this)); }
+};
+
+
+/*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
 
 
