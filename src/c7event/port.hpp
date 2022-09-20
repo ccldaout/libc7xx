@@ -21,37 +21,43 @@
 namespace c7::event {
 
 
-class port_rw_extention {
+template <typename D>
+struct port_rw_extention {
     template <typename T> result<size_t> read(T *buf) {
-	return read(buf, sizeof(T));
+	return static_cast<D*>(this)->read(buf, sizeof(T));
     }
     template <typename T, size_t N> result<size_t> read(T (*buf)[N]) {
-	return read(buf, sizeof(T)*N);
+	return static_cast<D*>(this)->read(buf, sizeof(T)*N);
     }
     template <typename T> result<size_t> write(const T *buf) {
-	return write(buf, sizeof(T));
+	return static_cast<D*>(this)->write(buf, sizeof(T));
     }
     template <typename T, size_t N> result<size_t> write(const T (*buf)[N]) {
-	return write(buf, sizeof(T)*N);
+	return static_cast<D*>(this)->write(buf, sizeof(T)*N);
     }
 
     template <typename T> io_result read_n(T *buf) {
-	return read_n(buf, sizeof(T));
+	return static_cast<D*>(this)->read_n(buf, sizeof(T));
     }
     template <typename T, size_t N> io_result read_n(T (*buf)[N]) {
-	return read_n(buf, sizeof(T)*N);
+	return static_cast<D*>(this)->read_n(buf, sizeof(T)*N);
     }
     template <typename T> io_result write_n(const T *buf) {
-	return write_n(buf, sizeof(T));
+	return static_cast<D*>(this)->write_n(buf, sizeof(T));
     }
     template <typename T, size_t N> io_result write_n(const T (*buf)[N]) {
-	return write_n(buf, sizeof(T)*N);
+	return static_cast<D*>(this)->write_n(buf, sizeof(T)*N);
     }
 };
 
 
-class socket_port: public port_rw_extention {
+class socket_port: public port_rw_extention<socket_port> {
 public:
+    using port_rw_extention<socket_port>::read;
+    using port_rw_extention<socket_port>::read_n;
+    using port_rw_extention<socket_port>::write;
+    using port_rw_extention<socket_port>::write_n;
+
     socket_port() = default;
     explicit socket_port(c7::socket&& sock);
     explicit socket_port(int fd);
