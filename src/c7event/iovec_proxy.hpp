@@ -16,6 +16,7 @@
 
 #include <sys/uio.h>
 #include <cstring>
+#include <c7result.hpp>
 
 
 namespace c7::event {
