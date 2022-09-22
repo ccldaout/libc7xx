@@ -153,7 +153,7 @@ private:
 
 
 static sigmanager signal_manager;
-static std::once_flag once_init;
+static volatile int once_flag;
 
 static void init()
 {
@@ -162,10 +162,22 @@ static void init()
     }
 }
 
+static void reset_once_flag()
+{
+    __sync_lock_release(&once_flag);
+}
+
+static void call_init_once()
+{
+    if (__sync_lock_test_and_set(&once_flag, 1) == 0) {
+	init();
+	pthread_atfork(nullptr, nullptr, reset_once_flag);
+    }
+}
 
 void enable_SIGCHLD(void (*sigchld)(int))
 {
-    std::call_once(once_init, init);
+    call_init_once();
     signal_manager.handler(SIGCHLD, sigchld);
 }
 
@@ -173,28 +185,28 @@ void enable_SIGCHLD(void (*sigchld)(int))
 c7::result<void(*)(int)>
 handle(int sig, void (*handler)(int), const ::sigset_t&)
 {
-    std::call_once(once_init, init);
+    call_init_once();
     return c7result_ok(signal_manager.handler(sig, handler));
 }
 
 
 ::sigset_t set(const ::sigset_t& sigs)
 {
-    std::call_once(once_init, init);
+    call_init_once();
     return signal_manager.setmask(sigs);
 }
 
 
 ::sigset_t unblock(const ::sigset_t& sigs)
 {
-    std::call_once(once_init, init);
+    call_init_once();
     return signal_manager.unblock(sigs);
 }
 
 
 ::sigset_t block(const ::sigset_t& sigs)
 {
-    std::call_once(once_init, init);
+    call_init_once();
     return signal_manager.block(sigs);
 }
 
