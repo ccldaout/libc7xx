@@ -95,7 +95,7 @@ quit_impl(quit_type qt, const char *file, int line, const c7::result_base *res, 
 	std::exit(EXIT_SUCCESS);
 	break;
     case quit_type::failure:
-	std::exit(EXIT_FAILURE);
+	std::quick_exit(EXIT_FAILURE);
 	break;
     case quit_type::abort:
     default:
