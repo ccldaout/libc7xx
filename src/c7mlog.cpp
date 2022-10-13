@@ -356,7 +356,7 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 			      time_us, level, category, minidata);
 
     // check size to be written
-    if (rechdr.size > (hdr_->logsize_b + 32)) {		// (C) ensure rechdr.size < hdr_->logsize_b
+    if ((rechdr.size + 32) > hdr_->logsize_b) {		// (C) ensure rechdr.size < hdr_->logsize_b
 	return false;					// data size too large
     }
 
