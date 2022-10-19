@@ -63,12 +63,12 @@ public:
 
     template <typename F, typename... Args>
     void target(F func, Args... args) {
-	set_target([=](){ func(args...); });
+	set_target([=]() mutable { func(args...); });
     }
 
     template <typename F, typename... Args>
     void finalize(F func, Args... args) {
-	set_finalize([=](){ func(args...); });
+	set_finalize([=]() mutable { func(args...); });
     }
 
     c7::result<> start();
