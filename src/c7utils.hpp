@@ -296,7 +296,7 @@ public:
     movable_capture& operator=(movable_capture&& o) {
 	return T::operator=(static_cast<T&&>(o));
     }
-    T&& unwrap() { return *this; }
+    T&& unwrap() { return static_cast<T&&>(*this); }
     T&& unwrap() const { return const_cast<T&&>(static_cast<const T&&>(*this)); }
 };
 
