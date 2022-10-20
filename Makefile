@@ -3,7 +3,7 @@ MAKE_JOBS ?= 8
 include Makefile.version
 
 UNITS = src tools
-.PHONY: rebuild clean all $(UNITS) push
+.PHONY: rebuild clean all $(UNITS) push pull
 
 all: $(UNITS)
 $(UNITS):
@@ -18,3 +18,6 @@ push:
 	git push -f --tags x22
 	git push -f github
 	git push -f --tags github
+
+pull:
+	git pull; git fetch github; git fetch -f --tags

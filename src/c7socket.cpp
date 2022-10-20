@@ -247,11 +247,7 @@ result<> socket::connect(const std::string& path)	// UNIX domain
     if (!res) {
 	return c7result_err(std::move(res), "connect(%{}, %{}) failed", fdnum_, path);
     }
-    auto& addr = res.value();
-    if (::connect(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
-	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, path);
-    }
-    return c7result_ok();
+    return connect(res.value());
 }
 
 result<> socket::listen(int backlog)
