@@ -189,9 +189,9 @@ class Replacer(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print '''Usage: %s input [output]
-       input  ... C++ file declare your service class.
-       output ... C++ file define dispatcher_setup() [out of class declaration]''' % sys.argv[0]
+        print('''Usage: %s input [output]
+        input  ... C++ file declare your service class.
+        output ... C++ file define dispatcher_setup() [out of class declaration]''' % sys.argv[0])
         exit(1)
 
     in_cxx = out_cxx = sys.argv[1]

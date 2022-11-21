@@ -57,8 +57,10 @@ class Token(object):
  
     __str__ = __repr__
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.__buf)
+
+    __nonzero__ = __bool__
 
 
 class Reader(object):
