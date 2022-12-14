@@ -90,6 +90,14 @@ void result_base::merge_iferror(result_base&& src)
 }
 
 
+void result_base::raise_exception() const
+{
+    auto err = reinterpret_cast<result_err*>(const_cast<result_base*>(this));
+    throw result_exception(std::move(*err));
+}
+
+
+// Obsolete function
 void result_base::type_mismatch()
 {
     c7::p_("value type mismatch: result data is lost.\n"
@@ -102,6 +110,7 @@ void result_base::type_mismatch()
 }
 
 
+// Obsolete function
 void result_base::has_no_value()
 {
     c7::p_("result has no value");

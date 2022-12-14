@@ -246,16 +246,33 @@ protected:
 	add_errinfo(file, line, what, c7::format(msg, arg1, args...));
     }
 
-    static void type_mismatch();
-    static void has_no_value();
+    void raise_exception() const;
 
 private:
     static const std::vector<errinfo> no_error_;
+
+    // Obsolete functions exists for link compatibility
+    static void type_mismatch();
+    static void has_no_value();
 };
 
 
 class result_err: public result_base {
     using result_base::result_base;
+};
+
+
+// exception
+class result_exception: public std::exception {
+public:
+    explicit result_exception(result_err&& err): err_(std::move(err)) {}
+
+    result_err&& as_result() {
+	return std::move(err_);
+    }
+
+private:
+    result_err err_;
 };
 
 
@@ -321,14 +338,14 @@ public:
 
     R& value() {
 	if (errors_) {
-	    has_no_value();
+	    raise_exception();
 	}
 	return value_;
     }
 
     const R& value() const {
 	if (errors_) {
-	    has_no_value();
+	    raise_exception();
 	}
 	return value_;
     }
@@ -391,7 +408,7 @@ public:
 
     R value() const {
 	if (errors_) {
-	    has_no_value();
+	    raise_exception();
 	}
 	return value_;
     }
@@ -415,6 +432,12 @@ public:
 
     result_err&& as_error() {
 	return reinterpret_cast<result_err&&>(*this);
+    }
+
+    void value() const {
+	if (errors_) {
+	    raise_exception();
+	}
     }
 
     template <typename... Args>

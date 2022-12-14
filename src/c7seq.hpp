@@ -384,6 +384,105 @@ enumerate_seq<C&&> enumerate(C&& c, ssize_t index = 0)
 
 
 /*----------------------------------------------------------------------------
+                              convert / pointer
+----------------------------------------------------------------------------*/
+
+template <typename C, typename F>
+class convert_seq {
+private:
+    using C_ = std::remove_reference_t<C>;
+
+public:
+    using item_iterator	 = decltype(std::declval<C>().begin());
+    using item_reference = typename std::iterator_traits<item_iterator>::value_type&;
+    using item_converter = F;
+
+    class iterator {
+    private:
+	item_iterator	it_;
+	item_converter&	conv_;
+
+    public:
+	using difference_type	= ptrdiff_t;
+	using value_type	= typename std::invoke_result_t<F, item_reference>;
+	using pointer		= value_type*;
+	using reference		= value_type&;
+	using iterator_category	= std::input_iterator_tag;
+
+	iterator(C_& c, item_converter& conv):
+	    it_(c.begin()), conv_(conv) {
+	}
+
+	iterator(C_& c, item_converter& conv, bool):
+	    it_(c.end()), conv_(conv) {
+	}
+
+	bool operator==(const iterator& rhs) const {
+	    return (it_ == rhs.it_);
+	}
+
+	bool operator!=(const iterator& rhs) const {
+	    return !operator==(rhs);
+	}
+
+	iterator& operator++() {
+	    ++it_;
+	    return *this;
+	}
+
+	value_type operator*() {
+	    return conv_(*it_);
+	}
+    };
+
+    using const_iterator = iterator;
+
+private:
+    using S = typename std::conditional_t<std::is_rvalue_reference_v<C>, C_, C_&>;
+    using A = typename std::conditional_t<std::is_rvalue_reference_v<C>, C_&&, C_&>;
+
+    S c;
+    item_converter conv;
+
+public:
+    convert_seq(A c, item_converter conv):
+	c(std::forward<C>(c)), conv(conv) {
+    }
+
+    convert_seq(convert_seq<C, F>&& h): c(std::forward<C>(h.c)), conv(h.conv) {
+    }
+
+    convert_seq(convert_seq<C, F>& h): c(h.c), conv(h.conv) {
+    }
+
+    convert_seq(const convert_seq<C, F>& h): c(h.c), conv(h.conv) {
+    }
+
+    iterator begin() noexcept {
+	return iterator(c, conv);
+    }
+
+    iterator end() noexcept {
+	return iterator(c, conv, false);
+    }
+};
+
+template <typename C, typename F>
+convert_seq<C&&, F> convert(C&& c, F conv)
+{
+    return convert_seq<C&&, F>(std::forward<C>(c), conv);
+}
+
+template <typename C>
+auto ptr(C&& c)
+{
+    using ref_type =
+	typename std::iterator_traits<decltype(c.begin())>::reference;
+    return c7::seq::convert(std::forward<C>(c), [](ref_type v){ return &v; });
+}
+
+
+/*----------------------------------------------------------------------------
                                     filter
 ----------------------------------------------------------------------------*/
 
