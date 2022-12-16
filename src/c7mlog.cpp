@@ -238,7 +238,7 @@ mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logs
 	}
 	auto res = c7::file::mmap_rw(path, mmapsize_b_, true);
 	if (!res) {
-	    return res;
+	    return res.as_error();
 	}
 	top = res.value().release();
 	callback_ = nullptr;
@@ -582,7 +582,7 @@ mlog_reader::impl::load(const std::string& path)
 {
     auto res = c7::file::read(path);
     if (!res) {
-	return res;
+	return res.as_error();
     }
     void *top = res.value().release();
     hdr_ = static_cast<hdr_t*>(top);

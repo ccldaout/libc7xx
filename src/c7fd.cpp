@@ -157,7 +157,7 @@ result<> fd::change_flag(int set_flagtype, int flags, bool on)
 
     auto ret = get_flag(get_flagtype);
     if (!ret) {
-	return ret;
+	return ret.as_error();
     }
     
     int newflag = ret.value();

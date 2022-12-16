@@ -89,8 +89,7 @@ submit_provider::submit(std::function<void()>&& f)
     }
     uint64_t submit_count = 1;
     if (auto io_res = evfd_.write_n(&submit_count); !io_res) {
-	auto res = c7result_err(std::move(io_res.get_result()), "Failed to write eventfd.");
-	return res;
+	return c7result_err(std::move(io_res.get_result()), "Failed to write eventfd.");
     }
     return c7result_ok();
 }

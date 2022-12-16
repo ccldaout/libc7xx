@@ -111,13 +111,13 @@ result<> mmobj::switch_to_file_mm(size_t size)
 	res1 = c7::open(path_, O_RDWR|O_CREAT);
     }
     if (!res1) {
-	return res1;
+	return res1.as_error();
     }
     fd_ = std::move(res1.value());
 
     auto res2 = fd_.stat();
     if (!res2) {
-	return res2;
+	return res2.as_error();
     }
     auto fsize = res2.value().st_size;
 
