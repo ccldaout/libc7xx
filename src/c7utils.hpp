@@ -42,13 +42,23 @@ inline std::tuple<ptrdiff_t,ptrdiff_t,ptrdiff_t> loop_params(const C& c, bool as
                       unique_ptr factory for malloc/free
 ----------------------------------------------------------------------------*/
 
-template <typename T = void>
-using unique_cptr = std::unique_ptr<T, void(*)(void*)>;
+template <typename Ret, typename Arg, Ret(*Free)(Arg*)>
+class generic_deleter {
+public:
+    void operator()(void *p) {
+	Free(static_cast<Arg*>(p));
+    }
+};
+
+using malloc_deleter = generic_deleter<void, void, std::free>;
 
 template <typename T = void>
-std::unique_ptr<T, void(*)(void*)> make_unique_cptr(void *p = nullptr)
+using unique_cptr = std::unique_ptr<T, malloc_deleter>;
+
+template <typename T = void>
+unique_cptr<T> make_unique_cptr(void *p = nullptr)
 {
-    return unique_cptr<T>(static_cast<T*>(p), std::free);
+    return unique_cptr<T>(static_cast<T*>(p), malloc_deleter());
 }
 
 template <typename R>
@@ -86,7 +96,7 @@ private:
     passwd_ptr pwd_;
 
 public:
-    passwd(): pwd_(nullptr, std::free) {}
+    passwd() = default;
 
     explicit passwd(passwd_ptr&& pwd): pwd_(std::move(pwd)) {}
 

@@ -70,6 +70,17 @@ static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& defv)
 }
 
 static c7::file::unique_mmap<c7_dconf_head_t>
+mapalt(size_t n)
+{
+    auto p = mmap(nullptr, n, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    if (p == MAP_FAILED) {
+	throw std::runtime_error("cannot allocate dconf storage");
+    }
+    return c7::file::unique_mmap<c7_dconf_head_t>(reinterpret_cast<c7_dconf_head_t*>(p),
+						  c7::file::mmap_deleter(n));
+}
+
+static c7::file::unique_mmap<c7_dconf_head_t>
 mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
 {
     auto path = dconfpath(name, false);
@@ -78,13 +89,8 @@ mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
 
     auto res = c7::file::mmap_rw<c7_dconf_head_t>(path, n, true);
     if (!res) {
-	auto p = std::calloc(n, 1);
-	if (p == nullptr) {
-	    throw std::runtime_error("cannot allocate dconf storage");
-	}
-	res = c7::file::unique_mmap<c7_dconf_head_t>((c7_dconf_head_t*)p, std::free);
+	res = c7result_ok(mapalt(n));
     }
-
     auto dh = res.value().get();
 
     dh->version = C7_DCONF_VERSION;
@@ -197,12 +203,7 @@ static int get_i(const std::string &env, int defval)
 
 dconf::dconf()
 {
-    auto p = std::calloc(sizeof(c7_dconf_head_t), 1);
-    if (p == nullptr) {
-	throw std::runtime_error("cannot allocate dconf storage");
-    }
-    storage_ = c7::file::unique_mmap<c7_dconf_head_t>((c7_dconf_head_t*)(p), std::free);
-
+    storage_ = mapalt(sizeof(c7_dconf_head_t));
     auto& self = *this;
     self[C7_DCONF_MLOG].i         = get_i("C7_DCONF_MLOG", C7_LOG_BRF);
     self[C7_DCONF_MLOG_CATMASK].i = get_i("C7_DCONF_MLOG_CATMASK", 0);

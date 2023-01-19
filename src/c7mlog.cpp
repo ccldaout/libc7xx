@@ -143,7 +143,7 @@ private:
     callback_t callback_;
     rbuffer rbuf_;
     hdr_t *hdr_ = nullptr;
-    size_t mmapsize_b_;			// 0:_DummyBuffer, >0:mmaped storage
+    size_t mmapsize_b_ = 0;
     uint32_t flags_;
     uint32_t pid_;
 
@@ -225,18 +225,19 @@ mlog_writer::impl::init(const char *path,
 result<>
 mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logsize_b)
 {
-    mmapsize_b_ = _IHDRSIZE + hdrsize_b + logsize_b;
+    size_t mmapsize_b;
 
     void *top;
     if (path == nullptr) {
 	top = _DummyBuffer;
-	mmapsize_b_ = 0;		// use _DummyBuffer
+	mmapsize_b = 0;
 	callback_ = print_stdout;
     } else {
 	if (logsize_b < C7_MLOG_SIZE_MIN || logsize_b > C7_MLOG_SIZE_MAX) {
 	    return c7result_err(EINVAL, "invalid logsize_b: %{}", logsize_b);
 	}
-	auto res = c7::file::mmap_rw(path, mmapsize_b_, true);
+	mmapsize_b = _IHDRSIZE + hdrsize_b + logsize_b;
+	auto res = c7::file::mmap_rw(path, mmapsize_b, true);
 	if (!res) {
 	    return res.as_error();
 	}
@@ -246,6 +247,7 @@ mlog_writer::impl::setup_storage(const char *path, size_t hdrsize_b, size_t logs
 
     free_storage();
     hdr_ = static_cast<hdr_t*>(top);
+    mmapsize_b_ = mmapsize_b;
     rbuf_ = rbuffer(static_cast<char*>(top) + _IHDRSIZE + hdrsize_b, logsize_b);
 
     return c7result_ok();
@@ -273,7 +275,7 @@ mlog_writer::impl::setup_context(size_t hdrsize_b, size_t logsize_b, const char 
 void
 mlog_writer::impl::free_storage()
 {
-    if (hdr_ != nullptr && mmapsize_b_ != 0) {
+    if (hdr_ != nullptr && hdr_ != static_cast<void*>(_DummyBuffer)) {
 	::munmap(hdr_, mmapsize_b_);
     }
     hdr_ = nullptr;

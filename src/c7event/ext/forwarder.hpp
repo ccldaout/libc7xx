@@ -37,17 +37,21 @@ public:
     using callback_t = void(monitor&, Port&, io_result&, Msgbuf&);
 
     void set_callback(const std::function<callback_t>& cb) {
+	auto unlock = mutex_.lock();
 	callback_ = cb;
     }
     void subscribe(const std::vector<int32_t> interests) {
+	auto unlock = mutex_.lock();
 	interests_.insert(interests.begin(), interests.end());
     }
     void unsubscribe(const std::vector<int32_t> interests) {
+	auto unlock = mutex_.lock();
 	for (auto e: interests) {
 	    interests_.erase(e);
 	}
     }
     void unsubscribe() {
+	auto unlock = mutex_.lock();
 	interests_.clear();
     }
 
@@ -57,13 +61,18 @@ private:
 	    
     std::unordered_set<int32_t> interests_;
     std::function<callback_t> callback_;
-    broker& broker_;
-
-    explicit forwarder_proxy(broker& b): broker_(b) {}
+    c7::thread::mutex mutex_;
 
     void call(monitor& mon, Port& port, io_result& res, Msgbuf& msg) {
-	if (interests_.find(get_event(msg)) != interests_.end() || !res) {
-	    callback_(mon, port, res, msg);
+	auto unlock = mutex_.lock();
+	auto callback = callback_;
+	if (interests_.empty() || !callback) {
+	    return;
+	}
+	auto match = (interests_.find(get_event(msg)) != interests_.end());
+	unlock();
+	if (match || !res) {
+	    callback(mon, port, res, msg);
 	}
     }
 };
@@ -101,7 +110,7 @@ private:
 public:
     std::shared_ptr<proxy> operator()() {
 	auto unlock = mutex_.lock();
-	auto p = std::shared_ptr<proxy>(new proxy(*this));
+	auto p = std::make_shared<proxy>();
 	proxies_.push_back(p);
 	return p;
     }

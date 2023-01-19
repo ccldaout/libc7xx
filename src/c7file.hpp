@@ -86,8 +86,19 @@ result<std::vector<std::string>> readlines(const std::string& path);
 
 // convenience mmap operations
 
+class mmap_deleter {
+public:
+    mmap_deleter() = default;
+    explicit mmap_deleter(size_t n): n_(n) {}
+    void operator()(void *p) {
+	::munmap(p, n_);
+    }
+private:
+    size_t n_ = 0;
+};
+
 template <typename T = void>
-using unique_mmap = std::unique_ptr<T, std::function<void(void*)>>;
+using unique_mmap = std::unique_ptr<T, mmap_deleter>;
 
 result<void*> mmap_impl(const std::string& path, size_t& size_io, int oflag);
 result<void*> mmap_impl(int fd, size_t& size_io, int oflag);
@@ -100,7 +111,7 @@ c7::result<unique_mmap<T>> mmap_r(const std::string& path, size_t& size_io)
 	return c7result_err(std::move(res), "c7::file::mmap_r failed");
     }
     return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
-				      [=](void *p){ (void)::munmap(p, size_io); }));
+				      mmap_deleter(size_io)));
 }
 
 template <typename T = void>
@@ -111,7 +122,7 @@ c7::result<unique_mmap<T>> mmap_r(int fd, size_t& size_io)
 	return c7result_err(std::move(res), "c7::file::mmap_r failed");
     }
     return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
-				      [=](void *p){ (void)::munmap(p, size_io); }));
+				      mmap_deleter(size_io)));
 }
 
 template <typename T = void>
@@ -139,11 +150,11 @@ c7::result<unique_mmap<T>> mmap_rw(const std::string& path, size_t& size_io, boo
 	oflag |= O_CREAT;
 
     auto res = mmap_impl(path, size_io, oflag);
-    if (!res)
+    if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_rw failed");
-
+    }
     return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
-				      [=](void *p){ (void)::munmap(p, size_io); }));
+				      mmap_deleter(size_io)));
 }
 
 template <typename T = void>
@@ -158,7 +169,7 @@ c7::result<unique_mmap<T>> mmap_rw(int fd, size_t& size_io, bool create)
 	return c7result_err(std::move(res), "c7::file::mmap_rw failed");
     }
     return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
-				      [=](void *p){ (void)::munmap(p, size_io); }));
+				      mmap_deleter(size_io)));
 }
 
 template <typename T = void>
