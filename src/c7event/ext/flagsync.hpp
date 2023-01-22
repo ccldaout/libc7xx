@@ -91,14 +91,16 @@ protected:
 	result<> setup(monitor& mon);
 
 	callback_id_t assign(flags_t require_flags, callback_t callback) {
-	    auto id = provider_->assign(owner_.shared_from_this(),
-					require_flags, std::move(callback));
+	    auto id = provider_->assign(owner_.shared_from_this(), require_flags, std::move(callback));
 	    return id;
 	}
 
 	template <typename T>
-	callback_id_t assign(flags_t require_flags, T *owner, void (T::*cbp)(flags_t&)) {
-	    callback_t callback = [owner, cbp](flags_t& flags) { (owner->*cbp)(flags); };
+	callback_id_t assign(flags_t require_flags, void (T::*cbp)(flags_t&)) {
+	    auto owner_p = &owner_;
+	    callback_t callback = [owner_p, cbp](flags_t& flags) {
+		(static_cast<T*>(owner_p)->*cbp)(flags);
+	    };
 	    auto id = provider_->assign(owner_.shared_from_this(), require_flags, std::move(callback));
 	    return id;
 	}
