@@ -20,7 +20,7 @@ counter::counter(int init_count):
 {
 }
 
-    
+
 int counter::count()
 {
     return counter_;

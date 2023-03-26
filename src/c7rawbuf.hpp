@@ -156,12 +156,12 @@ public:
 
     auto rbegin() const {
 	return std::reverse_iterator<const_iterator>(
-	    const_iterator(const_cast<const T*>(top_, n_cur_)));
+	    const_iterator(const_cast<const T*>(top_), n_cur_));
     }
 
     auto rend() const {
 	return std::reverse_iterator<const_iterator>(
-	    const_iterator(const_cast<const T*>(top_, 0)));
+	    const_iterator(const_cast<const T*>(top_), 0));
     }
 
 private:

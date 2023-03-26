@@ -23,17 +23,36 @@
 namespace c7::event {
 
 
-template <typename Msgbuf, typename Port = socket_port,
-	  typename Receiver = receiver<Msgbuf, Port>>
-class acceptor: public provider_interface {
-public:
-    typedef shared_service_ptr<Msgbuf, Port> service_ptr;
 
+template <typename Service>
+using service_factory = std::function<std::shared_ptr<Service>()>;
+
+
+template <typename Msgbuf, typename Port = socket_port>
+class acceptor: public provider_interface {
+private:
+    using service_base = service_interface<Msgbuf, Port>;
+    using service_ptr  = shared_service_ptr<Msgbuf, Port>;
+    using service_make = service_factory<service_base>;
+
+public:
     c7::delegate<void, Port&, c7::result_base&> on_error;
 
-    static auto make(Port&& port, service_ptr svc, provider_hint hint) {
-	auto p = new acceptor(std::move(port), std::move(svc), hint);
+    // create service object for each connection
+    template <typename ServiceFactory,
+	      typename = typename std::invoke_result_t<ServiceFactory>::element_type>
+    static auto make(Port&& port, ServiceFactory&& svc_factory, provider_hint hint) {
+	service_make wrap_factory =
+	    [factory=std::forward<ServiceFactory>(svc_factory)]() mutable -> service_ptr {
+		return factory();
+	    };
+	auto p = new acceptor(std::move(port), std::move(wrap_factory), hint);
 	return std::shared_ptr<acceptor>(p);
+    }
+
+    // share service object for all connection
+    static auto make(Port&& port, service_ptr svc, provider_hint hint) {
+	return make(std::move(port), [svc](){ return svc; }, hint);
     }
 
     ~acceptor() override {}
@@ -43,46 +62,83 @@ public:
 
 private:
     Port port_;
-    service_ptr svc_;
+    service_make svc_factory_;
     provider_hint hint_;
 
-    acceptor(Port&& port, service_ptr&& svc, provider_hint hint);
+    acceptor(Port&& port, service_make svc_factory, provider_hint hint);
 };
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+// create service object for each connection
+
+template <typename ServiceFactory,
+	  typename Service = typename std::invoke_result_t<ServiceFactory>::element_type>
+auto make_acceptor(typename Service::port_type&& port,
+		   ServiceFactory&& svc_factory,
+		   provider_hint hint = nullptr)
+{
+    using msgbuf_type = typename Service::msgbuf_type;
+    using port_type   = typename Service::port_type;
+    return acceptor<msgbuf_type, port_type>::make(std::move(port),
+						  std::forward<ServiceFactory>(svc_factory),
+						  hint);
+}
+
+
+template <typename ServiceFactory,
+	  typename Service = typename std::invoke_result_t<ServiceFactory>::element_type>
+auto manage_acceptor(typename Service::port_type&& port,
+		     ServiceFactory&& svc_factory,
+		     provider_hint hint = nullptr)
+{
+    return manage(make_acceptor(std::move(port),
+				std::forward<ServiceFactory>(svc_factory),
+				hint));
+}
+
+
+template <typename ServiceFactory,
+	  typename Service = typename std::invoke_result_t<ServiceFactory>::element_type>
+auto manage_acceptor(monitor& mon,
+		     typename Service::port_type&& port,
+		     ServiceFactory&& svc_factory,
+		     provider_hint hint = nullptr)
+{
+    return mon.manage(make_acceptor(std::move(port),
+				    std::forward<ServiceFactory>(svc_factory),
+				    hint));
+}
+
+
+// share service object for all connection
+
+template <typename Service>
 auto make_acceptor(typename Service::port_type&& port,
 		   std::shared_ptr<Service> svc,
 		   provider_hint hint = nullptr)
 {
-    typedef typename Service::msgbuf_type msgbuf_type;
-    typedef typename Service::port_type port_type;
-    return acceptor<msgbuf_type, port_type, Receiver>::make(std::move(port), std::move(svc), hint);
+    using msgbuf_type = typename Service::msgbuf_type;
+    using port_type   = typename Service::port_type;
+    return acceptor<msgbuf_type, port_type>::make(std::move(port), std::move(svc), hint);
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_acceptor(typename Service::port_type&& port,
-			    std::shared_ptr<Service> svc,
-			    provider_hint hint = nullptr)
+			 std::shared_ptr<Service> svc,
+			 provider_hint hint = nullptr)
 {
-    return manage(make_acceptor<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return manage(make_acceptor<Service>(std::move(port), std::move(svc), hint));
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_acceptor(monitor& mon,
-			    typename Service::port_type&& port,
-			    std::shared_ptr<Service> svc,
-			    provider_hint hint = nullptr)
+			 typename Service::port_type&& port,
+			 std::shared_ptr<Service> svc,
+			 provider_hint hint = nullptr)
 {
-    return mon.manage(make_acceptor<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return mon.manage(make_acceptor<Service>(std::move(port), std::move(svc), hint));
 }
 
 

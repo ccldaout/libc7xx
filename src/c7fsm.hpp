@@ -67,7 +67,7 @@ public:
     void unlink_callback(int callback_id);
     void initial_state(state_t s) { initial_state(std::vector({s})); }
     void initial_state(const std::vector<state_t>&);
-	     
+
     // running phase
     result<> start();
     result<> transit(event_t ev, void *ctx);		// [CAUTION] callback is called.
@@ -119,7 +119,7 @@ public:
 				       cb(*static_cast<T*>(p), c, n);
 				   });
     }
-	     
+
     // running phase
     result<> transit(event_t ev, T& ctx) {
 	return driver_base::transit(ev, &ctx);
@@ -148,7 +148,7 @@ public:
 				       cb(c, n);
 				   });
     }
-	     
+
     // running phase
     result<> transit(event_t ev) {
 	return driver_base::transit(ev, nullptr);

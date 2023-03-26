@@ -32,7 +32,7 @@ public:
     mask& operator=(mask&&) = delete;
 
     explicit mask(uint64_t ini_mask);
-    
+
     uint64_t get();
     void clear();
     void on(uint64_t on_mask);

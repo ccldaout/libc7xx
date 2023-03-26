@@ -63,7 +63,7 @@ public:
     pointer(pointer&& o): s_(o.s_) {
 	o.s_ = nullptr;
     }
-	
+
     pointer& operator=(pointer&& o) {
 	if (this != &o) {
 	    if (s_ != nullptr) {
@@ -246,7 +246,7 @@ public:
 	}
     }
 
-    
+
     template <typename... Args>
     mpool(strategy<T>*(*maker)(Args...), Args... args) {
 	strategy_ = maker(args...);
@@ -342,7 +342,7 @@ private:
     int chunk_size_;			// item count by one chunk
     int chunk_limit_;
     std::vector<item<T>*> chunks_;
-    
+
     waitable_strategy(int chunk_size, int chunk_limit):
 	chunk_size_(chunk_size), chunk_limit_(chunk_limit) {
     }

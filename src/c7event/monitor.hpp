@@ -70,7 +70,7 @@ public:
     result<> resume(int prvfd);
     result<> unmanage(int prvfd);
     template <typename T> result<std::shared_ptr<T>> find(const std::string& key);
-    
+
 private:
     struct provider_info {
 	provider_info() = default;
@@ -103,7 +103,7 @@ result<std::shared_ptr<T>> monitor::find(const std::string& key)
 	return c7result_ok(std::move(sp));
     }
 }
-    
+
 
 // default monitor interfaces
 
@@ -124,7 +124,7 @@ result<std::shared_ptr<T>> find(const std::string& key)
 result<> start_thread();
 result<> wait_thread();
 [[noreturn]] void forever();
-    
+
 
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/

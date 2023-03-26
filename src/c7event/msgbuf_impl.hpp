@@ -169,7 +169,7 @@ multipart_msgbuf<Header, N>::send(Port& port)
 	    header.size[i-1] = iov_[i].iov_len;
 	}
     }
-	
+
     // [CAUTION] port.write_v change contents of iov and ioc
     int ioc = N + 1;
     ::iovec iov[N + 1];

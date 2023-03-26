@@ -108,7 +108,7 @@ public:
 	    rrest = size_;
 	}
     }
-    
+
     raddr_t put(raddr_t addr, raddr_t size, const void *__ubuf) {
 	const raddr_t ret_addr = addr + size;
 
@@ -290,7 +290,7 @@ mlog_writer::impl::make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, i
 			       uint64_t minidata)
 {
     rec_t rec;
-    
+
     // null character is not counted for *_size, but it's put to rbuf.
     if (tn_size > 0) {
 	logsize += (tn_size + 1);
@@ -490,7 +490,7 @@ bool mlog_writer::put(const char *src_name, int src_line,
     return put(c7::time_us(), src_name, src_line, level, category, minidata,
 	       static_cast<const void *>(s), strlen(s)+1);
 }
-    
+
 
 /*----------------------------------------------------------------------------
                               mlog_reader::impl
@@ -603,7 +603,7 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
 {
     const raddr_t brk_addr = ret_addr - hdr_->logsize_b;
     rec_t rec;
-    
+
     maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : (-1UL - 1));
     maxcount++;
 

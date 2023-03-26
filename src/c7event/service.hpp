@@ -28,7 +28,7 @@ template <typename Msgbuf>
 int32_t get_event(const Msgbuf& msgbuf);
 
 
-typedef std::variant<void*, uint64_t> provider_hint;
+using provider_hint = std::variant<void*, uint64_t>;
 
 
 class attach_id {
@@ -60,7 +60,7 @@ public:
     virtual ~service_interface() = default;
 
 
-    // interface for Receiver
+    // interface for receiver
     // ----------------------
 
     // [IMPORTANT] 
@@ -86,12 +86,12 @@ public:
 
     // case: Msgbuf::recv() return io_result::status::CLOSED
     //       If Port object is alive when returned from on_disconnect,
-    //       Receiver call Port::close.
+    //       receiver call Port::close.
     virtual void on_disconnected(monitor&, port_type&, io_result&) {}
 
     // case: Msgbuf::recv() return others
     //       If Port object is alive when returned from on_disconnect,
-    //       Receiver call Port::close.
+    //       receiver call Port::close.
     virtual void on_error(monitor&, port_type&, io_result&) {}
 
 

@@ -57,7 +57,7 @@ void flagsync_provider::on_event(monitor&, int, uint32_t)
 		callbacks_.erase(it);
 	    }
 	    unlock_cbs();
-	    
+
 	    if (sp) {
 		flags_ &= ~req_flags;
 		callback(flags_);

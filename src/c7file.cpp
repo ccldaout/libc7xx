@@ -195,7 +195,7 @@ c7::result<> rewrite(const std::string& path, void *buf, size_t size)
     if (auto res = c7::file::write(tmppath, 0600, buf, size); !res) {
 	return c7result_err(std::move(res), "rewrite failed");
     }
-    
+
     auto unblock_defer = c7::signal::block();
     auto lastret = c7result_ok();
     if (::rename(tmppath.c_str(), path.c_str()) == C7_SYSERR) {
@@ -411,7 +411,7 @@ result<void*> mmap_impl(const std::string& path, size_t& size_io, int oflag)
     if ((oflag & O_CREAT) != 0) {
 	(void)inherit_owner(path);
     }
-    
+
     int prot = PROT_READ;
     if ((oflag & O_RDWR) != 0)
 	prot |= PROT_WRITE;

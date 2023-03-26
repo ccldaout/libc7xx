@@ -15,7 +15,10 @@
 
 
 #include <c7format.hpp>
+#include <c7format/format_r2.hpp>
+#include <c7format/format_r3.hpp>
 #include <c7result.hpp>
+#include <c7strmbuf/hybrid.hpp>
 #include <c7thread.hpp>
 #include <c7utils.hpp>
 #include <string>
@@ -81,7 +84,7 @@ public:
     void enable_stdout();	// set_callback with internal print function
 
     void *hdraddr(size_t *hdrsize_b_op = nullptr);
-    
+
     void post_forked();
 
     bool put(c7::usec_t time_us, const char *src_name, int src_line,
@@ -100,23 +103,233 @@ public:
 	     uint32_t level, uint32_t category, uint64_t minidata,
 	     const char *s);
 
+    // default c7::format
+
+    template <typename... Args>
+    void format(c7::usec_t time_us, const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
     template <typename... Args>
     void format(c7::usec_t time_us, const char *src_name, int src_line,
 		uint32_t level, uint32_t category, uint64_t minidata,
 		const std::string& format, const Args&... args) {
-	auto s = c7::format(format, args...);
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format(os, format, args...);
 	(void)put(time_us, src_name, src_line, level, category, minidata,
-		  s.c_str(), s.size() + 1);
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format(const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
     }
 
     template <typename... Args>
     void format(const char *src_name, int src_line,
 		uint32_t level, uint32_t category, uint64_t minidata,
 		const std::string& format, const Args&... args) {
-	auto s = c7::format(format, args...);
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format(os, format, args...);
 	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
-		  s.c_str(), s.size() + 1);
+		  sb.data(), sb.size() + 1);
     }
+
+    // c7::format_r2
+
+    template <typename... Args>
+    void format(c7::usec_t time_us, const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const c7::format_r2::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r2(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const c7::format_r2::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r2(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r2(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const std::string& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format(const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const c7::format_r2::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r2(const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r2(const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const std::string& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r2::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    // c7::format_r3
+
+    template <typename... Args>
+    void format(c7::usec_t time_us, const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const c7::format_r3::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const c7::format_r3::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3_var(c7::usec_t time_us, const char *src_name, int src_line,
+		       uint32_t level, uint32_t category, uint64_t minidata,
+		       const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format_var(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3(c7::usec_t time_us, const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const std::string& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(time_us, src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format(const char *src_name, int src_line,
+		uint32_t level, uint32_t category, uint64_t minidata,
+		const c7::format_r3::analyzed_format& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3(const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3_var(const char *src_name, int src_line,
+		       uint32_t level, uint32_t category, uint64_t minidata,
+		       const char *format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format_var(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    template <typename... Args>
+    void format_r3(const char *src_name, int src_line,
+		   uint32_t level, uint32_t category, uint64_t minidata,
+		   const std::string& format, const Args&... args) {
+	auto sb = c7::strmbuf::hybrid();
+	auto os = std::basic_ostream(&sb);
+	c7::format_r3::format(os, format, args...);
+	(void)put(c7::time_us(), src_name, src_line, level, category, minidata,
+		  sb.data(), sb.size() + 1);
+    }
+
+    // error
 
     void error(c7::usec_t time_us, const char *src_name, int src_line,
 	       uint32_t level, uint32_t category, uint64_t minidata,

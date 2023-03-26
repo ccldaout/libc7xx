@@ -24,35 +24,35 @@ namespace c7::event {
 // implementation of acceptor
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-acceptor<Msgbuf, Port, Receiver>::acceptor(Port&& port, service_ptr&& svc, provider_hint hint):
-    provider_interface(), port_(std::move(port)), svc_(std::move(svc)), hint_(hint)
+template <typename Msgbuf, typename Port>
+acceptor<Msgbuf, Port>::acceptor(Port&& port, service_make svc_factory, provider_hint hint):
+    provider_interface(), port_(std::move(port)), svc_factory_(std::move(svc_factory)), hint_(hint)
 {
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-int acceptor<Msgbuf, Port, Receiver>::fd()
+template <typename Msgbuf, typename Port>
+int acceptor<Msgbuf, Port>::fd()
 {
     return port_.fd_number();
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void acceptor<Msgbuf, Port, Receiver>::on_manage(monitor& mon, int prvfd)
+template <typename Msgbuf, typename Port>
+void acceptor<Msgbuf, Port>::on_manage(monitor& mon, int prvfd)
 {
     port_.add_on_close([&mon, prvfd](){ mon.unmanage(prvfd); });
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void acceptor<Msgbuf, Port, Receiver>::on_event(monitor& mon, int, uint32_t)
+template <typename Msgbuf, typename Port>
+void acceptor<Msgbuf, Port>::on_event(monitor& mon, int, uint32_t)
 {
     if (auto res = port_.accept(); !res) {
 	on_error(port_, res);
     } else {
 	auto port = std::move(res.value());
-	auto prv = make_receiver<service_interface<Msgbuf, Port>, Receiver>(std::move(port), svc_, hint_);
+	auto prv = make_receiver<service_base>(std::move(port), svc_factory_(), hint_);
 	mon.manage(std::move(prv));
     }
 }

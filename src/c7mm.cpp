@@ -202,7 +202,7 @@ result<> mmobj::init(size_t size, size_t threshold, const std::string& path)
     path_ = path;
     return resize(size);
 }
-    
+
 result<> mmobj::resize(size_t new_size)
 {
     if (fd_) {

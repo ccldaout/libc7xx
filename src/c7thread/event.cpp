@@ -36,7 +36,7 @@ void event::clear()
 {
     c_.lock_notify_all([this](){ event_ = false; });
 }
-    
+
 
 bool event::wait_unified(c7::usec_t timeout, bool clear)
 {

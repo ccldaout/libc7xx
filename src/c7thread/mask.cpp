@@ -16,7 +16,7 @@ namespace c7::thread {
 
 
 mask::mask(uint64_t ini_mask): c_(), mask_(0) {}
-    
+
 
 uint64_t mask::get()
 {

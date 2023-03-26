@@ -25,34 +25,34 @@ namespace c7::event {
 // implementation of connector
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-connector<Msgbuf, Port, Receiver>::~connector() = default;
+template <typename Msgbuf, typename Port>
+connector<Msgbuf, Port>::~connector() = default;
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-connector<Msgbuf, Port, Receiver>::connector(const sockaddr_gen& addr, service_ptr&& svc, provider_hint hint):
+template <typename Msgbuf, typename Port>
+connector<Msgbuf, Port>::connector(const sockaddr_gen& addr, service_ptr&& svc, provider_hint hint):
     provider_interface(), addr_(addr), svc_(std::move(svc)), hint_(hint)
 {
     port_ = make_port();
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-int connector<Msgbuf, Port, Receiver>::fd()
+template <typename Msgbuf, typename Port>
+int connector<Msgbuf, Port>::fd()
 {
     return port_.fd_number();
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-uint32_t connector<Msgbuf, Port, Receiver>::default_epoll_events()
+template <typename Msgbuf, typename Port>
+uint32_t connector<Msgbuf, Port>::default_epoll_events()
 {
     return EPOLLOUT;
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void connector<Msgbuf, Port, Receiver>::on_manage(monitor& mon, int prvfd)
+template <typename Msgbuf, typename Port>
+void connector<Msgbuf, Port>::on_manage(monitor& mon, int prvfd)
 {
     port_.set_nonblocking(true);
     if (auto res = do_connect(mon); !res && !res.has_what(EINPROGRESS)) {
@@ -70,8 +70,8 @@ void connector<Msgbuf, Port, Receiver>::on_manage(monitor& mon, int prvfd)
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void connector<Msgbuf, Port, Receiver>::on_event(monitor& mon, int prvfd, uint32_t)
+template <typename Msgbuf, typename Port>
+void connector<Msgbuf, Port>::on_event(monitor& mon, int prvfd, uint32_t)
 {
     int so_error;
     if (auto res = port_.get_so_error(&so_error); !res) {
@@ -84,16 +84,17 @@ void connector<Msgbuf, Port, Receiver>::on_event(monitor& mon, int prvfd, uint32
 	start_timer(mon, prvfd);
 	return;
     }
-	
+
     // SUCCESS
     port_.set_nonblocking(false);
-    mon.change_provider(prvfd, make_receiver<service_interface<Msgbuf, Port>, Receiver>(std::move(port_), svc_, hint_));
+    auto rcv = make_receiver<service_interface<Msgbuf, Port>>(std::move(port_), svc_, hint_);
+    mon.change_provider(prvfd, std::move(rcv));
     mon.change_event(prvfd, EPOLLIN);
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void connector<Msgbuf, Port, Receiver>::start_timer(monitor& mon, int prvfd)
+template <typename Msgbuf, typename Port>
+void connector<Msgbuf, Port>::start_timer(monitor& mon, int prvfd)
 {
     mon.suspend(prvfd);
 
@@ -112,8 +113,8 @@ void connector<Msgbuf, Port, Receiver>::start_timer(monitor& mon, int prvfd)
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-void connector<Msgbuf, Port, Receiver>::retry_connect(monitor& mon)
+template <typename Msgbuf, typename Port>
+void connector<Msgbuf, Port>::retry_connect(monitor& mon)
 {
     // [BUG] Following original codes has potential problem on multi thread.
     //       Old descriptor of port_ is closed by assignment at [1]. If other
@@ -139,16 +140,16 @@ void connector<Msgbuf, Port, Receiver>::retry_connect(monitor& mon)
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-result<> connector<Msgbuf, Port, Receiver>::do_connect(monitor& mon)
+template <typename Msgbuf, typename Port>
+result<> connector<Msgbuf, Port>::do_connect(monitor& mon)
 {
     svc_->on_pre_connect(mon, port_);
     return port_.connect(addr_);
 }
 
 
-template <typename Msgbuf, typename Port, typename Receiver>
-Port connector<Msgbuf, Port, Receiver>::make_port()
+template <typename Msgbuf, typename Port>
+Port connector<Msgbuf, Port>::make_port()
 {
     if (addr_.is_ipv4()) {
 	return Port::tcp();

@@ -147,7 +147,7 @@ template <typename Iterator, typename Lessthan>
 void hsort_st(Iterator left, ptrdiff_t n, Lessthan lessthan)
 {
     ptrdiff_t i = 0;
-    
+
     while (++i < n) {
 	heap_up(left, i, lessthan);
     }

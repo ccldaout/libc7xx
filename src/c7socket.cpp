@@ -257,7 +257,7 @@ result<> socket::listen(int backlog)
     }
     return c7result_ok();
 }
-    
+
 result<socket> socket::accept()
 {
     int newfd = ::accept(fdnum_, nullptr, nullptr);
@@ -268,7 +268,7 @@ result<socket> socket::accept()
     (void)newsock.tcp_keepalive(true);
     return c7result_ok(std::move(newsock));
 }
-    
+
 result<sockaddr_gen> socket::self() const
 {
     sockaddr_gen addr;
@@ -329,7 +329,7 @@ result<> socket::set_rcvbuf(int nbytes)	// server:before listen, client:before c
 {
     return socket::setsockopt(SOL_SOCKET, SO_RCVBUF, &nbytes, sizeof(nbytes));
 }
-    
+
 result<> socket::set_sndbuf(int nbytes)
 {
     return socket::setsockopt(SOL_SOCKET, SO_SNDBUF, &nbytes, sizeof(nbytes));

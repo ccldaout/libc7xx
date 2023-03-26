@@ -25,7 +25,7 @@ namespace c7::event {
 class iovec_proxy {
 private:
     ::iovec& iov_;
-    typedef decltype(std::declval<::iovec>().iov_len) len_t;
+    using len_t = decltype(std::declval<::iovec>().iov_len);
 
     class iov_len_t {
     public:
@@ -117,7 +117,7 @@ public:
 	iov_(iov), iov_len(iov_), iov_base(iov_) {}
     explicit iovec_proxy(const ::iovec& iov):
 	iov_(const_cast<::iovec&>(iov)), iov_len(iov_), iov_base(iov_) {}
-    
+
     ::iovec* operator&() { return &iov_; }
 
     template <typename T>

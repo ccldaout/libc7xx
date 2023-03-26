@@ -127,7 +127,7 @@ result<> driver_base::add_transition(state_t cur, event_t ev, state_t next, call
     link_callback(id, std::move(callback));
     return c7result_ok();
 }
-	     
+
 result<> driver_base::add_transition(state_t cur, event_t ev, state_t next, callback_id_t callback_id)
 {
     auto key = table_key_t(cur, ev);
@@ -139,7 +139,7 @@ result<> driver_base::add_transition(state_t cur, event_t ev, state_t next, call
 	return c7result_err(EEXIST, "<state:%{}, event:%{}> is already exist.", cur, ev);
     }
 }
-	     
+
 result<> driver_base::add_transition(const std::vector<transition>& transitions)
 {
     for (auto& [cur, ev, next, callback_id]: transitions) {
@@ -215,7 +215,7 @@ void driver_base::reset()
 
 void driver_base::dump() const
 {
-    
+
     c7::p__("currents_:");
     for (auto cur: currents_) {
 	c7::p__(" %{}", cur);

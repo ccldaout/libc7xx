@@ -29,7 +29,7 @@ private:
 public:
     c7::delegate<void, proxy>::proxy on_any_finish;
     c7::delegate<void       >::proxy on_all_finish;
-    
+
     typedef std::vector<proxy>::iterator iterator;
 
     group(const group&) = delete;

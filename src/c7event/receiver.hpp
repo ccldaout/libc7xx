@@ -25,8 +25,8 @@ namespace c7::event {
 template <typename Msgbuf, typename Port = socket_port>
 class receiver: public provider_interface {
 public:
-    typedef service_interface<Msgbuf, Port> service_base;
-    typedef shared_service_ptr<Msgbuf, Port> service_ptr;
+    using service_base = service_interface<Msgbuf, Port>;
+    using service_ptr  = shared_service_ptr<Msgbuf, Port>;
 
     ~receiver() override {}
     int fd() override;
@@ -49,37 +49,33 @@ private:
 };
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 auto make_receiver(typename Service::port_type&& port,
 		   std::shared_ptr<Service> svc,
 		   provider_hint hint = nullptr)
 {
-    return Receiver::make(std::move(port), std::move(svc), hint);
+    using msgbuf_type = typename Service::msgbuf_type;
+    using port_type   = typename Service::port_type;
+    return receiver<msgbuf_type, port_type>::make(std::move(port), std::move(svc), hint);
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_receiver(typename Service::port_type&& port,
-			    std::shared_ptr<Service> svc,
-			    provider_hint hint = nullptr)
+			 std::shared_ptr<Service> svc,
+			 provider_hint hint = nullptr)
 {
-    return manage(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return manage(make_receiver<Service>(std::move(port), std::move(svc), hint));
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_receiver(monitor& mon,
-			    typename Service::port_type&& port,
-			    std::shared_ptr<Service> svc,
-			    provider_hint hint = nullptr)
+			 typename Service::port_type&& port,
+			 std::shared_ptr<Service> svc,
+			 provider_hint hint = nullptr)
 {
-    return mon.manage(make_receiver<Service, Receiver>(std::move(port), std::move(svc), hint));
+    return mon.manage(make_receiver<Service>(std::move(port), std::move(svc), hint));
 }
 
 

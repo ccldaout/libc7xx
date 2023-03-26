@@ -32,7 +32,7 @@ public:
     rendezvous(rendezvous&&) = delete;
     rendezvous& operator=(const rendezvous&) = delete;
     rendezvous& operator=(rendezvous&&) = delete;
-    
+
     explicit rendezvous(int n_entry);
 
     bool wait(c7::usec_t timeout = -1);

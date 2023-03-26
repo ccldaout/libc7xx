@@ -88,7 +88,7 @@ public:
 	    return c7result_err(EPIPE, "queue is closed or aborted");
 	}
     }
-    
+
     c7::result<T> get(size_t& weight, c7::usec_t tmo_us = -1) {
 	weight = 0;
 	auto unlock = cv_.lock();

@@ -5,15 +5,22 @@ include Makefile.version
 UNITS = src tools
 .PHONY: rebuild clean all $(UNITS) push pull
 
+GITTAG_F=r$(C7_VER_MAJOR).$(C7_VER_MINOR).$(C7_VER_PATCH)
+GITTAG_S=r$(C7_VER_MAJOR).$(C7_VER_MINOR)
+
 all: $(UNITS)
+
 $(UNITS):
 	@$(MAKE) --directory=$@ --no-print-directory clean
 	$(MAKE) --directory=$@ --no-print-directory
 
-GITTAG=r$(C7_VER_MAJOR).$(C7_VER_MINOR).$(C7_VER_PATCH)
+tag_move:
+	git tag -a -f -m $(GITTAG_F) $(GITTAG_F)
+	git tag -a -f -m $(GITTAG_S) $(GITTAG_S)
+	git push -f --tags x22
+	git push -f --tags github
 
 push:
-	git tag -a -f -m $(GITTAG) $(GITTAG)
 	git push -f x22
 	git push -f --tags x22
 	git push -f github

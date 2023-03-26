@@ -35,7 +35,7 @@ public:
     counter& operator=(counter&&) = delete;
 
     explicit counter(int init_count = 0);
-    
+
     int count();
     void reset(int count);
     void up(int n = 1);

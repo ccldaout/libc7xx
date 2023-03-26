@@ -51,12 +51,12 @@ coroutine::coroutine(size_t stack_b):
     context_.uc_stack.ss_flags = 0;
     context_.uc_link = &context_;
 }
-	
+
 coroutine::~coroutine()
 {
     stack_.reset();
 }
-    
+
 void coroutine::setup_context()
 {
     ::makecontext(&context_, coroutine::entry_point, 0);

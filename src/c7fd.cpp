@@ -159,7 +159,7 @@ result<> fd::change_flag(int set_flagtype, int flags, bool on)
     if (!ret) {
 	return ret.as_error();
     }
-    
+
     int newflag = ret.value();
     if (on) {
 	newflag |= flags;
@@ -285,7 +285,7 @@ io_result fd::read_n(void *buf, size_t const req_n)
 	if (z <= 0) {
 	    auto status = io_result::status::ERR;
 	    const char *descrip = "error";
-	    
+
 	    if (z == 0 && n == 0) {
 		status = io_result::status::CLOSED;
 		descrip = "maybe closed";

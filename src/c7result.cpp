@@ -19,7 +19,7 @@ namespace c7 {
 
 static const int file_w = 16;
 static const int line_w = 3;
-    
+
 
 const std::vector<result_base::errinfo> result_base::no_error_;
 

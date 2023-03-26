@@ -40,7 +40,7 @@ static const char *state_string(proc::state_t state)
     return "?";
 }
 
-class proc::impl {
+class proc::impl: public std::enable_shared_from_this<proc::impl>  {
 private:
     static std::unordered_set<std::shared_ptr<proc::impl>> procs_;
     static c7::thread::mutex procs_mutex_;
@@ -56,8 +56,8 @@ private:
     std::string prog_;
     c7::strvec argv_;
 
-    bool try_wait_raw(std::shared_ptr<proc::impl> self);
-    bool try_wait(std::shared_ptr<proc::impl> self);
+    bool try_wait_raw(bool from_waitprocs);
+    bool try_wait(bool from_waitprocs);
     static void waitprocs(int);		// called on signal handling thread
 
 public:
@@ -76,12 +76,10 @@ public:
     result<> start(const std::string& prog,
 		   const c7::strvec& argv,
 		   std::function<bool()> preexec,
-		   std::shared_ptr<proc::impl> self,
 		   int conf_fd);
-    
+
     result<> manage(pid_t pid,
-		    const std::string& prog,
-		    std::shared_ptr<proc::impl> self);
+		    const std::string& prog);
 
     result<> kill(int sig);
     result<> wait();
@@ -120,11 +118,10 @@ std::atomic<uint64_t> proc::impl::id_counter_;
 // proc::impl -- SIGCHLD handling
 // -------------------------------
 
-bool proc::impl::try_wait_raw(std::shared_ptr<proc::impl> self)
+bool proc::impl::try_wait_raw(bool from_waitprocs)
 {
     int status;
     if (::waitpid(pid_, &status, WNOHANG) == pid_) {
-	pid_ = -1;
 	if (WIFEXITED(status)) {
 	    state_ = EXIT;
 	    value_ = WEXITSTATUS(status);
@@ -132,17 +129,21 @@ bool proc::impl::try_wait_raw(std::shared_ptr<proc::impl> self)
 	    state_ = KILLED;
 	    value_ = WTERMSIG(status);
 	}
+	auto self = shared_from_this();
+	if (!from_waitprocs) {
+	    procs_.erase(self);
+	}
 	on_finish(proc::proxy(self));
 	return true;
     }
     return false;
 }
 
-bool proc::impl::try_wait(std::shared_ptr<proc::impl> self)
+bool proc::impl::try_wait(bool from_waitprocs)
 {
     auto defer = cv_.lock();
     if (pid_ != -1) {
-	if (try_wait_raw(self)) {
+	if (try_wait_raw(from_waitprocs)) {
 	    cv_.notify_all();
 	    return true;
 	}
@@ -157,7 +158,7 @@ void proc::impl::waitprocs(int)		// SIGCHLD handler
     // range-for DON'T work well with erase
     for (auto cur = procs_.begin(); cur != procs_.end();) {
 	auto p = *cur;
-	if (p->try_wait(p)) {
+	if (p->try_wait(true)) {
 	    cur = procs_.erase(cur);
 	} else {
 	    ++cur;
@@ -228,13 +229,6 @@ static result<pid_t> forkexec(int conf_fd,
 		// DON'T INHERIT signal mask
 		::sigset_t sigs;
 		::sigemptyset(&sigs);
-
-		// [CAUTION]
-		// context of c7::signal is inherited from parent process and
-		// it indicate that monitor thread is running but there is no one,
-		// because threads are not inherited to child process. So that 
-		// means we cannot use API of c7::signal on forked process.
-		////c7::signal::set(sigs);
 		(void)::sigprocmask(SIG_SETMASK, &sigs, nullptr);
 
 		// vector<string> -> vector<char *> with terminal null pointer
@@ -289,7 +283,6 @@ result<>
 proc::impl::start(const std::string& prog,
 		  const c7::strvec& argv,
 		  std::function<bool()> preexec,
-		  std::shared_ptr<proc::impl> self,
 		  int conf_fd)
 {
     if (state_ != IDLE) {
@@ -309,11 +302,12 @@ proc::impl::start(const std::string& prog,
     // object and calling on_finish delegate before on_start.
     auto unlock_defer = cv_.lock();
 
+    auto self = shared_from_this();
     pid_ = res.value();
     state_ = RUNNING;
     {
 	auto mutex_defer = procs_mutex_.lock();
-	procs_.insert(self);
+ 	procs_.insert(self);
     }
 
     on_start(proc::proxy(self));
@@ -323,7 +317,7 @@ proc::impl::start(const std::string& prog,
     // the handler cannot find this process and cannot update state of this process.
     // So, state of this process is kept at RUNNING forever without calling 
     // try_wait_raw() as follow.
-    unlock_defer += [this, self](){ (void)try_wait_raw(self); };
+    unlock_defer += [this](){ (void)try_wait_raw(false); };
 
     if (unguard_) {
 	// When callers call proc::guard_finish() before proc::start(), calling
@@ -336,9 +330,7 @@ proc::impl::start(const std::string& prog,
 
 
 result<>
-proc::impl::manage(pid_t pid,
-		   const std::string& prog,
-		   std::shared_ptr<proc::impl> self)
+proc::impl::manage(pid_t pid, const std::string& prog)
 {
     prog_ = prog;
     argv_ = c7::strvec{prog_};
@@ -350,11 +342,11 @@ proc::impl::manage(pid_t pid,
     state_ = RUNNING;
     {
 	auto mutex_defer = procs_mutex_.lock();
-	procs_.insert(self);
+	procs_.insert(shared_from_this());
     }
 
     // IMPORTANT: same above reason
-    unlock_defer += [this, self](){ (void)try_wait_raw(self); };
+    unlock_defer += [this](){ (void)try_wait_raw(false); };
     if (unguard_) {
 	unguard_ = std::move(unlock_defer);
     }
@@ -412,14 +404,14 @@ c7::defer proc::guard_finish()
 result<> proc::_start(const std::string& program,
 		      const c7::strvec& argv,
 		      std::function<bool()> preexec)
-			  
+
 {
-    return pimpl->start(program, argv, preexec, pimpl, conf_fd);
+    return pimpl->start(program, argv, preexec, conf_fd);
 }
 
 result<> proc::manage_external(pid_t pid, const std::string& program)
 {
-    return pimpl->manage(pid, program, pimpl);
+    return pimpl->manage(pid, program);
 }
 
 result<> proc::signal(int sig)

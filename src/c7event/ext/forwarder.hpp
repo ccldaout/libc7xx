@@ -58,7 +58,7 @@ public:
 private:
     template <typename, typename>
     friend class forwarder_broker;
-	    
+
     std::unordered_set<int32_t> interests_;
     std::function<callback_t> callback_;
     c7::thread::mutex mutex_;

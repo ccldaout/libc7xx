@@ -193,7 +193,7 @@ private:
     buf *get_;
     size_t put_n_ = 0;
     size_t get_n_ = 0;
-    
+
     com_status put_ready(::timespec * tmp);
 
 public:

@@ -93,7 +93,7 @@ result<> monitor::manage(const std::string& key,
 	    }
 	}
     }
-    
+
     if (events == 0) {
 	events = provider->default_epoll_events();
     }

@@ -83,9 +83,9 @@ public:
     result<> connect(const std::string& path);		// UNIX domain
 
     result<> listen(int backlog = 0);
-    
+
     result<socket> accept();
-    
+
     result<sockaddr_gen> self() const;
     result<sockaddr_gen> peer() const;
 

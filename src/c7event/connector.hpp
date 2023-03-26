@@ -23,11 +23,11 @@
 namespace c7::event {
 
 
-template <typename Msgbuf, typename Port = socket_port,
-	  typename Receiver = receiver<Msgbuf, Port>>
+template <typename Msgbuf, typename Port = socket_port>
 class connector: public provider_interface {
 public:
-    typedef shared_service_ptr<Msgbuf, Port> service_ptr;
+    using service_base = service_interface<Msgbuf, Port>;
+    using service_ptr  = shared_service_ptr<Msgbuf, Port>;
 
     c7::delegate<void, Port&, const c7::result_base&> on_error;
 
@@ -57,39 +57,33 @@ private:
 };
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 auto make_connector(const sockaddr_gen& addr,
 		    std::shared_ptr<Service> svc,
 		    provider_hint hint = nullptr)
 {
-    typedef typename Service::msgbuf_type msgbuf_type;
-    typedef typename Service::port_type port_type;
-    return connector<msgbuf_type, port_type, Receiver>::make(addr, svc, hint);
+    using msgbuf_type = typename Service::msgbuf_type;
+    using port_type   = typename Service::port_type;
+    return connector<msgbuf_type, port_type>::make(addr, svc, hint);
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_connector(const sockaddr_gen& addr,
 			  std::shared_ptr<Service> svc,
 			  provider_hint hint = nullptr)
 {
-    return manage(make_connector<Service, Receiver>(addr, svc, hint));
+    return manage(make_connector<Service>(addr, svc, hint));
 }
 
 
-template <typename Service,
-	  typename Receiver = receiver<typename Service::msgbuf_type,
-				       typename Service::port_type>>
+template <typename Service>
 result<> manage_connector(monitor& mon,
 			  const sockaddr_gen& addr,
 			  std::shared_ptr<Service> svc,
 			  provider_hint hint = nullptr)
 {
-    return mon.manage(make_connector<Service, Receiver>(addr, svc, hint));
+    return mon.manage(make_connector<Service>(addr, svc, hint));
 }
 
 

@@ -28,7 +28,7 @@ public:
     portgroup(portgroup&&) = default;
     portgroup& operator=(const portgroup&) = delete;
     portgroup& operator=(portgroup&&) = default;
-    
+
     void add(Port& port) {
 	ports_.push_back(&port);
 	port.add_on_close([this, fd=port.fd_number()]() { remove(fd); });

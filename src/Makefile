@@ -29,7 +29,12 @@ HDRS := $(wildcard *.hpp */*.hpp */*/*.hpp)
 SRCS := $(wildcard *.cpp */*.cpp */*/*.cpp)
 OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.cpp,%.o,$(SRCS)))
 
-C7_DIRS += $(C7_OUT_OBJDIR)/c7event $(C7_OUT_OBJDIR)/c7event/ext $(C7_OUT_OBJDIR)/c7thread
+C7_DIRS += $(C7_OUT_OBJDIR)/c7event
+C7_DIRS += $(C7_OUT_OBJDIR)/c7event/ext
+C7_DIRS += $(C7_OUT_OBJDIR)/c7format
+C7_DIRS += $(C7_OUT_OBJDIR)/c7nseq
+C7_DIRS += $(C7_OUT_OBJDIR)/c7strmbuf
+C7_DIRS += $(C7_OUT_OBJDIR)/c7thread
 
 
 $(C7_OUT_OBJDIR)/c7event/%.o: %.cpp
@@ -60,9 +65,11 @@ headers:
 
 .PHONY: depend
 depend:
-	@rm -f Makefile.dep
+	@rm -f $(C7_OUT_OBJDIR)/Makefile.dep.*
 	@for cpp in $(SRCS); do \
-	  c++ -c $(CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >> Makefile.dep; \
+	  c++ -c $(CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >| $(C7_OUT_OBJDIR)/Makefile.dep.$${cpp##*/}; \
 	done
+	@cat $(C7_OUT_OBJDIR)/Makefile.dep.* >| Makefile.dep
+
 
 include Makefile.dep

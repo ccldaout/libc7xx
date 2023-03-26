@@ -95,7 +95,7 @@ public:
     size_t size() {
 	return threads_.size();
     }
-    
+
     auto begin() {
 	return threads_.begin();
     }

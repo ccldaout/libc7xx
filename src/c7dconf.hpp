@@ -72,7 +72,7 @@ struct dconf_def {
 
 #define C7_DCONF_DEF_R(idxmacro, descrip)			\
     { (idxmacro), C7_DCONF_TYPE_R64, #idxmacro, descrip }
-    
+
 
 class dconf {
 private:

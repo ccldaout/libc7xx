@@ -43,9 +43,9 @@ public:
     defer() {}
 
     explicit defer(const std::function<void()>& f): func_(f) {}
-    
+
     explicit defer(std::function<void()>&& f): func_(std::move(f)) {}
-    
+
     template <typename Closer, typename Arg1, typename... Args>
     defer(Closer closer, Arg1 arg1, Args... args): func_([=]() { closer(arg1, args...); }) {}
 

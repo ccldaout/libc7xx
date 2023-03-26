@@ -310,7 +310,7 @@ thread& thread::operator=(thread&& o)
     }
     return *this;
 }
-    
+
 thread::~thread() {}
 
 void thread::reuse()
@@ -352,7 +352,7 @@ bool thread::join(c7::usec_t timeout)
 {
     return pimpl->join(timeout);
 }
-    
+
 thread::exit_type thread::status() const
 {
     return pimpl->status();

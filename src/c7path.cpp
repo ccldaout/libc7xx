@@ -101,7 +101,7 @@ bool is_exists(const std::string& path)
 result<std::string> cwd()
 {
     auto buf = c7::make_unique_cptr<char>();
-    
+
     for (int z = 64; ; z += 64) {
 	if (auto np = realloc(buf.get(), z); np == nullptr)
 	    return c7result_err(errno, "realloc failed");

@@ -214,7 +214,7 @@ public:
     iterator begin() noexcept {
 	return iterator(*this, false);
     }
-    
+
     iterator end() noexcept {
 	return iterator(*this, true);
     }

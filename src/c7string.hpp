@@ -355,7 +355,7 @@ public:
 	insert(end(), sv.begin(), sv.end());
 	return *this;
     }
-    
+
     strvec& operator+=(std::vector<std::string>&& sv) {
 	reserve(size() + sv.size());
 	for (auto&& s: std::move(sv)) {

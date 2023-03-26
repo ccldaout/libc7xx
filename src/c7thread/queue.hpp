@@ -73,7 +73,7 @@ public:
     c7::result<> put(T&& item, c7::usec_t tmo_us = -1) {
 	return base_type::put(std::move(item), 1, tmo_us);
     }
-    
+
     c7::result<T> get(c7::usec_t tmo_us = -1) {
 	[[maybe_unused]] size_t weight;
 	return base_type::get(weight, tmo_us);

@@ -37,7 +37,7 @@ public:
     event& operator=(event&&) = delete;
 
     explicit event(bool init = false);
-    
+
     bool is_set();
     void set();
     void clear();

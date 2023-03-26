@@ -1,5 +1,5 @@
 /*
- * c7format.cpp
+ * format_r1.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -8,161 +8,16 @@
  */
 
 
-#include <c7format.hpp>
-//#include <c7thread.hpp>
-#include <pthread.h>
-#include <cctype>
 #include <cstring>
-#include <time.h>	// ::localtime_r
+#include <c7format/format_r1.hpp>
 
 
-namespace c7 {
-
-
-// [CAUTION] DON'T use c7::thread::spinlock to implement __global_lock,
-//           because an order of calling destructor of statically allocated
-//           objects is non-deterministic. Especially c7::p_() called in a
-//           destructor of that object maybe blocked forever.
-static class cout_lock {
-private:
-    pthread_spinlock_t spin_;
-
-public:
-    cout_lock() {
-	(void)pthread_spin_init(&spin_, PTHREAD_PROCESS_PRIVATE);
-    }
-    
-    c7::defer lock() {
-	(void)pthread_spin_lock(&spin_);
-	return c7::defer([this](){ (void)pthread_spin_unlock(&spin_); });
-    }
-
-} __global_lock;
-
-
-/*----------------------------------------------------------------------------
-                              special formatter
-----------------------------------------------------------------------------*/
-
-// for ssize_t
-
-c7::delegate<bool, std::ostream&, const std::string&, ssize_t>
-format_traits<ssize_t>::converter;
-
-void format_traits<ssize_t>::convert(std::ostream& out, const std::string& format, ssize_t arg)
-{
-    if (converter(out, format, arg))
-	return;
-
-    const char* p = format.c_str();
-    if (*p == 'b') {
-	size_t m = static_cast<size_t>(arg);
-	int w = 0;
-	if (std::isdigit(int(*++p)))
-	    w = std::strtol(p, nullptr, 10);
-	else {
-	    for (w = 64; w > 1; w--) {
-		if (((1UL << (w-1)) & m) != 0)
-		    break;
-	    }
-	}
-	for (w--; w >= 0; w--) {
-	    out << (((1UL << w) & m) ? '1' : '0');
-	}
-    } else if (*p == 't' || *p == 'T') {
-	bool us_type = (*p == 't');
-	time_t tv;
-	ssize_t us;
-    
-	if (us_type) {
-	    us = arg % C7_TIME_S_us;
-	    tv = arg / C7_TIME_S_us;
-	} else
-	    tv = arg;
-	    
-	if (*++p == 0)
-	    p = "%H:%M:%S";
-
-	::tm tmbuf;
-	(void)::localtime_r(&tv, &tmbuf);
-	out << std::put_time(&tmbuf, p);
-
-	if (us_type) {
-	    out << "." << std::setw(6) << std::setfill('0') << std::right << std::dec << us;
-	}
-    }
-}
-
-// for com_status
-
-void print_type(std::ostream& out, const std::string& format, com_status arg)
-{
-    switch (arg) {
-      case com_status::OK:
-	out << "OK(" << int(arg) << ")";
-	break;
-
-      case com_status::CLOSED:
-	out << "CLOSED(" << int(arg) << ")";
-	break;
-
-      case com_status::TIMEOUT:
-	out << "TIMEOUT(" << int(arg) << ")";
-	break;
-
-      case com_status::ERROR:
-	out << "ERROR(" << int(arg) << ")";
-	break;
-
-      case com_status::ABORT:
-	out << "ABORT(" << int(arg) << ")";
-	break;
-
-      default:
-	out << "?(" << int(arg) << ")";
-	break;
-    }
-}
+namespace c7::format_r1 {
 
 
 /*----------------------------------------------------------------------------
                           parse format specification
 ----------------------------------------------------------------------------*/
-
-struct format_info {
-    enum position_t { RIGHT, LEFT, CENTER };
-    position_t pos = RIGHT;
-    bool sign = false;
-    char padding = ' ';
-    bool alt = false;		// true: showbase / boolalpha
-    int width = 0;		// -1: from parameter
-    int prec = 6;		// -1: from parameter
-};
-
-static inline auto position(format_info::position_t pos)
-{
-    switch (pos) {
-      case format_info::RIGHT:
-	return std::right;
-
-      case format_info::LEFT:
-	return std::left;
-
-      case format_info::CENTER:
-      default:
-	return std::internal;
-    }
-}
-
-static inline auto sign(bool s)
-{
-    return s ? std::showpos : std::noshowpos;
-}
-
-static inline auto alternative(bool a)
-{
-    return a ? std::showbase : std::noshowbase;
-}
 
 formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 {
@@ -184,7 +39,17 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
     }
 
     // reset characteristics
-    format_info fm;
+    struct format_info {
+	std::ios_base::fmtflags flags = std::ios_base::boolalpha | std::ios_base::right;
+	char padding = ' ';
+	int width = 0;
+	int prec = 6;
+	state_t next_act = FORMAT_ARG;
+	void set_adjust(std::ios_base::fmtflags adj) {
+	    flags &= ~(std::ios_base::left|std::ios_base::internal|std::ios_base::right);
+	    flags |= adj;
+	}
+    } fm;
     require_precision_ = false;
     ext_.clear();
 
@@ -201,49 +66,57 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 	}
 	out_.write(cur_, p - cur_);	// exclude 1st '%' 
 	cur_ = p + 1;
-	if (*cur_ == '{')
+	if (*cur_ == '{') {
 	    break;
-	if (*cur_ == '%')		// 2nd '%'
+	}
+	if (*cur_ == '%') {		// 2nd '%'
 	    cur_++;
+	}
 	out_ << '%';			// put only one '%'
-	cur_++;
     }
-    top_ = cur_ - 1;			// cur_ posint '{', top_ point '%'
+    top_ = cur_ - 1;			// cur_ point '{', top_ point '%'
+
+    // shortcut
+    if (cur_[1] == '}') {
+	out_.flags(fm.flags);
+	cur_ += 2;
+	return FORMAT_ARG;
+    }
 
     // conversion flags
     for (cur_++;; cur_++) {
 	switch (*cur_) {
-	  case 0:
+	case 0:
 	    out_ << "... Invalid format <" << top_ << ">\n";
 	    return FINISH;
 
-	  case '<':
-	    fm.pos = format_info::LEFT;
+	case '<':
+	    fm.set_adjust(std::ios_base::left);
 	    break;
 
-	  case '=':
-	    fm.pos = format_info::CENTER;
+	case '=':
+	    fm.set_adjust(std::ios_base::internal);
 	    break;
 
-	  case '>':
-	    fm.pos = format_info::RIGHT;
+	case '>':
+	    fm.set_adjust(std::ios_base::right);
 	    break;
 
-	  case '+':
-	    fm.sign = true;
+	case '+':
+	    fm.flags |= std::ios_base::showpos;
 	    break;
 
-	  case '_':
-	  case '0':
+	case '_':
+	case '0':
 	    fm.padding = *cur_;
 	    break;
 
-	  case '#':
-	    fm.alt = true;
-	    fm.pos = format_info::CENTER;
+	case '#':
+	    fm.flags |= std::ios_base::showbase;
+	    fm.set_adjust(std::ios_base::internal);
 	    break;
 
-	  default:
+	default:
 	    goto end_conversion;
 	}
     }
@@ -251,7 +124,7 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 
     // width
     if (*cur_ == '*') {
-	fm.width = -1;
+	fm.next_act = REQ_WIDTH;
 	cur_++;
     } else {
 	char *e;
@@ -266,9 +139,11 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
     if (*cur_ == '.') {
 	cur_++;
 	if (*cur_ == '*') {
-	    fm.prec = -1;
-	    cur_++;
 	    require_precision_ = true;
+	    if (fm.next_act == FORMAT_ARG) {
+		fm.next_act = REQ_PREC;
+	    }
+	    cur_++;
 	} else {
 	    char *e;
 	    auto w = std::strtol(cur_, &e, 10);
@@ -280,9 +155,10 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
     }
 
     // extenstion
-    if (*cur_ == ':')
+    if (*cur_ == ':') {
 	cur_++;			// ':' is optional
-    
+    }
+
     auto q = std::strchr(cur_, '}');
     if (q == nullptr) {
 	out_ << "... Invalid type specification ('}' is not found) <" << top_ << ">\n";
@@ -293,28 +169,14 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
     // At this point, cur_ point to first character of extenstion.
     cur_ = q + 1;		// next position
 
-    // apply format_info to io manipulations.
-    out_ << std::boolalpha;
-    out_ << position(fm.pos);
-    out_ << sign(fm.sign);
-    out_ << std::setfill(fm.padding);
-    out_ << alternative(fm.alt);
-    if (fm.width != -1)
-	out_ << std::setw(fm.width);
-    if (fm.prec != -1)
-	out_ << std::setprecision(fm.prec);
+    // apply io manipulations.
+    out_.flags(fm.flags);
+    out_.width(fm.width);
+    out_.precision(fm.prec);
+    out_.fill(fm.padding);
 
-    // determine next action
-    if (fm.width == -1)
-	return REQ_WIDTH;
-    if (fm.prec == -1)
-	return REQ_PREC;
-    return FORMAT_ARG;
-}
-
-c7::defer formatter::lock()
-{
-    return __global_lock.lock();
+    // next action
+    return fm.next_act;
 }
 
 
@@ -373,11 +235,14 @@ void formatter::handle_arg(state_t s, T arg, formatter_uint8_tag) noexcept
 template <typename T>
 void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
 {
-    if (ext_ == "f") {
+    switch (ext_[0]) {
+    case 'f':
 	out_ << std::fixed;
-    } else if (ext_ == "e") {
+	break;
+    case 'e':
 	out_ << std::scientific;
-    } else {
+	break;
+    default:
 	out_ << std::defaultfloat;
     }
     out_ << arg;
@@ -419,4 +284,4 @@ __C7_EXTERN(double);
 ----------------------------------------------------------------------------*/
 
 
-} // namespace c7
+} // namespace c7::format_r1

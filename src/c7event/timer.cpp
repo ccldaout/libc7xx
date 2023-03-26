@@ -38,7 +38,7 @@ result<> timer_provider::setup(c7::usec_t beg, c7::usec_t interval, bool is_abs)
     itm.it_value.tv_nsec = (beg % C7_TIME_S_us) * 1000;
     itm.it_interval.tv_sec  = interval/ C7_TIME_S_us;
     itm.it_interval.tv_nsec = (interval % C7_TIME_S_us) * 1000;
-	
+
     int flags = is_abs ? TFD_TIMER_ABSTIME : 0;
 
     if (timerfd_settime(fd_, flags, &itm, nullptr) == C7_SYSERR) {

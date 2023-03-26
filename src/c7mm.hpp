@@ -59,7 +59,7 @@ class mmobj {
 public:
     mmobj(const mmobj&) = delete;
     mmobj& operator=(const mmobj&) = delete;
-    
+
     mmobj(): top_(nullptr), size_(0), threshold_(0), path_(), fd_() {}
     ~mmobj();
 

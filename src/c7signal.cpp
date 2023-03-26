@@ -37,6 +37,10 @@ public:
 	(void)::sigemptyset(&user_mask_);
 	(void)::sigemptyset(&blocked_mask_);
 
+	return start_sigwait_loop();
+    }
+
+    result<> start_sigwait_loop() {
 	::sigset_t wait_mask;
 	(void)::sigfillset(&wait_mask);
 	sigset_em(wait_mask);
@@ -162,16 +166,16 @@ static void init()
     }
 }
 
-static void reset_once_flag()
+static void atfork()
 {
-    __sync_lock_release(&once_flag);
+    signal_manager.start_sigwait_loop();
 }
 
 static void call_init_once()
 {
     if (__sync_lock_test_and_set(&once_flag, 1) == 0) {
 	init();
-	pthread_atfork(nullptr, nullptr, reset_once_flag);
+	pthread_atfork(nullptr, nullptr, atfork);
     }
 }
 

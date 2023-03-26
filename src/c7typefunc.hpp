@@ -228,6 +228,70 @@ template <typename T>
 inline constexpr bool false_v = false;
 
 
+// is_iterable
+struct is_iterable_impl {
+    template <typename T>
+    static auto check(const T* o) -> decltype(
+	std::begin(*o),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+template <typename T>
+struct is_iterable:
+	decltype(is_iterable_impl::check<std::remove_reference_t<T>>(nullptr)) {};
+template <typename T>
+inline constexpr bool is_iterable_v = is_iterable<T>::value;
+
+
+// remove cv and reference: available for inner type of tuple, pair
+template <typename T>
+struct remove_cref {
+    using type = std::remove_const_t<std::remove_reference_t<T>>;
+};
+
+template <typename T>
+using remove_cref_t = typename remove_cref<T>::type;
+
+template <typename First, typename Second>
+struct remove_cref<std::pair<First, Second>> {
+    using type = std::pair<std::remove_const_t<std::remove_reference_t<First>>,
+			   std::remove_const_t<std::remove_reference_t<Second>>>;
+};
+
+template <typename... Types>
+struct remove_cref<std::tuple<Types...>> {
+    using type = std::tuple<remove_cref_t<Types>...>;
+};
+
+
+// first/second type of std::pair
+template <typename T>
+using first_type_t = typename T::first_type;
+template <typename T>
+using second_type_t = typename T::second_type;
+
+
+// begin/end iterator type
+template <typename T>
+using begin_iter_type = decltype(std::declval<T>().begin());
+template <typename T>
+using end_iter_type = decltype(std::declval<T>().end());
+
+
+// count for tuple
+template <typename>
+struct count_of_tuple {};
+template <typename... Types>
+struct count_of_tuple<std::tuple<Types...>> {
+    static constexpr int value = count<Types...>();
+};
+template <typename T>
+inline constexpr int count_of_tuple_v =
+    count_of_tuple<std::remove_const_t<std::remove_reference_t<T>>>::value;
+
+
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
 
