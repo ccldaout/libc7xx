@@ -52,20 +52,16 @@ public:
 	return loop_thread.start();
     }
 
-    void (*handler(int sig, void (*new_handler)(int)))(int) {
-	auto old = handlers_[sig];
-	if (new_handler == SIG_IGN) {
-	    (void)::signal(sig, new_handler);
+    void (*handler(int sig, void (*new_h)(int)))(int) {
+	if (new_h == SIG_DFL || new_h == SIG_IGN) {
+	    ::signal(sig, new_h);
 	} else {
-	    if (new_handler == SIG_DFL) {
-		new_handler = sig_default;
-	    }
+	    ::signal(sig, sig_noop);
 	}
-	handlers_[sig] = new_handler;
-	if (old == sig_default) {
-	    old = SIG_DFL;
-	}
-	return old;
+	auto old_h = handlers_[sig];
+	handlers_[sig] = (new_h == SIG_DFL) ? sig_default : new_h;
+
+	return (old_h == sig_default) ? SIG_DFL : old_h;
     }
 
     ::sigset_t block(const ::sigset_t& mask) {
@@ -127,6 +123,9 @@ private:
 	(void)pthread_sigmask(SIG_UNBLOCK, &mask, nullptr);
 	(void)::kill(::getpid(), sig);
     }
+
+    static void sig_noop(int) {}
+
 
     void check_blocked() {
 	for (int i = 0; i < NSIG; i++) {
