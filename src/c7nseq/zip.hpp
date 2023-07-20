@@ -98,7 +98,7 @@ template <typename... Seqs>
 class zipN_obj {
 private:
     template <typename S>
-    using get_hold_type_t = 
+    using get_hold_type_t =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<S>,
 			       std::remove_reference_t<S>,
 			       S>;

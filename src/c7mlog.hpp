@@ -19,7 +19,7 @@
 #include <c7format/format_r3.hpp>
 #include <c7result.hpp>
 #include <c7strmbuf/hybrid.hpp>
-#include <c7thread.hpp>
+//#include <c7thread.hpp>
 #include <c7utils.hpp>
 #include <string>
 
@@ -59,7 +59,7 @@ private:
     impl *pimpl;
 
 public:
-    using callback_t = 
+    using callback_t =
 	std::function<void(c7::usec_t time_us, const char *src_name, int src_line,
 			   uint32_t level, uint32_t category, uint64_t minidata,
 			   const void *logaddr, size_t logsize_b)>;

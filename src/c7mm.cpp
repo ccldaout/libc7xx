@@ -83,7 +83,7 @@ result<> mmobj::resize_anon_mm(size_t size)
     size = c7_align(size, PAGESIZE);
     if (size == 0) {
 	return c7result_ok();
-    }	
+    }
     void *np = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (np == MAP_FAILED) {
 	if (path_.empty()) {

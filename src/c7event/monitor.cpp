@@ -97,7 +97,7 @@ result<> monitor::manage(const std::string& key,
     if (events == 0) {
 	events = provider->default_epoll_events();
     }
-    // [MEMO] We use EPOLLHUP flag for other purpose; suspended flag. 
+    // [MEMO] We use EPOLLHUP flag for other purpose; suspended flag.
     //        EPOLLHUP is only used as output flag of epoll_wait in system call,
     //        so, that usage is safety.
     events &= ~EPOLLHUP;
@@ -200,7 +200,7 @@ result<> monitor::suspend(int prvfd)
 
     if (::epoll_ctl(epfd_, EPOLL_CTL_DEL, prvfd, nullptr) == C7_SYSERR) {
 	return c7result_err(errno, "epoll_ctl(DEL, %{}) failed", prvfd);
-    } 
+    }
     (*it).second.events |= EPOLLHUP;			// for suspended flag
 
     return c7result_ok();
@@ -239,7 +239,7 @@ result<> monitor::unmanage(int prvfd)
 
     if (::epoll_ctl(epfd_, EPOLL_CTL_DEL, prvfd, nullptr) == C7_SYSERR) {
 	return c7result_err(errno, "epoll_ctl(DEL, %{}) failed", prvfd);
-    } 
+    }
     unlock();
 
     provider->on_unmanage(*this, prvfd);

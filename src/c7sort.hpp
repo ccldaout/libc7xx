@@ -394,13 +394,13 @@ void msort_mt(Iterator work, Iterator left, ptrdiff_t n, Lessthan lessthan,
 }
 
 template <typename Iterator>
-void msort_mt(Iterator work, Iterator left, ptrdiff_t n, 
+void msort_mt(Iterator work, Iterator left, ptrdiff_t n,
 	      int thread_depth,
 	      int msort_mt_threshold = C7_MSORT_MT_THRESHOLD,
 	      int msort_threshold = C7_MSORT_THRESHOLD)
 {
     msort_mt(work,
-	     left, n, 
+	     left, n,
 	     [](const decltype(*left)& p,
 		const decltype(*left)& q) { return p < q; },
 	     thread_depth, msort_mt_threshold, msort_threshold);

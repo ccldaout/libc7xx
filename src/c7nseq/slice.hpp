@@ -188,9 +188,9 @@ public:
 
     auto end() {
 	using std::begin;
-	auto it = begin(seq_);
-	using it_type = typename std::iterator_traits<decltype(it)>::iterator_category;
+	using it_type = typename std::iterator_traits<decltype(begin(seq_))>::iterator_category;
 	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
+	    auto it = begin(seq_);
 	    auto eoff = off_ + size() * gap_;
 	    return slice_ra_iter<decltype(it)>(it+eoff, gap_);
 	} else {
@@ -261,7 +261,7 @@ public:
 	return slice_obj<decltype(seq)>(std::forward<Seq>(seq), off_, gap_, n_);
     }
 
-private:    
+private:
     size_t off_, gap_, n_;
 };
 

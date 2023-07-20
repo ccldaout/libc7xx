@@ -15,6 +15,7 @@
 
 #include <c7coroutine.hpp>
 #include <c7nseq/_cmn.hpp>
+#include <c7nseq/empty.hpp>
 
 
 namespace c7::nseq {
@@ -28,23 +29,47 @@ struct generator_iter_end {};
 template <typename T>
 class co_output {
 private:
-    T& data_;
+    std::vector<T>& data_;
     c7::coroutine& co_;
 
 public:
-    co_output(T& data, c7::coroutine& co): data_(data), co_(co) {
+    co_output(std::vector<T>& data, c7::coroutine& co):
+	data_(data), co_(co) {
     }
 
-    void operator<<(const T& data) {
-	data_ = data;
-	co_.yield();
+    auto& operator<<(const T& data) {
+	if (data_.size() == data_.capacity()) {
+	    co_.yield();
+	    data_.clear();
+	}
+	data_.push_back(data);
+	return *this;
     }
 
-    void operator<<(T&& data) {
-	data_ = std::move(data);
-	co_.yield();
+    auto& operator<<(T&& data) {
+	if (data_.size() == data_.capacity()) {
+	    co_.yield();
+	    data_.clear();
+	}
+	data_.push_back(std::move(data));
+	return *this;
     }
 
+    template <typename Seq,
+	      typename = std::enable_if_t<c7::typefunc::is_sequence_of_v<Seq, T>>>
+    auto& operator<<(Seq&& seq) {
+	for (auto&& v: seq) {
+	    this->operator<<(std::forward<decltype(v)>(v));
+	}
+	return *this;
+    }
+
+    void flush() {
+	if (data_.size() != 0) {
+	    co_.yield();
+	    data_.clear();
+	}
+    }
 };
 
 
@@ -55,15 +80,21 @@ private:
 	Seq& seq_;
 	Generator func_;
 	c7::coroutine co_;
-	std::remove_reference_t<Output> data_;
+	std::vector<std::remove_reference_t<Output>> data_;
 	bool end_;
 
-	context(Seq& seq, Generator func):
+	context(Seq& seq, Generator func, size_t buffer_size):
 	    seq_(seq), func_(func), co_(1024), end_(false) {
+	    data_.reserve(buffer_size);
 	    co_.target([this](){
 			   c7::coroutine& from = *(coroutine::self()->from());
 			   co_output<value_type> out(data_, from);
-			   func_(seq_, out);
+			   if constexpr (std::is_invocable_v<Generator, Seq&, decltype(out)&>) {
+			       func_(seq_, out);
+			   } else {
+			       func_(out);
+			   }
+			   out.flush();
 			   end_ = true;
 			   for (;;) {
 			       from.yield();
@@ -74,6 +105,7 @@ private:
     };
 
     std::shared_ptr<context> ctx_;	// for copyable
+    size_t idx_ = 0;
 
 public:
     // for STL iterator
@@ -83,8 +115,14 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
-    generator_iter(Seq& seq, Generator func):
-	ctx_(std::make_shared<context>(seq, func)) {
+    generator_iter() = default;
+    generator_iter(const generator_iter&) = default;
+    generator_iter& operator=(const generator_iter&) = default;
+    generator_iter(generator_iter&&) = default;
+    generator_iter& operator=(generator_iter&&) = default;
+
+    generator_iter(Seq& seq, Generator func, size_t buffer_size):
+	ctx_(std::make_shared<context>(seq, func, buffer_size)) {
     }
 
     bool operator==(const generator_iter& o) const {
@@ -104,14 +142,19 @@ public:
     }
 
     auto& operator++() {
-	if (!ctx_->end_) {
-	    ctx_->co_.yield();
+	if (idx_ == ctx_->data_.size() - 1) {
+	    if (!ctx_->end_) {
+		ctx_->co_.yield();
+		idx_ = 0;
+	    }
+	} else {
+	    idx_++;
 	}
 	return *this;
     }
 
     decltype(auto) operator*() {
-	return std::move(ctx_->data_);
+	return std::move(ctx_->data_[idx_]);
     }
 };
 
@@ -125,10 +168,11 @@ private:
 			       Seq>;
     hold_type seq_;
     Generator func_;
+    size_t buffer_size_;
 
 public:
-    generator_obj(Seq seq, Generator func):
-	seq_(std::forward<Seq>(seq)), func_(func) {
+    generator_obj(Seq seq, Generator func, size_t buffer_size):
+	seq_(std::forward<Seq>(seq)), func_(func), buffer_size_(buffer_size) {
     }
 
     generator_obj(const generator_obj&) = delete;
@@ -137,7 +181,7 @@ public:
     generator_obj& operator=(generator_obj&&) = delete;
 
     auto begin() {
-	return generator_iter<hold_type, Output, Generator>(seq_, func_);
+	return generator_iter<hold_type, Output, Generator>(seq_, func_, buffer_size_);
     }
 
     auto end() {
@@ -157,29 +201,31 @@ public:
 template <typename Output, typename Generator>
 class generator_seq {
 public:
-    explicit generator_seq(Generator func): func_(func) {}
+    explicit generator_seq(Generator func, size_t buffer_size):
+	func_(func), buffer_size_(buffer_size) {}
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
 	return generator_obj<decltype(seq), Output, Generator>
-	    (std::forward<Seq>(seq), func_);
+	    (std::forward<Seq>(seq), func_, buffer_size_);
     }
 
     auto operator()() {
-	std::vector<char> seq;
+	empty_seq<> seq;
 	return generator_obj<decltype(seq), Output, Generator>
-	    (seq, func_);
+	    (seq, func_, buffer_size_);
     }
 
 private:
     Generator func_;
+    size_t buffer_size_;
 };
 
 
 template <typename Output, typename Generator>
-auto generator(Generator func)
+auto generator(Generator func, size_t buffer_size=1024)
 {
-    return generator_seq<Output, Generator>(func);
+    return generator_seq<Output, Generator>(func, buffer_size);
 };
 
 

@@ -29,6 +29,7 @@
 #include <c7nseq/head.hpp>
 #include <c7nseq/range.hpp>
 #include <c7nseq/reverse.hpp>
+#include <c7nseq/tail.hpp>
 #include <c7nseq/transform.hpp>
 
 

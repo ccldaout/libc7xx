@@ -9,6 +9,7 @@
 
 
 #include <c7dconf.hpp>
+#include <c7nseq/enumerate.hpp>
 #include <c7path.hpp>
 #include <cstring>
 #include <stdexcept>
@@ -57,7 +58,7 @@ static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& defv)
 	C7_DCONF_DEF_I(C7_DCONF_MLOG_CATMASK, "mlog categroy bit mask (default:0)"),
     };
 
-    for (auto [i, d]: c7::seq::enumerate(defv)) {
+    for (auto [i, d]: defv | c7::nseq::enumerate()) {
 	if (d.index < C7_DCONF_USER_INDEX_BASE ||
 	    d.index >= C7_DCONF_USER_INDEX_LIM) {
 	    throw std::runtime_error(

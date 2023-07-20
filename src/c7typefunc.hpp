@@ -47,7 +47,7 @@ struct unwrapref<std::reference_wrapper<T>> {
                             type list manipulation
 ----------------------------------------------------------------------------*/
 
-// -- is_empty<...> : 
+// -- is_empty<...> :
 
 template <typename... Args>
 struct is_empty {
@@ -228,23 +228,6 @@ template <typename T>
 inline constexpr bool false_v = false;
 
 
-// is_iterable
-struct is_iterable_impl {
-    template <typename T>
-    static auto check(const T* o) -> decltype(
-	std::begin(*o),
-	std::true_type{});
-
-    template <typename T>
-    static auto check(...) -> std::false_type;
-};
-template <typename T>
-struct is_iterable:
-	decltype(is_iterable_impl::check<std::remove_reference_t<T>>(nullptr)) {};
-template <typename T>
-inline constexpr bool is_iterable_v = is_iterable<T>::value;
-
-
 // remove cv and reference: available for inner type of tuple, pair
 template <typename T>
 struct remove_cref {
@@ -290,6 +273,48 @@ struct count_of_tuple<std::tuple<Types...>> {
 template <typename T>
 inline constexpr int count_of_tuple_v =
     count_of_tuple<std::remove_const_t<std::remove_reference_t<T>>>::value;
+
+
+// is_iterable
+struct is_iterable_impl {
+    template <typename T>
+    static auto check(T* o) -> decltype(
+	std::begin(*o),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+template <typename T>
+struct is_iterable:
+    decltype(is_iterable_impl::check<c7::typefunc::remove_cref_t<T>>(nullptr)) {};
+template <typename T>
+inline constexpr bool is_iterable_v = is_iterable<T>::value;
+
+
+// is_sequence_of
+template <typename Seq, typename T>
+inline constexpr bool is_sequence_of_impl(
+    std::enable_if_t<c7::typefunc::is_iterable_v<Seq>>*)
+{
+    return std::is_same_v<
+	c7::typefunc::remove_cref_t<decltype(*std::begin(std::declval<Seq>()))>,
+	c7::typefunc::remove_cref_t<T>>;
+}
+
+template <typename Seq, typename T>
+inline constexpr bool is_sequence_of_impl(...)
+{
+    return false;
+}
+
+template <typename Seq, typename T>
+struct is_sequence_of {
+    static constexpr bool value = is_sequence_of_impl<Seq, T>(nullptr);
+};
+
+template <typename Seq, typename T>
+inline constexpr bool is_sequence_of_v = is_sequence_of<Seq, T>::value;
 
 
 /*----------------------------------------------------------------------------

@@ -15,6 +15,7 @@
 #define c7event_ext_forwarder_hpp__ 1
 #define c7event_ext_fsm_hpp__ 1
 #define c7event_ext_noop_hpp__ 1
+#define c7event_inotify_hpp__ 1
 #define c7event_iovec_proxy_hpp__ 1
 #define c7event_monitor_hpp__ 1
 #define c7event_msgbuf_hpp__ 1
@@ -41,7 +42,10 @@
 #define c7nseq__cmn_hpp__ 1
 #define c7nseq__iter_ops_hpp__ 1
 #define c7nseq_accumulate_hpp__ 1
+#define c7nseq_base64_hpp__ 1
 #define c7nseq_c_array_hpp__ 1
+#define c7nseq_command_hpp__ 1
+#define c7nseq_empty_hpp__ 1
 #define c7nseq_enumerate_hpp__ 1
 #define c7nseq_filter_hpp__ 1
 #define c7nseq_flat_hpp__ 1
@@ -50,6 +54,7 @@
 #define c7nseq_head_hpp__ 1
 #define c7nseq_hpp__ 1
 #define c7nseq_insert_hpp__ 1
+#define c7nseq_io_hpp__ 1
 #define c7nseq_list_hpp__ 1
 #define c7nseq_map_hpp__ 1
 #define c7nseq_push_hpp__ 1
@@ -58,14 +63,18 @@
 #define c7nseq_set_hpp__ 1
 #define c7nseq_slice_hpp__ 1
 #define c7nseq_sort_hpp__ 1
+#define c7nseq_string_hpp__ 1
 #define c7nseq_tail_hpp__ 1
+#define c7nseq_thread_hpp__ 1
 #define c7nseq_transform_hpp__ 1
 #define c7nseq_tuple_hpp__ 1
 #define c7nseq_unique_hpp__ 1
+#define c7nseq_urlencode_hpp__ 1
 #define c7nseq_vector_hpp__ 1
 #define c7nseq_while_hpp__ 1
 #define c7nseq_zip_hpp__ 1
 #define c7path_hpp__ 1
+#define c7pipeline_hpp__ 1
 #define c7proc_hpp__ 1
 #define c7rawbuf_hpp__ 1
 #define c7result_hpp__ 1

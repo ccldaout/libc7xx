@@ -13,7 +13,6 @@
 #define C7_NSEQ_FLAT_HPP_LOADED__
 
 
-#include <c7coroutine.hpp>
 #include <c7nseq/generator.hpp>
 
 
@@ -41,6 +40,8 @@ using flat_item_t = typename flat_item<N, T>::type;
 template <int N>
 class flat {
 private:
+    size_t buffer_size_;
+
     template <int L, typename Seq, typename Out>
     static void traverse_inner(Seq&& seq, Out& out) {
 	for (auto&& item: seq) {
@@ -59,10 +60,12 @@ private:
     }
 
 public:
+    explicit flat(size_t buffer_size=1024): buffer_size_(buffer_size) {}
+
     template <typename Seq>
     auto operator()(Seq&& seq) {
 	using item_type = c7::typefunc::remove_cref_t<flat_item_t<N+1, Seq>>;
-	return generator<item_type>(traverse_entry<Seq, co_output<item_type>>)(
+	return generator<item_type>(traverse_entry<Seq, co_output<item_type>>, buffer_size_)(
 	    std::forward<Seq>(seq));
     }
 };
@@ -99,6 +102,8 @@ using flat0_item_t = typename flat0_item<T>::type;
 template <>
 class flat<0> {
 private:
+    size_t buffer_size_;
+
     template <typename Seq, typename Out>
     static void traverse_inner(Seq&& seq, Out& out) {
 	for (auto&& item: seq) {
@@ -117,10 +122,12 @@ private:
     }
 
 public:
+    explicit flat(size_t buffer_size=1): buffer_size_(buffer_size) {}
+
     template <typename Seq>
     auto operator()(Seq&& seq) {
 	using item_type = c7::typefunc::remove_cref_t<flat0_item_t<Seq>>;
-	return generator<item_type>(traverse_entry<Seq, co_output<item_type>>)(
+	return generator<item_type>(traverse_entry<Seq, co_output<item_type>>, buffer_size_)(
 	    std::forward<Seq>(seq));
     }
 };

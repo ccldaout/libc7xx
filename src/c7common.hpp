@@ -96,6 +96,39 @@ struct format_traits {};
 // empty class
 class empty {};
 
+// simple wrapper (for basic types)
+template <typename T, typename Tag>
+class simple_wrap {
+private:
+    T value_;
+public:
+    simple_wrap(): value_() {}
+    simple_wrap(const T& v): value_(v) {}
+    simple_wrap(const simple_wrap& o): value_(o.value_) {}
+    simple_wrap& operator=(const simple_wrap& o) {
+	value_ = o.value_;
+	return *this;
+    }
+    operator T() {
+	return value_;
+    }
+    T& operator()() {
+	return value_;
+    }
+    const T& operator()() const {
+	return value_;
+    }
+    bool operator==(const simple_wrap& o) const {
+	return value_ == o.value_;
+    }
+    bool operator!=(const simple_wrap& o) const {
+	return !(*this == o);
+    }
+    T print_as() const {
+	return value_;
+    }
+};
+
 
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/

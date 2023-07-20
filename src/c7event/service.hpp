@@ -63,7 +63,7 @@ public:
     // interface for receiver
     // ----------------------
 
-    // [IMPORTANT] 
+    // [IMPORTANT]
     //
     // If your delived class from service_interface implement on_attached, it must call
     // on_attached of base class like as following example. This requirement is also same

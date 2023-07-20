@@ -20,17 +20,22 @@
 namespace c7::event {
 
 
+struct timer_fd_tag {};
+using timer_fd_t = simple_wrap<int, timer_fd_tag>;
+
+
 class timer_provider: public provider_interface {
 public:
-    using callback_t = std::function<void(int, uint64_t)>;	// fd, #timeout
+    using callback_t = std::function<void(timer_fd_t, uint64_t)>;	// fd, #timeout
 
     ~timer_provider() override;
     int fd() override { return fd_; }
     void on_event(monitor& mon, int, uint32_t events) override;
+    void on_unmanage(monitor& mon, int) override;
 
-    static result<int> manage(monitor& mon,
-				 c7::usec_t beg, c7::usec_t interval, callback_t callback,
-				 bool is_abs);
+    static result<timer_fd_t> manage(monitor& mon,
+				     c7::usec_t beg, c7::usec_t interval, callback_t callback,
+				     bool is_abs);
 private:
     int fd_ = C7_SYSERR;
     uint64_t count_ = 0;
@@ -41,7 +46,7 @@ private:
 };
 
 
-inline result<int>
+inline result<timer_fd_t>
 timer_start(c7::usec_t beg, c7::usec_t interval,
 	    std::function<void(int, uint64_t)> callback)
 {
@@ -49,7 +54,7 @@ timer_start(c7::usec_t beg, c7::usec_t interval,
 				     beg, interval, std::move(callback), false);
 }
 
-inline result<int>
+inline result<timer_fd_t>
 timer_start(monitor& mon,
 	    c7::usec_t beg, c7::usec_t interval,
 	    std::function<void(int, uint64_t)> callback)
@@ -57,7 +62,7 @@ timer_start(monitor& mon,
     return timer_provider::manage(mon, beg, interval, std::move(callback), false);
 }
 
-inline result<int>
+inline result<timer_fd_t>
 timer_start_abs(c7::usec_t beg, c7::usec_t interval,
 		std::function<void(int, uint64_t)> callback)
 {
@@ -65,7 +70,7 @@ timer_start_abs(c7::usec_t beg, c7::usec_t interval,
 				     beg, interval, std::move(callback), true);
 }
 
-inline result<int>
+inline result<timer_fd_t>
 timer_start_abs(monitor& mon,
 		c7::usec_t beg, c7::usec_t interval,
 		std::function<void(int, uint64_t)> callback)

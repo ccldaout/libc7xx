@@ -118,11 +118,9 @@ public:
 
     auto end() {
 	using std::begin;
-	auto it = begin(seq_);
-	using it_type = typename std::iterator_traits<decltype(it)>::iterator_category;
+	using it_type = typename std::iterator_traits<decltype(begin(seq_))>::iterator_category;
 	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
-	    auto eoff = size();
-	    return it+eoff;
+	    return begin(seq_) + size();
 	} else {
 	    return head_iterend();
 	}
@@ -166,7 +164,7 @@ public:
 	return head_obj<decltype(seq)>(std::forward<Seq>(seq), n_);
     }
 
-private:    
+private:
     size_t n_;
 };
 
@@ -317,7 +315,7 @@ public:
 	return skip_head_obj<decltype(seq)>(std::forward<Seq>(seq), n_);
     }
 
-private:    
+private:
     size_t n_;
 };
 

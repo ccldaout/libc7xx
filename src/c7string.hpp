@@ -15,8 +15,9 @@
 
 
 #include <c7coroutine.hpp>
+#include <c7nseq/enumerate.hpp>
+#include <c7nseq/head.hpp>
 #include <c7result.hpp>
-#include <c7seq.hpp>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -57,7 +58,7 @@ inline const char *strskip(const char *s, const char *list)
 inline const char *strskip_ws(const char *s)
 {
     return strskip(s, " \t");
-}    
+}
 
 inline const char *strfind(const char *s, const char *list)
 {
@@ -160,7 +161,7 @@ template <typename... Cands>
 inline int strmatch(const std::string& s, Cands... cands)
 {
     return strmatch_impl(s.c_str(), 0, cands...);
-}    
+}
 
 inline int strmatch(const std::string& s, const char *cand_v[], int cand_n = -1)
 {
@@ -178,7 +179,7 @@ inline int strmatch(const std::string& s, const char *cand_v[], int cand_n = -1)
 template <typename S>
 inline int strmatch(const std::string& s, const std::vector<S>& cands)
 {
-    for (const auto& [i, c]: c7::seq::enumerate(cands)) {
+    for (const auto& [i, c]: cands | c7::nseq::enumerate()) {
 	if (s == c) {
 	    return i;
 	}
@@ -212,7 +213,7 @@ template <typename... Cands>
 inline int strmatch_head(const std::string& s, Cands... cands)
 {
     return strmatch_head_impl(s.c_str(), 0, cands...);
-}    
+}
 
 inline int strmatch_head(const std::string& s, const char *cand_v[], int cand_n = -1)
 {
@@ -230,7 +231,7 @@ inline int strmatch_head(const std::string& s, const char *cand_v[], int cand_n 
 template <typename S>
 inline int strmatch_head(const std::string& s, const std::vector<S>& cands)
 {
-    for (const auto& [i, c]: c7::seq::enumerate(cands)) {
+    for (const auto& [i, c]: cands | c7::nseq::enumerate()) {
 	if (s.compare(0, c.size(), c) == 0) {
 	    return i;
 	}
@@ -267,7 +268,7 @@ inline int strmatch_tail(const std::string& ss, Cands... cands)
     const char *s = ss.c_str();
     const char *e = std::strchr(s, 0);
     return strmatch_tail_impl(e, e-s, 0, cands...);
-}    
+}
 
 inline int strmatch_tail(const std::string& ss, const char *cand_v[], int cand_n = -1)
 {
@@ -291,7 +292,7 @@ inline int strmatch_tail(const std::string& ss, const char *cand_v[], int cand_n
 template <typename S>
 inline int strmatch_tail(const std::string& s, const std::vector<S>& cands)
 {
-    for (auto [i, c]: c7::seq::enumerate(cands)) {
+    for (auto [i, c]: cands | c7::nseq::enumerate()) {
 	if (s.size() >= c.size() && s.compare(s.size() - c.size(), c.size(), c) == 0) {
 	    return i;
 	}
@@ -345,8 +346,8 @@ public:
     }
 
     strvec& operator+=(const char **pv) {
-	for (auto&& s: c7::seq::charp_array(pv)) {
-	    push_back(std::move(s));
+	for (; *pv != nullptr; pv++) {
+	    push_back(*pv);
 	}
 	return *this;
     }
@@ -372,7 +373,7 @@ public:
 	csv.push_back(nullptr);
 	return csv;
     }
-};    
+};
 
 
 /*============================================================================
@@ -465,7 +466,7 @@ S& concat(S& out, const std::string& sep, const char **sv, int sc = -1)
 	for (sc--; sc > 0; sc--, sv++) {
 	    (out += sep) += *sv;
 	}
-    }	
+    }
     return out;
 }
 
@@ -476,7 +477,7 @@ S& concat(S& out, const std::string& sep, const std::vector<S2>& sv)
 	return out;
     }
     out += sv[0];
-    for (const auto& s: c7::seq::tail(sv, 1)) {
+    for (const auto& s: sv | c7::nseq::skip_head(1)) {
 	(out += sep) += s;
     }
     return out;
@@ -608,7 +609,7 @@ split_trim(const std::string& in, char sep, const std::string& removed_chars)
     return split(in, sep, [&removed_chars](const std::string& s) {
 	    return trim(s, removed_chars);
 	});
-}    
+}
 
 inline std::vector<std::string>
 split_trim(const std::string& in, char sep)

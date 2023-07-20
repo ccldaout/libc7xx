@@ -86,7 +86,7 @@ private:
     raddr_t size_ = 0;
 
 public:
-    rbuffer() {} 
+    rbuffer() {}
 
     explicit rbuffer(void *addr, raddr_t size):
 	top_(static_cast<char*>(addr)), end_(top_ + size), size_(size) {
@@ -638,7 +638,7 @@ mlog_reader::impl::find_origin(raddr_t ret_addr,
 	if (maxcount == 0 ||
 	    rec.order < order_min ||
 	    rec.time_us < time_us_min) {
-	    break;		
+	    break;
 	}
 
 	ret_addr = addr;

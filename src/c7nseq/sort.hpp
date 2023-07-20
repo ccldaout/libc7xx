@@ -98,7 +98,7 @@ public:
 	return sort_obj<decltype(seq), Compare>(std::forward<Seq>(seq), cmp_);
     }
 
-private:    
+private:
     Compare cmp_;
 };
 

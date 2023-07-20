@@ -38,7 +38,7 @@ bool rendezvous::wait(c7::usec_t timeout)
     }
     if (n_entry_ < 0)
 	return false;		// aborting
-    return true;		// all 
+    return true;		// all
 }
 
 
@@ -48,7 +48,7 @@ void rendezvous::abort()
     if (n_entry_ > 0) {
 	n_entry_ *= -1;
 	c_.notify_all();
-    }    
+    }
 }
 
 

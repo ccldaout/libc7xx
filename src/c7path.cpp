@@ -9,6 +9,7 @@
 
 
 #include <c7path.hpp>
+#include <c7seq.hpp>
 #include <c7utils.hpp>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -83,12 +84,12 @@ bool is_dir(const std::string& path)
 {
     struct stat st;
     return (stat(path.c_str(), &st) == C7_SYSOK && S_ISDIR(st.st_mode));
-}    
+}
 
 bool is_writable(const std::string& path)
 {
     return (::access(path.c_str(), W_OK) == C7_SYSOK);
-}    
+}
 
 bool is_exists(const std::string& path)
 {

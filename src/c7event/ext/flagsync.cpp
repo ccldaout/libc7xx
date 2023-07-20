@@ -41,7 +41,7 @@ void flagsync_provider::on_event(monitor&, int, uint32_t)
 
 	for (;;) {
 	    // [MEMO] The callbacks_ vector can be updated in callback running,
-	    //        it's the reason why we must find from head again. 
+	    //        it's the reason why we must find from head again.
 	    auto unlock_cbs = lock_cbs_.lock();
 	    auto it = std::find_if(callbacks_.begin(), callbacks_.end(),
 				   [flags=flags_](auto& cur){
@@ -79,7 +79,7 @@ result<> flagsync_provider::manage(monitor& mon)
 
 auto flagsync_provider::assign(std::weak_ptr<void> owner_wp,
 			       flags_t req_flags, callback_t callback)
-    -> callback_id_t 
+    -> callback_id_t
 {
     auto unlock_cbs = lock_cbs_.lock();
     auto id = ++id_counter_;

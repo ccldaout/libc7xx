@@ -316,7 +316,7 @@ static result<char*> rx_repeat(int fd, size_t& size)
 	    char *new_p = (char *)std::realloc(tp, size + 1);	// +1: last added null character
 	    if (new_p == nullptr) {
 		return c7result_err(errno, "realloc failed: req:%{}", size + 1);
-	    }		
+	    }
 	    free_on_error.cancel();
 	    return c7result_ok(new_p);			// success
 	}
@@ -392,7 +392,7 @@ static result<void*> dommap_fd(const std::string& path, int fd, int prot, size_t
     }
 
     int mflag = MAP_SHARED;
-    auto addr = ::mmap(nullptr, size_io, prot, mflag, fd, 0); 
+    auto addr = ::mmap(nullptr, size_io, prot, mflag, fd, 0);
     if (addr != (void *)C7_SYSERR) {
 	return c7result_ok(addr);
     }

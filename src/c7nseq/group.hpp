@@ -233,7 +233,7 @@ public:
 	return group_by_obj<decltype(seq), Equal, group_vec_iter>(std::forward<Seq>(seq), eq_);
     }
 
-private:    
+private:
     Equal eq_;
 };
 
@@ -248,7 +248,7 @@ public:
 	return group_by_obj<decltype(seq), Equal, group_range_iter>(std::forward<Seq>(seq), eq_);
     }
 
-private:    
+private:
     Equal eq_;
 };
 

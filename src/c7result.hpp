@@ -258,7 +258,11 @@ private:
 
 
 class result_err: public result_base {
+public:
     using result_base::result_base;
+    void raise() const {
+	raise_exception();
+    }
 };
 
 
@@ -362,6 +366,12 @@ public:
 	}
 	return value_;
     }
+
+    void check() const {
+	if (errors_) {
+	    raise_exception();
+	}
+    }
 };
 
 
@@ -416,6 +426,12 @@ public:
     R value(R alt_value) const {
 	return errors_ ? alt_value : value_;
     }
+
+    void check() const {
+	if (errors_) {
+	    raise_exception();
+	}
+    }
 };
 
 
@@ -435,6 +451,12 @@ public:
     }
 
     void value() const {
+	if (errors_) {
+	    raise_exception();
+	}
+    }
+
+    void check() const {
 	if (errors_) {
 	    raise_exception();
 	}

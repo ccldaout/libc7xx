@@ -276,7 +276,9 @@ protected:
 };
 
 result<fd> open(std::string&&, int oflag = 0, ::mode_t mode = 0600);
+result<fd> open(int dirfd, std::string&&, int oflag = 0, ::mode_t mode = 0600);
 result<fd> open(const std::string&, int oflag = 0, ::mode_t mode = 0600);
+result<fd> open(int dirfd, const std::string&, int oflag = 0, ::mode_t mode = 0600);
 result<fd> opentmp(const std::string& dir, ::mode_t mode = 0600);
 result<std::pair<fd, fd>> make_pipe();
 

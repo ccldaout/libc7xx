@@ -22,7 +22,7 @@ socket_port::socket_port(socket_port&& o):
     sock_(std::move(o.sock_)), reverse_endian_(o.reverse_endian_)
 {
     o.reverse_endian_ = false;
-}	
+}
 
 socket_port& socket_port::operator=(socket_port&& o)
 {

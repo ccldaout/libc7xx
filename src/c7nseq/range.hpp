@@ -90,7 +90,7 @@ public:
 
 template <typename Iter, typename Iterend>
 class range_proxy_obj {
-private:    
+private:
     Iter it_;
     Iterend itend_;
 
@@ -227,7 +227,7 @@ public:
 	return const_cast<range_obj<T>*>(this)->rend();
     }
 
-private:    
+private:
     size_t n_;
     T beg_, step_;
 };

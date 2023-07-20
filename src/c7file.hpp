@@ -130,7 +130,7 @@ inline c7::result<unique_mmap<T>> mmap_r(const std::string& path)
 {
     size_t size = 0;
     // Template paramter <T> of next calling is very important !!.
-    // if it is not specified, result<R>(result_base&&) constructor is called on 
+    // if it is not specified, result<R>(result_base&&) constructor is called on
     // next return statement, and after that unique_ptr destructor is called.
     return mmap_r<T>(path, size);
 }

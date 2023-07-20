@@ -170,7 +170,7 @@ public:
 	return enumerate_obj<decltype(seq)>(std::forward<Seq>(seq), beg_, step_);
     }
 
-private:    
+private:
     int beg_, step_;
 };
 

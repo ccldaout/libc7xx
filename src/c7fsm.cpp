@@ -9,6 +9,7 @@
 
 
 #include <c7fsm.hpp>
+#include <c7thread/mutex.hpp>
 
 
 namespace c7::fsm {

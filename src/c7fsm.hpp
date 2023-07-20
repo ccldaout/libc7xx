@@ -15,7 +15,7 @@
 
 
 #include <c7result.hpp>
-#include <c7thread.hpp>
+#include <c7thread/condvar.hpp>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>

@@ -14,7 +14,8 @@
 #include <c7common.hpp>
 
 
-#include <c7thread.hpp>
+#include <c7thread/condvar.hpp>
+#include <c7thread/spinlock.hpp>
 #include <memory>
 
 

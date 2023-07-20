@@ -114,7 +114,7 @@ group::group():
 
 
 group::group(group&& o):
-    pimpl(o.pimpl), 
+    pimpl(o.pimpl),
     on_any_finish(pimpl->on_any_finish), on_all_finish(pimpl->on_all_finish)
 {
     o.pimpl = nullptr;

@@ -66,7 +66,7 @@ fd::fd(int fdnum, const std::string& name):
 }
 
 fd::fd(fd&& o):
-    on_close(std::move(o.on_close)), fdnum_(o.fdnum_), name_(std::move(o.name_)) 
+    on_close(std::move(o.on_close)), fdnum_(o.fdnum_), name_(std::move(o.name_))
 {
     o.fdnum_ = -1;
 }
@@ -151,7 +151,7 @@ result<> fd::change_flag(int set_flagtype, int flags, bool on)
 	get_flagtype = F_GETFL;
 	break;
 
-      default:	
+      default:
 	return c7result_err(EINVAL, "Unsupported flag type: %{}", set_flagtype);
     }
 
@@ -403,7 +403,7 @@ result<uint32_t> fd::wait(uint32_t which, c7::usec_t tmo_us)
     }
 
     if (ret == 0) {
-	return c7result_ok(0U);			// timeout 
+	return c7result_ok(0U);			// timeout
     }
 
     which = 0;
@@ -431,10 +431,15 @@ void fd::print(std::ostream& out, const std::string& spec) const
 
 result<fd> open(std::string&& path, int oflag, ::mode_t mode)
 {
-    int ret = ::open(path.c_str(), oflag, mode);
+    return open(AT_FDCWD, std::move(path), oflag, mode);
+}
+
+result<fd> open(int dirfd, std::string&& path, int oflag, ::mode_t mode)
+{
+    int ret = ::openat(dirfd, path.c_str(), oflag, mode);
     if (ret == C7_SYSERR) {
 	return c7result_err(errno, "open(%{}, %{#o}, %{#o}) failed", path, oflag, mode);
-    }	
+    }
     return c7result_ok(fd(ret, std::move(path)));
 }
 
@@ -443,13 +448,18 @@ result<fd> open(const std::string& path, int oflag, ::mode_t mode)
     return open(std::string(path), oflag, mode);
 }
 
+result<fd> open(int dirfd, const std::string& path, int oflag, ::mode_t mode)
+{
+    return open(dirfd, std::string(path), oflag, mode);
+}
+
 result<fd> opentmp(const std::string& dir, ::mode_t mode)
 {
 #if 0
     int ret = ::open(dir.c_str(), O_TMPFILE|O_RDWR, mode);
     if (ret == C7_SYSERR) {
 	return c7result_err(errno, "open(%{}, O_TMPFILE|O_RDWR, %{#o}) failed", dir, mode);
-    }	
+    }
     return c7result_ok(fd(ret, dir + "/<tmporary>"));
 #else
 # if defined(O_PATH)
@@ -460,7 +470,7 @@ result<fd> opentmp(const std::string& dir, ::mode_t mode)
     int dirfd = ::open(dir.c_str(), oflag);
     if (dirfd == C7_SYSERR) {
 	return c7result_err(errno, "open(%{}, O_PATH) failed", dir);
-    }	
+    }
     auto defer = c7::defer(::close, dirfd);
 
     auto pid = ::getpid();
@@ -486,7 +496,7 @@ result<std::pair<fd, fd>> make_pipe()
     int fdv[2];
     if (::pipe(fdv) == C7_SYSERR) {
 	return c7result_err(errno, "pipe() failed");
-    }	
+    }
     id_counter++;
     return c7result_ok(std::make_pair(c7::fd(fdv[0], c7::format("R.%{}", id_counter)),
 				      c7::fd(fdv[1], c7::format("W.%{}", id_counter))));

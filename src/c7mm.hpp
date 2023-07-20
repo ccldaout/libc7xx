@@ -132,7 +132,7 @@ public:
 	top_  = static_cast<T*>(p);
 	capa_ = z / sizeof(T);
 	return c7result_ok();
-    }	
+    }
 
     void reset() {
 	*this = std::move(mmvec<T>());

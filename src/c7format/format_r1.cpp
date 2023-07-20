@@ -64,7 +64,7 @@ formatter::state_t formatter::next_format(state_t prev_state, bool no_args)
 	    }
 	    return FINISH;
 	}
-	out_.write(cur_, p - cur_);	// exclude 1st '%' 
+	out_.write(cur_, p - cur_);	// exclude 1st '%'
 	cur_ = p + 1;
 	if (*cur_ == '{') {
 	    break;
@@ -249,7 +249,7 @@ void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
 }
 
 
-#undef  __C7_EXTERN 
+#undef  __C7_EXTERN
 #define __C7_EXTERN(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_int_tag)
 __C7_EXTERN(bool);
@@ -263,7 +263,7 @@ __C7_EXTERN(unsigned int);
 __C7_EXTERN(long);
 __C7_EXTERN(unsigned long);
 
-#undef  __C7_EXTERN 
+#undef  __C7_EXTERN
 #define __C7_EXTERN(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_int8_tag)
 __C7_EXTERN(char);
@@ -271,7 +271,7 @@ __C7_EXTERN(signed char);
 
 template void formatter::handle_arg<unsigned char>(state_t s, unsigned char arg, formatter_uint8_tag);
 
-#undef  __C7_EXTERN 
+#undef  __C7_EXTERN
 #define __C7_EXTERN(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_float_tag)
 __C7_EXTERN(float);

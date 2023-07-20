@@ -85,10 +85,10 @@ namespace c7::event::ext {
 //          void callback_EVENT_NAME(monitor& mon, port_type& port, const msgbuf_type& msg);
 //
 //          // [TYPE 2]
-//          // you can assign one callback function to two or more events by specifying 
+//          // you can assign one callback function to two or more events by specifying
 //          // special comment //[[dispatcher:callback EVENT_RANGE ...] ahead of declaration.
 //          // EVENT_RANGE is single event number or CLOSED interval represented by two event
-//          // numbers with infix colon. 
+//          // numbers with infix colon.
 //
 //          //[dispatcher:callback EVENT_NAME_1:EVENT_NAME_2 ...]
 //          void callback_FAVORITE_NAME(monitor& mon, port_type& port, const msgbuf_type& msg);
@@ -103,7 +103,7 @@ namespace c7::event::ext {
 //      {
 //          // The dispatcher_setup is defined out of class declaration and it include two
 //          // special comments //[dispatcher:setup begin] and //[dispatcher:setup end].
-//          // The setup_dispatcher.py replace the text surrounded by them with setup codes 
+//          // The setup_dispatcher.py replace the text surrounded by them with setup codes
 //          // delived from class declaration.
 //
 //          //[dispatcher:setup begin]

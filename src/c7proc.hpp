@@ -16,7 +16,6 @@
 
 #include <c7result.hpp>
 #include <c7string.hpp>
-#include <c7thread.hpp>
 
 
 namespace c7 {

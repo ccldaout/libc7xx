@@ -160,7 +160,7 @@ public:
 	return filter_obj<decltype(seq), Predicate>(std::forward<Seq>(seq), pred_);
     }
 
-private:    
+private:
     Predicate pred_;
 };
 

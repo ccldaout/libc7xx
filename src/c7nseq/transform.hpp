@@ -165,7 +165,7 @@ public:
 	return transform_obj<decltype(seq), UnaryOperator>(std::forward<Seq>(seq), op_);
     }
 
-private:    
+private:
     UnaryOperator op_;
 };
 

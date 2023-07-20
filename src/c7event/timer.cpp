@@ -50,10 +50,10 @@ result<> timer_provider::setup(c7::usec_t beg, c7::usec_t interval, bool is_abs)
 }
 
 
-result<int>
+result<timer_fd_t>
 timer_provider::manage(monitor& mon,
-			  c7::usec_t beg, c7::usec_t interval, callback_t callback,
-			  bool is_abs)
+		       c7::usec_t beg, c7::usec_t interval, callback_t callback,
+		       bool is_abs)
 {
     auto timer = std::shared_ptr<timer_provider>(new timer_provider(std::move(callback)));
     if (timer == nullptr) {
@@ -66,7 +66,7 @@ timer_provider::manage(monitor& mon,
     if (auto res = mon.manage(std::move(timer)); !res) {
 	return c7result_err(std::move(res));
     }
-    return c7result_ok(fd);
+    return c7result_ok(timer_fd_t{fd});
 }
 
 
@@ -82,6 +82,13 @@ void timer_provider::on_event(monitor& mon, int, uint32_t events)
     if (count_ == 0) {
 	mon.unmanage(fd_);
     }
+}
+
+
+void timer_provider::on_unmanage(monitor& mon, int)
+{
+    close(fd_);
+    fd_ = C7_SYSERR;
 }
 
 

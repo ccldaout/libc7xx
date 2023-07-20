@@ -13,6 +13,7 @@
 #define C7_NSEQ_C_ARRAY_HPP_LOADED__
 
 
+#include <memory>
 #include <c7nseq/_cmn.hpp>
 
 
@@ -21,7 +22,7 @@ namespace c7::nseq {
 
 template <typename T>
 class c_array_obj {
-private:    
+private:
     size_t n_;
     T *top_;
 
@@ -73,6 +74,111 @@ public:
 };
 
 
+template <typename T>
+class c_array_obj<std::shared_ptr<T>> {
+private:
+    size_t n_;
+    std::shared_ptr<T> top_;
+
+public:
+    c_array_obj(size_t n, std::shared_ptr<T> top): n_(n), top_(std::move(top)) {}
+
+    c_array_obj(const c_array_obj& o): n_(o.n_), top_(o.top_) {}
+
+    c_array_obj(c_array_obj&& o): n_(o.n_), top_(std::move(o.top_)) {
+	o.top_ = nullptr;
+	o.n_ = 0;
+    }
+
+    auto size() const {
+	return n_;
+    }
+
+    auto begin() {
+	return top_.get();
+    }
+
+    auto end() {
+	return top_.get() + n_;
+    }
+
+    auto begin() const {
+	return top_.get();
+    }
+
+    auto end() const {
+	return top_.get() + n_;
+    }
+
+    auto rbegin() {
+	return top_.get() + n_ - 1;
+    }
+
+    auto rend() {
+	return top_.get() - 1;
+    }
+
+    auto rbegin() const {
+	return top_.get() + n_ - 1;
+    }
+
+    auto rend() const {
+	return top_.get() - 1;
+    }
+};
+
+
+template <typename T, typename D>
+class c_array_obj<std::unique_ptr<T, D>> {
+private:
+    size_t n_;
+    std::unique_ptr<T, D> top_;
+
+public:
+    c_array_obj(size_t n, std::unique_ptr<T, D> top): n_(n), top_(std::move(top)) {}
+
+    c_array_obj(c_array_obj&& o): n_(o.n_), top_(std::move(o.top_)) {
+	o.n_ = 0;
+    }
+
+    auto size() const {
+	return n_;
+    }
+
+    auto begin() {
+	return top_.get();
+    }
+
+    auto end() {
+	return top_.get() + n_;
+    }
+
+    auto begin() const {
+	return top_.get();
+    }
+
+    auto end() const {
+	return top_.get() + n_;
+    }
+
+    auto rbegin() {
+	return top_.get() + n_ - 1;
+    }
+
+    auto rend() {
+	return top_.get() - 1;
+    }
+
+    auto rbegin() const {
+	return top_.get() + n_ - 1;
+    }
+
+    auto rend() const {
+	return top_.get() - 1;
+    }
+};
+
+
 // c_array factory
 
 template <int N, typename T>
@@ -86,6 +192,30 @@ template <typename T>
 auto c_array(T* array, size_t n)
 {
     return c_array_obj<T>(n, array);
+}
+
+
+template <typename T>
+auto c_array(std::shared_ptr<T> array, size_t n)
+{
+    return c_array_obj<std::shared_ptr<T>>(n, std::move(array));
+}
+
+
+template <typename T, typename D = std::default_delete<T>>
+auto c_array(std::unique_ptr<T, D> array, size_t n)
+{
+    return c_array_obj<std::unique_ptr<T, D>>(n, std::move(array));
+}
+
+
+template <typename T, typename U,
+	  typename = std::enable_if_t<std::is_pointer_v<U> ||
+				      std::is_same_v<U, std::nullptr_t>>>
+auto c_array(T* array, U term) {
+    size_t n;
+    for (n = 0; array[n] != term; n++);
+    return c_array(array, n);
 }
 
 

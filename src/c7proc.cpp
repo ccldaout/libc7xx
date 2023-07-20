@@ -8,13 +8,15 @@
  */
 
 
-#include <c7proc.hpp>
-#include <c7signal.hpp>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <atomic>
 #include <unordered_set>
+#include <c7proc.hpp>
+#include <c7signal.hpp>
+#include <c7thread/condvar.hpp>
+#include <c7thread/mutex.hpp>
 
 
 namespace c7 {
@@ -313,9 +315,9 @@ proc::impl::start(const std::string& prog,
     on_start(proc::proxy(self));
 
     // If forked process exit immediately and SIGCHLD handler is called before
-    // process informaton is registered to proc::impl::procs at above code block, 
+    // process informaton is registered to proc::impl::procs at above code block,
     // the handler cannot find this process and cannot update state of this process.
-    // So, state of this process is kept at RUNNING forever without calling 
+    // So, state of this process is kept at RUNNING forever without calling
     // try_wait_raw() as follow.
     unlock_defer += [this](){ (void)try_wait_raw(false); };
 
