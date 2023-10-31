@@ -13,6 +13,7 @@
 #define C7_COMMON_HPP_LOADED__
 
 
+#include <cstdint>
 #include <_c7header_macro.hpp>
 
 
