@@ -25,7 +25,7 @@ struct urlencode_iter_end {};
 
 template <typename Seq,
 	  template <typename, typename> class ConvIter>
-class urlconvert_obj {
+class urlconvert_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -34,14 +34,14 @@ private:
     hold_type seq_;
 
 public:
-    explicit urlconvert_obj(Seq seq):
+    explicit urlconvert_seq(Seq seq):
 	seq_(std::forward<Seq>(seq)) {
     }
 
-    urlconvert_obj(const urlconvert_obj&) = delete;
-    urlconvert_obj& operator=(const urlconvert_obj&) = delete;
-    urlconvert_obj(urlconvert_obj&&) = default;
-    urlconvert_obj& operator=(urlconvert_obj&&) = delete;
+    urlconvert_seq(const urlconvert_seq&) = delete;
+    urlconvert_seq& operator=(const urlconvert_seq&) = delete;
+    urlconvert_seq(urlconvert_seq&&) = default;
+    urlconvert_seq& operator=(urlconvert_seq&&) = delete;
 
     auto begin() {
 	using std::begin;
@@ -56,7 +56,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<urlconvert_obj<Seq, ConvIter>*>(this)->begin();
+	return const_cast<urlconvert_seq<Seq, ConvIter>*>(this)->begin();
     }
 
     auto end() const {
@@ -170,7 +170,7 @@ class urlencode_url {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return urlconvert_obj<decltype(seq), urlencode_url_iter>(std::forward<Seq>(seq));
+	return urlconvert_seq<decltype(seq), urlencode_url_iter>(std::forward<Seq>(seq));
     }
 };
 
@@ -179,7 +179,7 @@ class urlencode_body {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return urlconvert_obj<decltype(seq), urlencode_body_iter>(std::forward<Seq>(seq));
+	return urlconvert_seq<decltype(seq), urlencode_body_iter>(std::forward<Seq>(seq));
     }
 };
 
@@ -272,7 +272,7 @@ class urldecode {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return urlconvert_obj<decltype(seq), urldecode_iter>(std::forward<Seq>(seq));
+	return urlconvert_seq<decltype(seq), urldecode_iter>(std::forward<Seq>(seq));
     }
 };
 
@@ -283,15 +283,15 @@ public:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::urlconvert_obj<Seq, c7::nseq::urlencode_url_iter>> {
+struct format_ident<c7::nseq::urlconvert_seq<Seq, c7::nseq::urlencode_url_iter>> {
     static constexpr const char *name = "urlencode[url]";
 };
 template <typename Seq>
-struct format_ident<c7::nseq::urlconvert_obj<Seq, c7::nseq::urlencode_body_iter>> {
+struct format_ident<c7::nseq::urlconvert_seq<Seq, c7::nseq::urlencode_body_iter>> {
     static constexpr const char *name = "urlencode[body]";
 };
 template <typename Seq>
-struct format_ident<c7::nseq::urlconvert_obj<Seq, c7::nseq::urldecode_iter>> {
+struct format_ident<c7::nseq::urlconvert_seq<Seq, c7::nseq::urldecode_iter>> {
     static constexpr const char *name = "urldecode";
 };
 } // namespace c7::format_helper

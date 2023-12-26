@@ -22,20 +22,20 @@ namespace c7::nseq {
 // push_back
 
 template <typename C>
-class push_back_obj;
+class push_back_seq;
 
 template <typename C>
-class push_back_obj<C&> {
+class push_back_seq<C&> {
 private:
     C& c_;
 
 public:
-    explicit push_back_obj(C& c): c_(c) {}
+    explicit push_back_seq(C& c): c_(c) {}
 
-    push_back_obj(const push_back_obj&) = delete;
-    push_back_obj& operator=(const push_back_obj&) = delete;
-    push_back_obj(push_back_obj&&) = default;
-    push_back_obj& operator=(push_back_obj&&) = delete;
+    push_back_seq(const push_back_seq&) = delete;
+    push_back_seq& operator=(const push_back_seq&) = delete;
+    push_back_seq(push_back_seq&&) = default;
+    push_back_seq& operator=(push_back_seq&&) = delete;
 
     template <typename Seq>
     C& operator()(Seq&& seq) {
@@ -47,17 +47,17 @@ public:
 };
 
 template <typename C>
-class push_back_obj<C&&> {
+class push_back_seq<C&&> {
 private:
     C c_;
 
 public:
-    explicit push_back_obj(C&& c): c_(std::move(c)) {}
+    explicit push_back_seq(C&& c): c_(std::move(c)) {}
 
-    push_back_obj(const push_back_obj&) = delete;
-    push_back_obj& operator=(const push_back_obj&) = delete;
-    push_back_obj(push_back_obj&&) = default;
-    push_back_obj& operator=(push_back_obj&&) = delete;
+    push_back_seq(const push_back_seq&) = delete;
+    push_back_seq& operator=(const push_back_seq&) = delete;
+    push_back_seq(push_back_seq&&) = default;
+    push_back_seq& operator=(push_back_seq&&) = delete;
 
     template <typename Seq>
     C&& operator()(Seq&& seq) {
@@ -71,27 +71,27 @@ public:
 template <typename C>
 auto push_back(C&& c)
 {
-    return push_back_obj<decltype(c)>(std::forward<C>(c));
+    return push_back_seq<decltype(c)>(std::forward<C>(c));
 }
 
 
 // push_front
 
 template <typename C>
-class push_front_obj;
+class push_front_seq;
 
 template <typename C>
-class push_front_obj<C&> {
+class push_front_seq<C&> {
 private:
     C& c_;
 
 public:
-    explicit push_front_obj(C& c): c_(c) {}
+    explicit push_front_seq(C& c): c_(c) {}
 
-    push_front_obj(const push_front_obj&) = delete;
-    push_front_obj& operator=(const push_front_obj&) = delete;
-    push_front_obj(push_front_obj&&) = default;
-    push_front_obj& operator=(push_front_obj&&) = delete;
+    push_front_seq(const push_front_seq&) = delete;
+    push_front_seq& operator=(const push_front_seq&) = delete;
+    push_front_seq(push_front_seq&&) = default;
+    push_front_seq& operator=(push_front_seq&&) = delete;
 
     template <typename Seq>
     C& operator()(Seq&& seq) {
@@ -103,17 +103,17 @@ public:
 };
 
 template <typename C>
-class push_front_obj<C&&> {
+class push_front_seq<C&&> {
 private:
     C c_;
 
 public:
-    explicit push_front_obj(C&& c): c_(std::move(c)) {}
+    explicit push_front_seq(C&& c): c_(std::move(c)) {}
 
-    push_front_obj(const push_front_obj&) = delete;
-    push_front_obj& operator=(const push_front_obj&) = delete;
-    push_front_obj(push_front_obj&&) = default;
-    push_front_obj& operator=(push_front_obj&&) = delete;
+    push_front_seq(const push_front_seq&) = delete;
+    push_front_seq& operator=(const push_front_seq&) = delete;
+    push_front_seq(push_front_seq&&) = default;
+    push_front_seq& operator=(push_front_seq&&) = delete;
 
     template <typename Seq>
     C&& operator()(Seq&& seq) {
@@ -127,7 +127,7 @@ public:
 template <typename C>
 auto push_front(C&& c)
 {
-    return push_front_obj<decltype(c)>(std::forward<C>(c));
+    return push_front_seq<decltype(c)>(std::forward<C>(c));
 }
 
 

@@ -92,7 +92,7 @@ public:
 
 
 template <typename Seq>
-class enumerate_obj {
+class enumerate_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -102,14 +102,14 @@ private:
     int beg_, step_;
 
 public:
-    enumerate_obj(Seq seq, int beg, int step):
+    enumerate_seq(Seq seq, int beg, int step):
 	seq_(std::forward<Seq>(seq)), beg_(beg), step_(step) {
     }
 
-    enumerate_obj(const enumerate_obj&) = delete;
-    enumerate_obj& operator=(const enumerate_obj&) = delete;
-    enumerate_obj(enumerate_obj&&) = default;
-    enumerate_obj& operator=(enumerate_obj&&) = delete;
+    enumerate_seq(const enumerate_seq&) = delete;
+    enumerate_seq& operator=(const enumerate_seq&) = delete;
+    enumerate_seq(enumerate_seq&&) = default;
+    enumerate_seq& operator=(enumerate_seq&&) = delete;
 
     auto size() const {
 	return seq_.size();
@@ -128,7 +128,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<enumerate_obj<Seq>*>(this)->begin();
+	return const_cast<enumerate_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
@@ -150,7 +150,7 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<enumerate_obj<Seq>*>(this)->rbegin();
+	return const_cast<enumerate_seq<Seq>*>(this)->rbegin();
     }
 
     auto rend() const {
@@ -167,7 +167,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return enumerate_obj<decltype(seq)>(std::forward<Seq>(seq), beg_, step_);
+	return enumerate_seq<decltype(seq)>(std::forward<Seq>(seq), beg_, step_);
     }
 
 private:
@@ -181,7 +181,7 @@ private:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::enumerate_obj<Seq>> {
+struct format_ident<c7::nseq::enumerate_seq<Seq>> {
     static constexpr const char *name = "enumerate";
 };
 } // namespace c7::format_helper

@@ -78,7 +78,7 @@ public:
 
 
 template <typename Seq>
-class head_obj {
+class head_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -88,16 +88,16 @@ private:
     size_t n_;
 
 public:
-    head_obj(Seq seq, size_t n):
+    head_seq(Seq seq, size_t n):
 	seq_(std::forward<Seq>(seq)), n_(n) {
     }
 
     // enable copy constructor to keep portability for head defined in old c7seq.hpp
-    head_obj(const head_obj& o): seq_(o.seq_), n_(o.n_) {}
-    //head_obj(const head_obj&) = delete;
-    head_obj& operator=(const head_obj&) = delete;
-    head_obj(head_obj&&) = default;
-    head_obj& operator=(head_obj&&) = delete;
+    head_seq(const head_seq& o): seq_(o.seq_), n_(o.n_) {}
+    //head_seq(const head_seq&) = delete;
+    head_seq& operator=(const head_seq&) = delete;
+    head_seq(head_seq&&) = default;
+    head_seq& operator=(head_seq&&) = delete;
 
     auto size() const {
 	return (seq_.size() < n_) ? seq_.size() : n_;
@@ -127,11 +127,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<head_obj<Seq>*>(this)->begin();
+	return const_cast<head_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<head_obj<Seq>*>(this)->end();
+	return const_cast<head_seq<Seq>*>(this)->end();
     }
 
     auto rbegin() {
@@ -146,11 +146,11 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<head_obj<Seq>*>(this)->rbegin();
+	return const_cast<head_seq<Seq>*>(this)->rbegin();
     }
 
     auto rend() const {
-	return const_cast<head_obj<Seq>*>(this)->rend();
+	return const_cast<head_seq<Seq>*>(this)->rend();
     }
 };
 
@@ -161,7 +161,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return head_obj<decltype(seq)>(std::forward<Seq>(seq), n_);
+	return head_seq<decltype(seq)>(std::forward<Seq>(seq), n_);
     }
 
 private:
@@ -230,7 +230,7 @@ public:
 
 
 template <typename Seq>
-class skip_head_obj {
+class skip_head_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -240,14 +240,14 @@ private:
     size_t n_;
 
 public:
-    skip_head_obj(Seq seq, size_t n):
+    skip_head_seq(Seq seq, size_t n):
 	seq_(std::forward<Seq>(seq)), n_(n) {
     }
 
-    skip_head_obj(const skip_head_obj&) = delete;
-    skip_head_obj& operator=(const skip_head_obj&) = delete;
-    skip_head_obj(skip_head_obj&&) = default;
-    skip_head_obj& operator=(skip_head_obj&&) = delete;
+    skip_head_seq(const skip_head_seq&) = delete;
+    skip_head_seq& operator=(const skip_head_seq&) = delete;
+    skip_head_seq(skip_head_seq&&) = default;
+    skip_head_seq& operator=(skip_head_seq&&) = delete;
 
     auto size() const {
 	return (seq_.size() < n_) ? 0 : seq_.size() - n_;
@@ -279,11 +279,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<skip_head_obj<Seq>*>(this)->begin();
+	return const_cast<skip_head_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<skip_head_obj<Seq>*>(this)->end();
+	return const_cast<skip_head_seq<Seq>*>(this)->end();
     }
 
     auto rbegin() {
@@ -297,11 +297,11 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<skip_head_obj<Seq>*>(this)->rbegin();
+	return const_cast<skip_head_seq<Seq>*>(this)->rbegin();
     }
 
     auto rend() const {
-	return const_cast<skip_head_obj<Seq>*>(this)->rend();
+	return const_cast<skip_head_seq<Seq>*>(this)->rend();
     }
 };
 
@@ -312,7 +312,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return skip_head_obj<decltype(seq)>(std::forward<Seq>(seq), n_);
+	return skip_head_seq<decltype(seq)>(std::forward<Seq>(seq), n_);
     }
 
 private:
@@ -326,11 +326,11 @@ private:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::head_obj<Seq>> {
+struct format_ident<c7::nseq::head_seq<Seq>> {
     static constexpr const char *name = "head";
 };
 template <typename Seq>
-struct format_ident<c7::nseq::skip_head_obj<Seq>> {
+struct format_ident<c7::nseq::skip_head_seq<Seq>> {
     static constexpr const char *name = "skip_head";
 };
 } // namespace c7::format_helper

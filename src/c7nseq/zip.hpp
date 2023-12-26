@@ -95,7 +95,7 @@ public:
 
 
 template <typename... Seqs>
-class zipN_obj {
+class zipN_seq {
 private:
     template <typename S>
     using get_hold_type_t =
@@ -106,12 +106,12 @@ private:
     std::tuple<get_hold_type_t<Seqs>...> seqs_;
 
 public:
-    zipN_obj(Seqs... seqs): seqs_(std::forward<Seqs>(seqs)...) {}
+    zipN_seq(Seqs... seqs): seqs_(std::forward<Seqs>(seqs)...) {}
 
-    zipN_obj(const zipN_obj&) = delete;
-    zipN_obj& operator=(const zipN_obj&) = delete;
-    zipN_obj(zipN_obj&&) = default;
-    zipN_obj& operator=(zipN_obj&&) = delete;
+    zipN_seq(const zipN_seq&) = delete;
+    zipN_seq& operator=(const zipN_seq&) = delete;
+    zipN_seq(zipN_seq&&) = default;
+    zipN_seq& operator=(zipN_seq&&) = delete;
 
     auto begin() {
 	using std::begin;
@@ -126,7 +126,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<zipN_obj<Seqs...>*>(this)->begin();
+	return const_cast<zipN_seq<Seqs...>*>(this)->begin();
     }
 
     auto end() const {
@@ -186,7 +186,7 @@ public:
 
 
 template <typename Seq1, typename Seq2>
-class zip2_obj {
+class zip2_seq {
 private:
     using hold_type_1 =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq1>,
@@ -200,14 +200,14 @@ private:
     hold_type_2 seq2_;
 
 public:
-    zip2_obj(Seq1 seq1, Seq2 seq2):
+    zip2_seq(Seq1 seq1, Seq2 seq2):
 	seq1_(std::forward<Seq1>(seq1)), seq2_(std::forward<Seq2>(seq2)) {
     }
 
-    zip2_obj(const zip2_obj&) = delete;
-    zip2_obj& operator=(const zip2_obj&) = delete;
-    zip2_obj(zip2_obj&&) = default;
-    zip2_obj& operator=(zip2_obj&&) = delete;
+    zip2_seq(const zip2_seq&) = delete;
+    zip2_seq& operator=(const zip2_seq&) = delete;
+    zip2_seq(zip2_seq&&) = default;
+    zip2_seq& operator=(zip2_seq&&) = delete;
 
     auto begin() {
 	using std::begin;
@@ -225,7 +225,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<zip2_obj<Seq1, Seq2>*>(this)->begin();
+	return const_cast<zip2_seq<Seq1, Seq2>*>(this)->begin();
     }
 
     auto end() const {
@@ -238,9 +238,9 @@ template <typename... Seqs>
 auto zip(Seqs&&... seqs)
 {
     if constexpr (c7::typefunc::count<Seqs...>() == 2) {
-	return zip2_obj<Seqs...>(std::forward<Seqs>(seqs)...);
+	return zip2_seq<Seqs...>(std::forward<Seqs>(seqs)...);
     } else {
-	return zipN_obj<Seqs...>(std::forward<Seqs>(seqs)...);
+	return zipN_seq<Seqs...>(std::forward<Seqs>(seqs)...);
     }
 }
 
@@ -251,11 +251,11 @@ auto zip(Seqs&&... seqs)
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename... Seqs>
-struct format_ident<c7::nseq::zip2_obj<Seqs...>> {
+struct format_ident<c7::nseq::zip2_seq<Seqs...>> {
     static constexpr const char *name = "zip2";
 };
 template <typename... Seqs>
-struct format_ident<c7::nseq::zipN_obj<Seqs...>> {
+struct format_ident<c7::nseq::zipN_seq<Seqs...>> {
     static constexpr const char *name = "zipN";
 };
 } // namespace c7::format_helper

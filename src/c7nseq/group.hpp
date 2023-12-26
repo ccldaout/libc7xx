@@ -156,7 +156,7 @@ public:
 
 template <typename Seq, typename Equal,
 	  template <typename, typename, typename> class GroupIter>
-class group_by_obj {
+class group_by_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -166,14 +166,14 @@ private:
     Equal eq_;
 
 public:
-    group_by_obj(Seq seq, Equal eq):
+    group_by_seq(Seq seq, Equal eq):
 	seq_(std::forward<Seq>(seq)), eq_(eq) {
     }
 
-    group_by_obj(const group_by_obj&) = delete;
-    group_by_obj& operator=(const group_by_obj&) = delete;
-    group_by_obj(group_by_obj&&) = default;
-    group_by_obj& operator=(group_by_obj&&) = delete;
+    group_by_seq(const group_by_seq&) = delete;
+    group_by_seq& operator=(const group_by_seq&) = delete;
+    group_by_seq(group_by_seq&&) = default;
+    group_by_seq& operator=(group_by_seq&&) = delete;
 
     auto size() const {
 	return seq_.size();
@@ -192,7 +192,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<group_by_obj<Seq, Equal, GroupIter>*>(this)->begin();
+	return const_cast<group_by_seq<Seq, Equal, GroupIter>*>(this)->begin();
     }
 
     auto end() const {
@@ -212,7 +212,7 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<group_by_obj<Seq, Equal, GroupIter>*>(this)->rbegin();
+	return const_cast<group_by_seq<Seq, Equal, GroupIter>*>(this)->rbegin();
     }
 
     auto rend() const {
@@ -230,7 +230,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return group_by_obj<decltype(seq), Equal, group_vec_iter>(std::forward<Seq>(seq), eq_);
+	return group_by_seq<decltype(seq), Equal, group_vec_iter>(std::forward<Seq>(seq), eq_);
     }
 
 private:
@@ -245,7 +245,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return group_by_obj<decltype(seq), Equal, group_range_iter>(std::forward<Seq>(seq), eq_);
+	return group_by_seq<decltype(seq), Equal, group_range_iter>(std::forward<Seq>(seq), eq_);
     }
 
 private:
@@ -260,7 +260,7 @@ private:
 namespace c7::format_helper {
 template <typename Seq, typename Equal,
 	  template <typename, typename, typename> class GroupIter>
-struct format_ident<c7::nseq::group_by_obj<Seq, Equal, GroupIter>> {
+struct format_ident<c7::nseq::group_by_seq<Seq, Equal, GroupIter>> {
     static constexpr const char *name = "group";
 };
 } // namespace c7::format_helper

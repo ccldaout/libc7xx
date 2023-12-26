@@ -148,7 +148,7 @@ public:
 
 
 template <typename Seq>
-class slice_obj {
+class slice_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -158,14 +158,14 @@ private:
     ssize_t off_, gap_, n_;
 
 public:
-    slice_obj(Seq seq, ssize_t off, ssize_t gap, ssize_t n):
+    slice_seq(Seq seq, ssize_t off, ssize_t gap, ssize_t n):
 	seq_(std::forward<Seq>(seq)), off_(off), gap_(gap), n_(n) {
     }
 
-    slice_obj(const slice_obj&) = delete;
-    slice_obj& operator=(const slice_obj&) = delete;
-    slice_obj(slice_obj&&) = default;
-    slice_obj& operator=(slice_obj&&) = delete;
+    slice_seq(const slice_seq&) = delete;
+    slice_seq& operator=(const slice_seq&) = delete;
+    slice_seq(slice_seq&&) = default;
+    slice_seq& operator=(slice_seq&&) = delete;
 
     auto size() const {
 	return std::min((static_cast<ssize_t>(seq_.size()) - off_ + gap_ - 1) / gap_,
@@ -199,11 +199,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<slice_obj<Seq>*>(this)->begin();
+	return const_cast<slice_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<slice_obj<Seq>*>(this)->end();
+	return const_cast<slice_seq<Seq>*>(this)->end();
     }
 
     auto rbegin() {
@@ -242,11 +242,11 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<slice_obj<Seq>*>(this)->rbegin();
+	return const_cast<slice_seq<Seq>*>(this)->rbegin();
     }
 
     auto rend() const {
-	return const_cast<slice_obj<Seq>*>(this)->rend();
+	return const_cast<slice_seq<Seq>*>(this)->rend();
     }
 };
 
@@ -258,7 +258,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return slice_obj<decltype(seq)>(std::forward<Seq>(seq), off_, gap_, n_);
+	return slice_seq<decltype(seq)>(std::forward<Seq>(seq), off_, gap_, n_);
     }
 
 private:
@@ -272,7 +272,7 @@ private:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::slice_obj<Seq>> {
+struct format_ident<c7::nseq::slice_seq<Seq>> {
     static constexpr const char *name = "slice";
 };
 } // namespace c7::format_helper

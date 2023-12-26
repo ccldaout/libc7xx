@@ -168,6 +168,7 @@ public:
     }
 
     ~command_ctx() {
+	pl_.kill(9);
 	pl_.wait();
     }
 
@@ -190,20 +191,20 @@ public:
 
 
 template <typename Seq, typename Output>
-class command_obj {
+class command_seq {
 private:
     std::shared_ptr<command_ctx<Seq, Output>> ctx_;
 
 public:
-    command_obj(Seq seq, c7::pipeline&& pl, size_t buffer_size):
+    command_seq(Seq seq, c7::pipeline&& pl, size_t buffer_size):
 	ctx_(new command_ctx<Seq, Output>{
 		std::forward<Seq>(seq), std::move(pl), buffer_size}) {
     }
 
-    command_obj(const command_obj&) = default;
-    command_obj& operator=(const command_obj&) = default;
-    command_obj(command_obj&&) = default;
-    command_obj& operator=(command_obj&&) = default;
+    command_seq(const command_seq&) = default;
+    command_seq& operator=(const command_seq&) = default;
+    command_seq(command_seq&&) = default;
+    command_seq& operator=(command_seq&&) = default;
 
     auto begin() {
 	return ctx_->begin();
@@ -224,66 +225,66 @@ public:
 
 
 template <typename Output>
-class command_seq {
+class command_builder {
 public:
-    command_seq(c7::pipeline&& pl, size_t buffer_size):
+    command_builder(c7::pipeline&& pl, size_t buffer_size):
 	pl_(std::move(pl)), buffer_size_(buffer_size) {}
 
-    command_seq(size_t buffer_size):
+    command_builder(size_t buffer_size):
 	buffer_size_(buffer_size) {}
 
-    command_seq(command_seq&&) = default;
-    command_seq& operator=(command_seq&&) = default;
+    command_builder(command_builder&&) = default;
+    command_builder& operator=(command_builder&&) = default;
 
-    command_seq& add(const c7::strvec& argv) & {
+    command_builder& add(const c7::strvec& argv) & {
 	pl_.add("", argv[0], argv);
 	return *this;
     }
 
-    command_seq& add(const c7::strvec& argv, const c7::strvec& envv) & {
+    command_builder& add(const c7::strvec& argv, const c7::strvec& envv) & {
 	pl_.add("", argv[0], argv, envv);
 	return *this;
     }
 
-    command_seq& add(const std::string& prog, const c7::strvec& argv) & {
+    command_builder& add(const std::string& prog, const c7::strvec& argv) & {
 	pl_.add("", prog, argv);
 	return *this;
     }
 
-    command_seq& add(const std::string& prog, const c7::strvec& argv, const c7::strvec& envv) & {
+    command_builder& add(const std::string& prog, const c7::strvec& argv, const c7::strvec& envv) & {
 	pl_.add("", prog, argv, envv);
 	return *this;
     }
 
-    command_seq&& add(const c7::strvec& argv) && {
+    command_builder&& add(const c7::strvec& argv) && {
 	pl_.add("", argv[0], argv);
 	return std::move(*this);
     }
 
-    command_seq&& add(const c7::strvec& argv, const c7::strvec& envv) && {
+    command_builder&& add(const c7::strvec& argv, const c7::strvec& envv) && {
 	pl_.add("", argv[0], argv, envv);
 	return std::move(*this);
     }
 
-    command_seq&& add(const std::string& prog, const c7::strvec& argv) && {
+    command_builder&& add(const std::string& prog, const c7::strvec& argv) && {
 	pl_.add("", prog, argv);
 	return std::move(*this);
     }
 
-    command_seq&& add(const std::string& prog, const c7::strvec& argv, const c7::strvec& envv) && {
+    command_builder&& add(const std::string& prog, const c7::strvec& argv, const c7::strvec& envv) && {
 	pl_.add("", prog, argv, envv);
 	return std::move(*this);
     }
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return command_obj<decltype(seq), Output>
+	return command_seq<decltype(seq), Output>
 	    (std::forward<Seq>(seq), std::move(pl_), buffer_size_);
     }
 
     auto operator()() {
 	empty_seq<> seq;
-	return command_obj<decltype(seq), Output>
+	return command_seq<decltype(seq), Output>
 	    (seq, std::move(pl_), buffer_size_);
     }
 
@@ -296,13 +297,13 @@ private:
 template <typename Output>
 auto command(size_t buffer_size=8192)
 {
-    return command_seq<Output>(buffer_size);
+    return command_builder<Output>(buffer_size);
 }
 
 template <typename Output>
 auto command(const c7::strvec& argv, size_t buffer_size=8192)
 {
-    auto c = command_seq<Output>(buffer_size);
+    auto c = command_builder<Output>(buffer_size);
     c.add(argv);
     return c;
 }
@@ -310,7 +311,7 @@ auto command(const c7::strvec& argv, size_t buffer_size=8192)
 template <typename Output>
 auto command(const c7::strvec& argv, const c7::strvec& envv, size_t buffer_size=8192)
 {
-    auto c = command_seq<Output>(buffer_size);
+    auto c = command_builder<Output>(buffer_size);
     c.add(argv, envv);
     return c;
 }
@@ -318,7 +319,7 @@ auto command(const c7::strvec& argv, const c7::strvec& envv, size_t buffer_size=
 template <typename Output>
 auto command(const std::string& prog, const c7::strvec& argv, size_t buffer_size=8192)
 {
-    auto c = command_seq<Output>(buffer_size);
+    auto c = command_builder<Output>(buffer_size);
     c.add(prog, argv);
     return c;
 }
@@ -326,7 +327,7 @@ auto command(const std::string& prog, const c7::strvec& argv, size_t buffer_size
 template <typename Output>
 auto command(const std::string& prog, const c7::strvec& argv, const c7::strvec& envv, size_t buffer_size=8192)
 {
-    auto c = command_seq<Output>(buffer_size);
+    auto c = command_builder<Output>(buffer_size);
     c.add(prog, argv, envv);
     return c;
 }
@@ -338,7 +339,7 @@ auto command(const std::string& prog, const c7::strvec& argv, const c7::strvec& 
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename Output>
-struct format_ident<c7::nseq::command_obj<Seq, Output>> {
+struct format_ident<c7::nseq::command_seq<Seq, Output>> {
     static constexpr const char *name = "command";
 };
 } // namespace c7::format_helper

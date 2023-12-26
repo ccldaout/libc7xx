@@ -82,7 +82,7 @@ public:
 
 
 template <typename Seq>
-class tail_obj {
+class tail_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -92,14 +92,14 @@ private:
     size_t n_;
 
 public:
-    tail_obj(Seq seq, size_t n):
+    tail_seq(Seq seq, size_t n):
 	seq_(std::forward<Seq>(seq)), n_(n) {
     }
 
-    tail_obj(const tail_obj&) = delete;
-    tail_obj& operator=(const tail_obj&) = delete;
-    tail_obj(tail_obj&&) = default;
-    tail_obj& operator=(tail_obj&&) = delete;
+    tail_seq(const tail_seq&) = delete;
+    tail_seq& operator=(const tail_seq&) = delete;
+    tail_seq(tail_seq&&) = default;
+    tail_seq& operator=(tail_seq&&) = delete;
 
     auto size() const {
 	return (seq_.size() < n_) ? seq_.size() : n_;
@@ -130,11 +130,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<tail_obj<Seq>*>(this)->begin();
+	return const_cast<tail_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<tail_obj<Seq>*>(this)->end();
+	return const_cast<tail_seq<Seq>*>(this)->end();
     }
 
     auto rbegin() {
@@ -148,11 +148,11 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<tail_obj<Seq>*>(this)->rbegin();
+	return const_cast<tail_seq<Seq>*>(this)->rbegin();
     }
 
     auto rend() const {
-	return const_cast<tail_obj<Seq>*>(this)->rend();
+	return const_cast<tail_seq<Seq>*>(this)->rend();
     }
 };
 
@@ -163,7 +163,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return tail_obj<decltype(seq)>(std::forward<Seq>(seq), n_);
+	return tail_seq<decltype(seq)>(std::forward<Seq>(seq), n_);
     }
 
 private:
@@ -177,7 +177,7 @@ private:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::tail_obj<Seq>> {
+struct format_ident<c7::nseq::tail_seq<Seq>> {
     static constexpr const char *name = "tail";
 };
 } // namespace c7::format_helper

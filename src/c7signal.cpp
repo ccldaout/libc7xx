@@ -28,9 +28,12 @@ public:
     sigmanager& operator=(sigmanager&&) = delete;
 
     sigmanager() = default;
+
     ~sigmanager() = default;
 
     result<> init() {
+	init_mutex();
+
 	for (auto& h: handlers_) {
 	    h = sig_default;
 	}
@@ -40,16 +43,11 @@ public:
 	return start_sigwait_loop();
     }
 
-    result<> start_sigwait_loop() {
-	::sigset_t wait_mask;
-	(void)::sigfillset(&wait_mask);
-	sigset_em(wait_mask);
-	(void)::sigprocmask(SIG_SETMASK, &wait_mask, nullptr);
-
-	c7::thread::thread loop_thread;
-	loop_thread.target([this, wait_mask](){ loop(wait_mask); });
-	loop_thread.set_name("sigloop");
-	return loop_thread.start();
+    void atfork() {
+	// [IMPORTANT] prevent some thread on forked process from blocking
+	//             at unlock mutex pointed by lock_.
+	init_mutex();
+	start_sigwait_loop();
     }
 
     void (*handler(int sig, void (*new_h)(int)))(int) {
@@ -65,14 +63,14 @@ public:
     }
 
     ::sigset_t block(const ::sigset_t& mask) {
-	auto unlock = lock_.lock();
+	auto unlock = lock_->lock();
 	auto old_mask = user_mask_;
 	sigset_on(user_mask_, mask);
 	return old_mask;
     }
 
     ::sigset_t unblock(const ::sigset_t& mask) {
-	auto unlock = lock_.lock();
+	auto unlock = lock_->lock();
 	auto old_mask = user_mask_;
 	sigset_off(user_mask_, mask);
 	check_blocked();
@@ -80,7 +78,7 @@ public:
     }
 
     ::sigset_t setmask(const ::sigset_t& mask) {
-	auto unlock = lock_.lock();
+	auto unlock = lock_->lock();
 	auto old_mask = user_mask_;
 	user_mask_ = mask;
 	check_blocked();
@@ -91,7 +89,8 @@ private:
     ::sigset_t blocked_mask_;
     ::sigset_t user_mask_;
     void (*handlers_[NSIG])(int);
-    c7::thread::mutex lock_;
+    std::unique_ptr<c7::thread::mutex> lock_;
+
 
     static void sigset_on(::sigset_t& mask, const ::sigset_t& on) {
 	for (int i = 0; i < NSIG; i++) {
@@ -127,6 +126,10 @@ private:
     static void sig_noop(int) {}
 
 
+    void init_mutex() {
+	lock_ = std::make_unique<c7::thread::mutex>();
+    }
+
     void check_blocked() {
 	for (int i = 0; i < NSIG; i++) {
 	    if (::sigismember(&blocked_mask_, i) && !::sigismember(&user_mask_, i)) {
@@ -136,11 +139,24 @@ private:
 	}
     }
 
+    result<> start_sigwait_loop() {
+
+	::sigset_t wait_mask;
+	(void)::sigfillset(&wait_mask);
+	sigset_em(wait_mask);
+	(void)::sigprocmask(SIG_SETMASK, &wait_mask, nullptr);
+
+	c7::thread::thread loop_thread;
+	loop_thread.target([this, wait_mask](){ loop(wait_mask); });
+	loop_thread.set_name("sigloop");
+	return loop_thread.start();
+    }
+
     void loop(::sigset_t waitmask) {
 	for (;;) {
 	    int sig;
 	    if (::sigwait(&waitmask, &sig) == C7_SYSOK) {
-		auto unlock = lock_.lock();
+		auto unlock = lock_->lock();
 		if (::sigismember(&user_mask_, sig)) {
 		    ::sigaddset(&blocked_mask_, sig);
 		} else {
@@ -167,7 +183,7 @@ static void init()
 
 static void atfork()
 {
-    signal_manager.start_sigwait_loop();
+    signal_manager.atfork();
 }
 
 static void call_init_once()

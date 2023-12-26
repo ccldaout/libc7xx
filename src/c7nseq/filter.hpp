@@ -88,7 +88,7 @@ public:
 
 
 template <typename Seq, typename Predicate>
-class filter_obj {
+class filter_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -98,14 +98,14 @@ private:
     Predicate pred_;
 
 public:
-    filter_obj(Seq seq, Predicate pred):
+    filter_seq(Seq seq, Predicate pred):
 	seq_(std::forward<Seq>(seq)), pred_(pred) {
     }
 
-    filter_obj(const filter_obj&) = delete;
-    filter_obj& operator=(const filter_obj&) = delete;
-    filter_obj(filter_obj&&) = default;
-    filter_obj& operator=(filter_obj&&) = delete;
+    filter_seq(const filter_seq&) = delete;
+    filter_seq& operator=(const filter_seq&) = delete;
+    filter_seq(filter_seq&&) = default;
+    filter_seq& operator=(filter_seq&&) = delete;
 
     auto begin() {
 	using std::begin;
@@ -120,7 +120,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<filter_obj<Seq, Predicate>*>(this)->begin();
+	return const_cast<filter_seq<Seq, Predicate>*>(this)->begin();
     }
 
     auto end() const {
@@ -140,7 +140,7 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<filter_obj<Seq, Predicate>*>(this)->rbegin();
+	return const_cast<filter_seq<Seq, Predicate>*>(this)->rbegin();
     }
 
     auto rend() const {
@@ -157,7 +157,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return filter_obj<decltype(seq), Predicate>(std::forward<Seq>(seq), pred_);
+	return filter_seq<decltype(seq), Predicate>(std::forward<Seq>(seq), pred_);
     }
 
 private:
@@ -171,7 +171,7 @@ private:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename Predicate>
-struct format_ident<c7::nseq::filter_obj<Seq, Predicate>> {
+struct format_ident<c7::nseq::filter_seq<Seq, Predicate>> {
     static constexpr const char *name = "filter";
 };
 } // namespace c7::format_helper

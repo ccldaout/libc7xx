@@ -96,7 +96,7 @@ public:
 
 
 template <typename Seq>
-class reverse_obj {
+class reverse_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -105,14 +105,14 @@ private:
     hold_type seq_;
 
 public:
-    explicit reverse_obj(Seq seq):
+    explicit reverse_seq(Seq seq):
 	seq_(std::forward<Seq>(seq)) {
     }
 
-    reverse_obj(const reverse_obj&) = delete;
-    reverse_obj& operator=(const reverse_obj&) = delete;
-    reverse_obj(reverse_obj&&) = default;
-    reverse_obj& operator=(reverse_obj&&) = delete;
+    reverse_seq(const reverse_seq&) = delete;
+    reverse_seq& operator=(const reverse_seq&) = delete;
+    reverse_seq(reverse_seq&&) = default;
+    reverse_seq& operator=(reverse_seq&&) = delete;
 
     auto size() const {
 	return seq_.size();
@@ -131,7 +131,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<reverse_obj<Seq>*>(this)->begin();
+	return const_cast<reverse_seq<Seq>*>(this)->begin();
     }
 
     auto end() const {
@@ -144,7 +144,7 @@ class reverse {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return reverse_obj<decltype(seq)>(std::forward<Seq>(seq));
+	return reverse_seq<decltype(seq)>(std::forward<Seq>(seq));
     }
 };
 
@@ -155,7 +155,7 @@ public:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::reverse_obj<Seq>> {
+struct format_ident<c7::nseq::reverse_seq<Seq>> {
     static constexpr const char *name = "reverse";
 };
 } // namespace c7::format_helper

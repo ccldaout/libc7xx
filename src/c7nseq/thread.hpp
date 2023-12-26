@@ -24,11 +24,10 @@
 namespace c7::nseq {
 
 
-namespace {
+namespace impl {
 
 template <typename T>
 class double_buffer {
-
 private:
     size_t size_;
     std::list<std::vector<T>> free_;
@@ -114,14 +113,14 @@ public:
 
 // thread
 
-struct thread_iter_end {};
+struct th_iter_end {};
 
 
 template <typename T>
 class th_output {
 private:
     size_t buffer_size_;
-    double_buffer<T> dbuf_;
+    impl::double_buffer<T> dbuf_;
     std::vector<T> v_th_;
 
 public:
@@ -188,7 +187,7 @@ public:
 
 
 template <typename Seq, typename Output, typename Thread>
-class thread_iter {
+class th_iter {
 public:
     // for STL iterator
     using iterator_category	= std::input_iterator_tag;
@@ -237,26 +236,26 @@ private:
     size_t idx_ = 0;
 
 public:
-    thread_iter() = default;
-    thread_iter(const thread_iter&) = default;
-    thread_iter& operator=(const thread_iter&) = default;
-    thread_iter(thread_iter&&) = default;
-    thread_iter& operator=(thread_iter&&) = default;
+    th_iter() = default;
+    th_iter(const th_iter&) = default;
+    th_iter& operator=(const th_iter&) = default;
+    th_iter(th_iter&&) = default;
+    th_iter& operator=(th_iter&&) = default;
 
-    thread_iter(Seq& seq, Thread func, size_t buffer_size):
+    th_iter(Seq& seq, Thread func, size_t buffer_size):
 	ctx_(std::make_shared<context>(seq, func, buffer_size)) {
 	ctx_->out_.init_consumer(vec_);
     }
 
-    bool operator==(const thread_iter& o) const {
+    bool operator==(const th_iter& o) const {
 	return ctx_ == o.ctx_;
     }
 
-    bool operator!=(const thread_iter& o) const {
+    bool operator!=(const th_iter& o) const {
 	return !(*this == o);
     }
 
-    bool operator==(const thread_iter_end&) const {
+    bool operator==(const th_iter_end&) const {
 	if (vec_.size() != 0) {
 	    return false;
 	}
@@ -264,7 +263,7 @@ public:
 	return true;
     }
 
-    bool operator!=(const thread_iter_end& o) const {
+    bool operator!=(const th_iter_end& o) const {
 	return !(*this == o);
     }
 
@@ -287,7 +286,7 @@ public:
 
 
 template <typename Seq, typename Output, typename Thread>
-class thread_obj {
+class th_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -298,48 +297,48 @@ private:
     size_t buffer_size_;
 
 public:
-    thread_obj(Seq seq, Thread func, size_t buffer_size):
+    th_seq(Seq seq, Thread func, size_t buffer_size):
 	seq_(std::forward<Seq>(seq)), func_(func), buffer_size_(buffer_size) {
     }
 
-    thread_obj(const thread_obj&) = delete;
-    thread_obj& operator=(const thread_obj&) = delete;
-    thread_obj(thread_obj&&) = default;
-    thread_obj& operator=(thread_obj&&) = delete;
+    th_seq(const th_seq&) = delete;
+    th_seq& operator=(const th_seq&) = delete;
+    th_seq(th_seq&&) = default;
+    th_seq& operator=(th_seq&&) = delete;
 
     auto begin() {
-	return thread_iter<hold_type, Output, Thread>(seq_, func_, buffer_size_);
+	return th_iter<hold_type, Output, Thread>(seq_, func_, buffer_size_);
     }
 
     auto end() {
-	return thread_iter_end{};
+	return th_iter_end{};
     }
 
     auto begin() const {
-	return const_cast<thread_obj<Seq, Output, Thread>*>(this)->begin();
+	return const_cast<th_seq<Seq, Output, Thread>*>(this)->begin();
     }
 
     auto end() const {
-	return thread_iter_end{};
+	return th_iter_end{};
     }
 };
 
 
 template <typename Output, typename Thread>
-class thread_seq {
+class th_builder {
 public:
-    explicit thread_seq(Thread func, size_t buffer_size):
+    explicit th_builder(Thread func, size_t buffer_size):
 	func_(func), buffer_size_(buffer_size) {}
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return thread_obj<decltype(seq), Output, Thread>
+	return th_seq<decltype(seq), Output, Thread>
 	    (std::forward<Seq>(seq), func_, buffer_size_);
     }
 
     auto operator()() {
 	empty_seq<> seq;
-	return thread_obj<decltype(seq), Output, Thread>
+	return th_seq<decltype(seq), Output, Thread>
 	    (seq, func_, buffer_size_);
     }
 
@@ -352,8 +351,13 @@ private:
 template <typename Output, typename Thread>
 auto thread(Thread func, size_t buffer_size=8192)
 {
-    return thread_seq<Output, Thread>(func, buffer_size);
+    return th_builder<Output, Thread>(func, buffer_size);
 };
+
+
+// for compatibility
+template <typename Output, typename Thread>
+using thread_seq = th_builder<Output, Thread>;
 
 
 } // namespace c7::nseq
@@ -362,7 +366,7 @@ auto thread(Thread func, size_t buffer_size=8192)
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename Output, typename Thread>
-struct format_ident<c7::nseq::thread_obj<Seq, Output, Thread>> {
+struct format_ident<c7::nseq::th_seq<Seq, Output, Thread>> {
     static constexpr const char *name = "thread";
 };
 } // namespace c7::format_helper

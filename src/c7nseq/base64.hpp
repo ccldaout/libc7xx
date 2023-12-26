@@ -24,7 +24,7 @@ struct base64_iter_end {};
 
 template <typename Seq,
 	  template <typename, typename> class ConvIter>
-class base64cnv_obj {
+class base64cnv_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -33,14 +33,14 @@ private:
     hold_type seq_;
 
 public:
-    explicit base64cnv_obj(Seq seq):
+    explicit base64cnv_seq(Seq seq):
 	seq_(std::forward<Seq>(seq)) {
     }
 
-    base64cnv_obj(const base64cnv_obj&) = delete;
-    base64cnv_obj& operator=(const base64cnv_obj&) = delete;
-    base64cnv_obj(base64cnv_obj&&) = default;
-    base64cnv_obj& operator=(base64cnv_obj&&) = delete;
+    base64cnv_seq(const base64cnv_seq&) = delete;
+    base64cnv_seq& operator=(const base64cnv_seq&) = delete;
+    base64cnv_seq(base64cnv_seq&&) = default;
+    base64cnv_seq& operator=(base64cnv_seq&&) = delete;
 
     auto begin() {
 	using std::begin;
@@ -55,7 +55,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<base64cnv_obj<Seq, ConvIter>*>(this)->begin();
+	return const_cast<base64cnv_seq<Seq, ConvIter>*>(this)->begin();
     }
 
     auto end() const {
@@ -171,7 +171,7 @@ class base64enc {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return base64cnv_obj<decltype(seq), base64enc_iter>(std::forward<Seq>(seq));
+	return base64cnv_seq<decltype(seq), base64enc_iter>(std::forward<Seq>(seq));
     }
 };
 
@@ -299,7 +299,7 @@ class base64dec {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return base64cnv_obj<decltype(seq), base64dec_iter>(std::forward<Seq>(seq));
+	return base64cnv_seq<decltype(seq), base64dec_iter>(std::forward<Seq>(seq));
     }
 };
 
@@ -310,11 +310,11 @@ public:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq>
-struct format_ident<c7::nseq::base64cnv_obj<Seq, c7::nseq::base64enc_iter>> {
+struct format_ident<c7::nseq::base64cnv_seq<Seq, c7::nseq::base64enc_iter>> {
     static constexpr const char *name = "base64enc";
 };
 template <typename Seq>
-struct format_ident<c7::nseq::base64cnv_obj<Seq, c7::nseq::base64dec_iter>> {
+struct format_ident<c7::nseq::base64cnv_seq<Seq, c7::nseq::base64dec_iter>> {
     static constexpr const char *name = "base64dec";
 };
 } // namespace c7::format_helper

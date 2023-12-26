@@ -23,7 +23,7 @@ namespace c7::nseq {
 
 // generator
 
-struct generator_iter_end {};
+struct co_iter_end {};
 
 
 template <typename T>
@@ -74,7 +74,7 @@ public:
 
 
 template <typename Seq, typename Output, typename Generator>
-class generator_iter {
+class co_iter {
 private:
     struct context {
 	Seq& seq_;
@@ -115,29 +115,29 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
-    generator_iter() = default;
-    generator_iter(const generator_iter&) = default;
-    generator_iter& operator=(const generator_iter&) = default;
-    generator_iter(generator_iter&&) = default;
-    generator_iter& operator=(generator_iter&&) = default;
+    co_iter() = default;
+    co_iter(const co_iter&) = default;
+    co_iter& operator=(const co_iter&) = default;
+    co_iter(co_iter&&) = default;
+    co_iter& operator=(co_iter&&) = default;
 
-    generator_iter(Seq& seq, Generator func, size_t buffer_size):
+    co_iter(Seq& seq, Generator func, size_t buffer_size):
 	ctx_(std::make_shared<context>(seq, func, buffer_size)) {
     }
 
-    bool operator==(const generator_iter& o) const {
+    bool operator==(const co_iter& o) const {
 	return ctx_ == o.ctx_;
     }
 
-    bool operator!=(const generator_iter& o) const {
+    bool operator!=(const co_iter& o) const {
 	return !(*this == o);
     }
 
-    bool operator==(const generator_iter_end&) const {
+    bool operator==(const co_iter_end&) const {
 	return ctx_->end_;
     }
 
-    bool operator!=(const generator_iter_end& o) const {
+    bool operator!=(const co_iter_end& o) const {
 	return !(*this == o);
     }
 
@@ -160,7 +160,7 @@ public:
 
 
 template <typename Seq, typename Output, typename Generator>
-class generator_obj {
+class co_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -171,48 +171,48 @@ private:
     size_t buffer_size_;
 
 public:
-    generator_obj(Seq seq, Generator func, size_t buffer_size):
+    co_seq(Seq seq, Generator func, size_t buffer_size):
 	seq_(std::forward<Seq>(seq)), func_(func), buffer_size_(buffer_size) {
     }
 
-    generator_obj(const generator_obj&) = delete;
-    generator_obj& operator=(const generator_obj&) = delete;
-    generator_obj(generator_obj&&) = default;
-    generator_obj& operator=(generator_obj&&) = delete;
+    co_seq(const co_seq&) = delete;
+    co_seq& operator=(const co_seq&) = delete;
+    co_seq(co_seq&&) = default;
+    co_seq& operator=(co_seq&&) = delete;
 
     auto begin() {
-	return generator_iter<hold_type, Output, Generator>(seq_, func_, buffer_size_);
+	return co_iter<hold_type, Output, Generator>(seq_, func_, buffer_size_);
     }
 
     auto end() {
-	return generator_iter_end{};
+	return co_iter_end{};
     }
 
     auto begin() const {
-	return const_cast<generator_obj<Seq, Output, Generator>*>(this)->begin();
+	return const_cast<co_seq<Seq, Output, Generator>*>(this)->begin();
     }
 
     auto end() const {
-	return generator_iter_end{};
+	return co_iter_end{};
     }
 };
 
 
 template <typename Output, typename Generator>
-class generator_seq {
+class co_builder {
 public:
-    explicit generator_seq(Generator func, size_t buffer_size):
+    explicit co_builder(Generator func, size_t buffer_size):
 	func_(func), buffer_size_(buffer_size) {}
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return generator_obj<decltype(seq), Output, Generator>
+	return co_seq<decltype(seq), Output, Generator>
 	    (std::forward<Seq>(seq), func_, buffer_size_);
     }
 
     auto operator()() {
 	empty_seq<> seq;
-	return generator_obj<decltype(seq), Output, Generator>
+	return co_seq<decltype(seq), Output, Generator>
 	    (seq, func_, buffer_size_);
     }
 
@@ -225,8 +225,13 @@ private:
 template <typename Output, typename Generator>
 auto generator(Generator func, size_t buffer_size=1024)
 {
-    return generator_seq<Output, Generator>(func, buffer_size);
+    return co_builder<Output, Generator>(func, buffer_size);
 };
+
+
+// for compatibility
+template <typename Output, typename Generator>
+using generator_seq = co_builder<Output, Generator>;
 
 
 } // namespace c7::nseq
@@ -235,7 +240,7 @@ auto generator(Generator func, size_t buffer_size=1024)
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename Output, typename Generator>
-struct format_ident<c7::nseq::generator_obj<Seq, Output, Generator>> {
+struct format_ident<c7::nseq::co_seq<Seq, Output, Generator>> {
     static constexpr const char *name = "generator";
 };
 } // namespace c7::format_helper

@@ -90,7 +90,7 @@ public:
 
 
 template <typename Seq, typename UnaryOperator>
-class transform_obj {
+class transform_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -100,14 +100,14 @@ private:
     UnaryOperator op_;
 
 public:
-    transform_obj(Seq seq, UnaryOperator op):
+    transform_seq(Seq seq, UnaryOperator op):
 	seq_(std::forward<Seq>(seq)), op_(op) {
     }
 
-    transform_obj(const transform_obj&) = delete;
-    transform_obj& operator=(const transform_obj&) = delete;
-    transform_obj(transform_obj&&) = default;
-    transform_obj& operator=(transform_obj&&) = delete;
+    transform_seq(const transform_seq&) = delete;
+    transform_seq& operator=(const transform_seq&) = delete;
+    transform_seq(transform_seq&&) = default;
+    transform_seq& operator=(transform_seq&&) = delete;
 
     auto size() const {
 	return seq_.size();
@@ -126,7 +126,7 @@ public:
     }
 
     auto begin() const {
-	return const_cast<transform_obj<Seq, UnaryOperator>*>(this)->begin();
+	return const_cast<transform_seq<Seq, UnaryOperator>*>(this)->begin();
     }
 
     auto end() const {
@@ -146,7 +146,7 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<transform_obj<Seq, UnaryOperator>*>(this)->rbegin();
+	return const_cast<transform_seq<Seq, UnaryOperator>*>(this)->rbegin();
     }
 
     auto rend() const {
@@ -162,7 +162,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return transform_obj<decltype(seq), UnaryOperator>(std::forward<Seq>(seq), op_);
+	return transform_seq<decltype(seq), UnaryOperator>(std::forward<Seq>(seq), op_);
     }
 
 private:
@@ -179,7 +179,7 @@ public:
 	auto cv = [](auto v) {
 	    return static_cast<std::remove_reference_t<decltype(v)>>(v);
 	};
-	return transform_obj<decltype(seq), decltype(cv)>(std::forward<Seq>(seq), cv);
+	return transform_seq<decltype(seq), decltype(cv)>(std::forward<Seq>(seq), cv);
     }
 };
 
@@ -193,7 +193,7 @@ public:
 	auto cv = [](auto& v) {
 	    return &v;
 	};
-	return transform_obj<decltype(seq), decltype(cv)>(std::forward<Seq>(seq), cv);
+	return transform_seq<decltype(seq), decltype(cv)>(std::forward<Seq>(seq), cv);
     }
 };
 
@@ -204,7 +204,7 @@ public:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename UnaryOperator>
-struct format_ident<c7::nseq::transform_obj<Seq, UnaryOperator>> {
+struct format_ident<c7::nseq::transform_seq<Seq, UnaryOperator>> {
     static constexpr const char *name = "transform";
 };
 } // namespace c7::format_helper

@@ -55,7 +55,7 @@ static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& defv)
 {
     std::vector<dconf_def> c7defv{
 	C7_DCONF_DEF_I(C7_DCONF_MLOG, "mlog level (default:4)"),
-	C7_DCONF_DEF_I(C7_DCONF_MLOG_CATMASK, "mlog categroy bit mask (default:0)"),
+	C7_DCONF_DEF_I(C7_DCONF_MLOG_CATMASK, "mlog category bit mask (default:0)"),
     };
 
     for (auto [i, d]: defv | c7::nseq::enumerate()) {

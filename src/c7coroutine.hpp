@@ -161,7 +161,7 @@ public:
 	typedef typename traits::value_type  value_type;
 	typedef typename traits::pointer pointer;
 	typedef typename traits::reference reference;
-	typedef std::input_iterator_tag iterator_categroy;
+	typedef std::input_iterator_tag iterator_category;
 
 	iterator(generator<T>& gen, bool terminated):
 	    gen_(gen), terminated_(terminated) {

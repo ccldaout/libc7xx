@@ -20,7 +20,7 @@ namespace c7::nseq {
 
 
 template <typename Seq, typename Compare>
-class sort_obj {
+class sort_seq {
 private:
     using hold_type =
 	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
@@ -30,17 +30,17 @@ private:
     Compare cmp_;
 
 public:
-    sort_obj(Seq seq, Compare cmp):
+    sort_seq(Seq seq, Compare cmp):
 	seq_(std::forward<Seq>(seq)), cmp_(cmp) {
 	using std::begin;
 	auto b = begin(seq_);
 	std::sort(b, b + seq_.size(), cmp);
     }
 
-    sort_obj(const sort_obj&) = delete;
-    sort_obj& operator=(const sort_obj&) = delete;
-    sort_obj(sort_obj&&) = default;
-    sort_obj& operator=(sort_obj&&) = delete;
+    sort_seq(const sort_seq&) = delete;
+    sort_seq& operator=(const sort_seq&) = delete;
+    sort_seq(sort_seq&&) = default;
+    sort_seq& operator=(sort_seq&&) = delete;
 
     auto size() const {
 	return seq_.size();
@@ -95,7 +95,7 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return sort_obj<decltype(seq), Compare>(std::forward<Seq>(seq), cmp_);
+	return sort_seq<decltype(seq), Compare>(std::forward<Seq>(seq), cmp_);
     }
 
 private:
@@ -110,7 +110,7 @@ public:
 	using std::begin;
 	using item_type = typename std::iterator_traits<decltype(begin(seq))>::value_type;
 	auto cmp = std::less<item_type>{};
-	return sort_obj<decltype(seq), decltype(cmp)>(std::forward<Seq>(seq), cmp);
+	return sort_seq<decltype(seq), decltype(cmp)>(std::forward<Seq>(seq), cmp);
     }
 };
 
@@ -121,7 +121,7 @@ public:
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename Seq, typename Compare>
-struct format_ident<c7::nseq::sort_obj<Seq, Compare>> {
+struct format_ident<c7::nseq::sort_seq<Seq, Compare>> {
     static constexpr const char *name = "sort";
 };
 } // namespace c7::format_helper

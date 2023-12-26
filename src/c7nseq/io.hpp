@@ -52,16 +52,16 @@ auto mmap_r(int dirfd, const std::string& path)
 ----------------------------------------------------------------------------*/
 
 template <typename T, typename IS>
-class istream_obj {
+class istream_seq {
 public:
-    istream_obj(IS&& is, bool noskipws): is_(std::move(is)) {
+    istream_seq(IS&& is, bool noskipws): is_(std::move(is)) {
 	if (noskipws) {
 	    is_ >> std::noskipws;
 	}
     }
 
-    istream_obj(istream_obj&&) = default;
-    istream_obj& operator=(istream_obj&&) = default;
+    istream_seq(istream_seq&&) = default;
+    istream_seq& operator=(istream_seq&&) = default;
 
     auto begin() {
 	return std::istream_iterator<T>(is_);
@@ -78,7 +78,7 @@ private:
 template <typename T, typename IS>
 auto istream(IS&& is, bool noskipws=true)
 {
-    return istream_obj<T, IS>(std::forward<IS>(is), noskipws);
+    return istream_seq<T, IS>(std::forward<IS>(is), noskipws);
 }
 
 
@@ -93,7 +93,7 @@ auto istream(IS&& is, bool noskipws=true)
 namespace c7::format_helper {
 
 template <typename T, typename IS>
-struct format_ident<c7::nseq::istream_obj<T, IS>> {
+struct format_ident<c7::nseq::istream_seq<T, IS>> {
     static constexpr const char *name = "istream";
 };
 

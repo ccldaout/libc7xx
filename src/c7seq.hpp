@@ -87,7 +87,7 @@ auto c_parray(T *array)
 {
     size_t n;
     for (n = 0; array[n] != nullptr; n++);
-    return c7::nseq::c_array_obj<T>(n, array);
+    return c7::nseq::c_array_seq<T>(n, array);
 }
 
 template <typename T, typename UnaryOperator>

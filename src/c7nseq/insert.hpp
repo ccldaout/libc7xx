@@ -22,20 +22,20 @@ namespace c7::nseq {
 // insert
 
 template <typename C>
-class insert_obj;
+class insert_seq;
 
 template <typename C>
-class insert_obj<C&> {
+class insert_seq<C&> {
 private:
     C& c_;
 
 public:
-    explicit insert_obj(C& c): c_(c) {}
+    explicit insert_seq(C& c): c_(c) {}
 
-    insert_obj(const insert_obj&) = delete;
-    insert_obj& operator=(const insert_obj&) = delete;
-    insert_obj(insert_obj&&) = default;
-    insert_obj& operator=(insert_obj&&) = delete;
+    insert_seq(const insert_seq&) = delete;
+    insert_seq& operator=(const insert_seq&) = delete;
+    insert_seq(insert_seq&&) = default;
+    insert_seq& operator=(insert_seq&&) = delete;
 
     template <typename Seq>
     C& operator()(Seq&& seq) {
@@ -47,17 +47,17 @@ public:
 };
 
 template <typename C>
-class insert_obj<C&&> {
+class insert_seq<C&&> {
 private:
     C c_;
 
 public:
-    explicit insert_obj(C&& c): c_(std::move(c)) {}
+    explicit insert_seq(C&& c): c_(std::move(c)) {}
 
-    insert_obj(const insert_obj&) = delete;
-    insert_obj& operator=(const insert_obj&) = delete;
-    insert_obj(insert_obj&&) = default;
-    insert_obj& operator=(insert_obj&&) = delete;
+    insert_seq(const insert_seq&) = delete;
+    insert_seq& operator=(const insert_seq&) = delete;
+    insert_seq(insert_seq&&) = default;
+    insert_seq& operator=(insert_seq&&) = delete;
 
     template <typename Seq>
     C&& operator()(Seq&& seq) {
@@ -71,27 +71,27 @@ public:
 template <typename C>
 auto insert(C&& c)
 {
-    return insert_obj<decltype(c)>(std::forward<C>(c));
+    return insert_seq<decltype(c)>(std::forward<C>(c));
 }
 
 
 // insert_or_assign
 
 template <typename C>
-class insert_or_assign_obj;
+class insert_or_assign_seq;
 
 template <typename C>
-class insert_or_assign_obj<C&> {
+class insert_or_assign_seq<C&> {
 private:
     C& c_;
 
 public:
-    explicit insert_or_assign_obj(C& c): c_(c) {}
+    explicit insert_or_assign_seq(C& c): c_(c) {}
 
-    insert_or_assign_obj(const insert_or_assign_obj&) = delete;
-    insert_or_assign_obj& operator=(const insert_or_assign_obj&) = delete;
-    insert_or_assign_obj(insert_or_assign_obj&&) = default;
-    insert_or_assign_obj& operator=(insert_or_assign_obj&&) = delete;
+    insert_or_assign_seq(const insert_or_assign_seq&) = delete;
+    insert_or_assign_seq& operator=(const insert_or_assign_seq&) = delete;
+    insert_or_assign_seq(insert_or_assign_seq&&) = default;
+    insert_or_assign_seq& operator=(insert_or_assign_seq&&) = delete;
 
     template <typename Seq>
     C& operator()(Seq&& seq) {
@@ -104,17 +104,17 @@ public:
 };
 
 template <typename C>
-class insert_or_assign_obj<C&&> {
+class insert_or_assign_seq<C&&> {
 private:
     C c_;
 
 public:
-    explicit insert_or_assign_obj(C&& c): c_(std::move(c)) {}
+    explicit insert_or_assign_seq(C&& c): c_(std::move(c)) {}
 
-    insert_or_assign_obj(const insert_or_assign_obj&) = delete;
-    insert_or_assign_obj& operator=(const insert_or_assign_obj&) = delete;
-    insert_or_assign_obj(insert_or_assign_obj&&) = default;
-    insert_or_assign_obj& operator=(insert_or_assign_obj&&) = delete;
+    insert_or_assign_seq(const insert_or_assign_seq&) = delete;
+    insert_or_assign_seq& operator=(const insert_or_assign_seq&) = delete;
+    insert_or_assign_seq(insert_or_assign_seq&&) = default;
+    insert_or_assign_seq& operator=(insert_or_assign_seq&&) = delete;
 
     template <typename Seq>
     C&& operator()(Seq&& seq) {
@@ -129,7 +129,7 @@ public:
 template <typename C>
 auto insert_or_assign(C&& c)
 {
-    return insert_or_assign_obj<decltype(c)>(std::forward<C>(c));
+    return insert_or_assign_seq<decltype(c)>(std::forward<C>(c));
 }
 
 

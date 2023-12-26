@@ -89,13 +89,13 @@ public:
 
 
 template <typename Iter, typename Iterend>
-class range_proxy_obj {
+class range_proxy_seq {
 private:
     Iter it_;
     Iterend itend_;
 
 public:
-    range_proxy_obj(Iter it, Iterend itend): it_(it), itend_(itend) {}
+    range_proxy_seq(Iter it, Iterend itend): it_(it), itend_(itend) {}
 
     auto begin() {
 	return range_proxy_iter(it_, itend_);
@@ -106,11 +106,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<range_proxy_obj<Iter, Iterend>*>(this)->begin();
+	return const_cast<range_proxy_seq<Iter, Iterend>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<range_proxy_obj<Iter, Iterend>*>(this)->end();
+	return const_cast<range_proxy_seq<Iter, Iterend>*>(this)->end();
     }
 };
 
@@ -183,9 +183,9 @@ public:
 
 
 template <typename T>
-class range_obj {
+class range_seq {
 public:
-    range_obj(size_t n, T beg, T step):
+    range_seq(size_t n, T beg, T step):
 	n_(n), beg_(beg), step_(step) {
     }
 
@@ -202,11 +202,11 @@ public:
     }
 
     auto begin() const {
-	return const_cast<range_obj<T>*>(this)->begin();
+	return const_cast<range_seq<T>*>(this)->begin();
     }
 
     auto end() const {
-	return const_cast<range_obj<T>*>(this)->end();
+	return const_cast<range_seq<T>*>(this)->end();
     }
 
     auto rbegin() {
@@ -220,11 +220,11 @@ public:
     }
 
     auto rbegin() const {
-	return const_cast<range_obj<T>*>(this)->rbegin();
+	return const_cast<range_seq<T>*>(this)->rbegin();
     }
 
     auto rend() const {
-	return const_cast<range_obj<T>*>(this)->rend();
+	return const_cast<range_seq<T>*>(this)->rend();
     }
 
 private:
@@ -238,7 +238,7 @@ private:
 template <typename T=int>
 auto range(size_t n, T beg=0, T step=1)
 {
-    return range_obj<T>(n, beg, step);
+    return range_seq<T>(n, beg, step);
 }
 
 
@@ -246,7 +246,7 @@ template <typename Iter, typename Iterend,
 	  typename = typename std::iterator_traits<Iter>::iterator_category>
 auto range(Iter beg, Iterend end)
 {
-    return range_proxy_obj(beg, end);
+    return range_proxy_seq(beg, end);
 }
 
 
@@ -256,11 +256,11 @@ auto range(Iter beg, Iterend end)
 #if defined(C7_FORMAT_HELPER_HPP_LOADED__)
 namespace c7::format_helper {
 template <typename T>
-struct format_ident<c7::nseq::range_obj<T>> {
+struct format_ident<c7::nseq::range_seq<T>> {
     static constexpr const char *name = "range";
 };
 template <typename Iter, typename Iterend>
-struct format_ident<c7::nseq::range_proxy_obj<Iter, Iterend>> {
+struct format_ident<c7::nseq::range_proxy_seq<Iter, Iterend>> {
     static constexpr const char *name = "range++";
 };
 } // namespace c7::format_helper
