@@ -66,7 +66,7 @@ inline constexpr bool is_empty_v = is_empty<Args...>::value;
 // --  count<T, ...> -> number of T,...
 
 template <typename T, typename... Types>
-static inline constexpr int count_()
+static inline constexpr size_t count_()
 {
     if constexpr (is_empty_v<Types...>) {
 	return 0;
@@ -76,7 +76,7 @@ static inline constexpr int count_()
 }
 
 template <typename... Types>
-static inline constexpr int count()
+static inline constexpr size_t count()
 {
     return count_<void, Types...>();
 }

@@ -109,18 +109,17 @@ result<> monitor::manage(const std::string& key,
 	return c7result_err(errno, "epoll_ctl(ADD, %{}) failed", prvfd);
     }
 
-    auto sp = provider.get();
-    provider_info prv_info { std::move(provider), events };
-    auto [it, _] = prvdic_.insert_or_assign(prvfd, std::move(prv_info));
+    provider_info prv_info { provider, events };
+    prvdic_.insert_or_assign(prvfd, std::move(prv_info));
 
     if (!key.empty()) {
-	std::weak_ptr<provider_interface> wp = (*it).second.s_ptr;
+	std::weak_ptr<provider_interface> wp = provider;
 	keyprvdic_.insert_or_assign(key, std::move(wp));
     }
 
     unlock();
 
-    sp->on_manage(*this, prvfd);
+    provider->on_manage(*this, prvfd);
     return c7result_ok();
 }
 
