@@ -168,6 +168,7 @@ public:
     }
 
     ~command_ctx() {
+	pl_.kill(9);
 	pl_.wait();
     }
 
