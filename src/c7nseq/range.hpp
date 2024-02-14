@@ -38,6 +38,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    range_proxy_iter() = default;
+    range_proxy_iter(const range_proxy_iter&) = default;
+    range_proxy_iter(range_proxy_iter&&) = default;
+    range_proxy_iter& operator=(const range_proxy_iter&) = default;
+    range_proxy_iter& operator=(range_proxy_iter&&) = default;
+
     range_proxy_iter(Iter it, Iterend itend): it_(it), itend_(itend) {}
 
     bool operator==(const range_proxy_iter& o) const {
@@ -130,6 +136,12 @@ public:
     using value_type		= T;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    range_iter() = default;
+    range_iter(const range_iter&) = default;
+    range_iter(range_iter&&) = default;
+    range_iter& operator=(const range_iter&) = default;
+    range_iter& operator=(range_iter&&) = default;
 
     range_iter(size_t i, T beg, T step):
 	it_(i), beg_(beg), step_(step) {

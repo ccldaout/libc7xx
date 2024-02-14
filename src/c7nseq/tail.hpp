@@ -39,6 +39,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    tail_seq_iter() = default;
+    tail_seq_iter(const tail_seq_iter&) = default;
+    tail_seq_iter(tail_seq_iter&&) = default;
+    tail_seq_iter& operator=(const tail_seq_iter&) = default;
+    tail_seq_iter& operator=(tail_seq_iter&&) = default;
+
     tail_seq_iter(Iter it, Iterend itend, size_t n): n_(n), idx_(0), rbuf_(n) {
 	for (; it != itend; ++it, ++idx_) {
 	    rbuf_[idx_ % n_] = *it;

@@ -39,6 +39,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    transform_iter() = default;
+    transform_iter(const transform_iter&) = default;
+    transform_iter(transform_iter&&) = default;
+    transform_iter& operator=(const transform_iter&) = default;
+    transform_iter& operator=(transform_iter&&) = default;
+
     transform_iter(Iter it, Iterend itend, UnaryOperator op): it_(it), itend_(itend), op_(op) {}
 
     bool operator==(const transform_iter& o) const {

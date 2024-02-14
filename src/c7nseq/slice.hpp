@@ -33,6 +33,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    slice_ra_iter() = default;
+    slice_ra_iter(const slice_ra_iter&) = default;
+    slice_ra_iter(slice_ra_iter&&) = default;
+    slice_ra_iter& operator=(const slice_ra_iter&) = default;
+    slice_ra_iter& operator=(slice_ra_iter&&) = default;
+
     slice_ra_iter(Iter it, ssize_t gap): it_(it), gap_(gap) {}
 
     bool operator==(const slice_ra_iter& o) const {
@@ -99,6 +105,12 @@ public:
     using value_type		= std::remove_reference_t<decltype(*it_)>;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    slice_seq_iter() = default;
+    slice_seq_iter(const slice_seq_iter&) = default;
+    slice_seq_iter(slice_seq_iter&&) = default;
+    slice_seq_iter& operator=(const slice_seq_iter&) = default;
+    slice_seq_iter& operator=(slice_seq_iter&&) = default;
 
     slice_seq_iter(Iter it, Iterend itend, ssize_t off, ssize_t gap, ssize_t max):
 	it_(it), itend_(itend), gap_(gap), max_(max) {

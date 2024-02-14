@@ -44,6 +44,7 @@
 #define c7nseq_accumulate_hpp__ 1
 #define c7nseq_base64_hpp__ 1
 #define c7nseq_c_array_hpp__ 1
+#define c7nseq_chain_hpp__ 1
 #define c7nseq_command_hpp__ 1
 #define c7nseq_empty_hpp__ 1
 #define c7nseq_enumerate_hpp__ 1
@@ -59,6 +60,7 @@
 #define c7nseq_map_hpp__ 1
 #define c7nseq_push_hpp__ 1
 #define c7nseq_range_hpp__ 1
+#define c7nseq_repeat_hpp__ 1
 #define c7nseq_reverse_hpp__ 1
 #define c7nseq_set_hpp__ 1
 #define c7nseq_slice_hpp__ 1
@@ -72,6 +74,7 @@
 #define c7nseq_urlencode_hpp__ 1
 #define c7nseq_vector_hpp__ 1
 #define c7nseq_while_hpp__ 1
+#define c7nseq_window_hpp__ 1
 #define c7nseq_zip_hpp__ 1
 #define c7path_hpp__ 1
 #define c7pipeline_hpp__ 1

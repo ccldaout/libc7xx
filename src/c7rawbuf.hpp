@@ -21,6 +21,9 @@
 #include <c7utils.hpp>
 
 
+#define C7_RAWBUF_API_EXT__	(1)
+
+
 namespace c7 {
 
 
@@ -76,6 +79,16 @@ public:
 	return c7result_ok();
     }
 
+    // C7_RAWBUF_API_EXT__(1)
+    template <typename MM2>
+    c7::result<> push_back(const rawbuf<T, MM2>& rb, size_t rb_pos=0, size_t rb_n=-1UL);
+
+    // C7_RAWBUF_API_EXT__(1)
+    c7::result<> resize(size_t n);
+
+    // C7_RAWBUF_API_EXT__(1)
+    c7::result<> insert_from(c7::fd& fd, size_t pos = 0);
+
     c7::result<> append_from(c7::fd& fd);
 
     c7::result<> append_to(c7::fd& fd);
@@ -96,6 +109,11 @@ public:
 
     const void *void_p(size_t n_elm = 0) const {
 	return static_cast<void *>(top_ + n_elm);
+    }
+
+    // C7_RAWBUF_API_EXT__(1)
+    size_t capacity() const {
+	return n_rsv_;
     }
 
     size_t size() const {
@@ -205,7 +223,7 @@ template <typename T, typename MM>
 c7::result<>
 rawbuf<T, MM>::reserve(size_t n_req)
 {
-    if (n_req > n_rsv_) {
+    if (n_req != n_rsv_) {
 	auto res = mm_.reserve(n_req * sizeof(T));
 	if (!res) {
 	    return res.as_error();
@@ -240,24 +258,88 @@ rawbuf<T, MM>::extend()
 
 
 template <typename T, typename MM>
+template <typename MM2>
 c7::result<>
-rawbuf<T, MM>::append_from(c7::fd& fd)
+rawbuf<T, MM>::push_back(const rawbuf<T, MM2>& rb, size_t rb_pos, size_t rb_n)
 {
+    if (rb_pos > rb.size()) {
+	return c7result_err(EINVAL, "rb_pos is out of range");
+    }
+    if (rb_n == -1UL) {
+	rb_n = rb.size() - rb_pos;
+    } else if (rb_n + rb_pos > rb.size()) {
+	return c7result_err(EINVAL, "(rb_n + rb_pos) is out of range");
+    }
+
+    size_t n_req = n_cur_ + rb_n;
+    if (auto res = reserve(n_req); !res) {
+	return res;
+    }
+
+    std::memmove(void_p(n_cur_), &rb[rb_pos], rb_n * sizeof(T));
+    n_cur_ += rb_n;
+
+    return c7result_ok();
+}
+
+
+template <typename T, typename MM>
+c7::result<>
+rawbuf<T, MM>::resize(size_t n)
+{
+    if (n > n_cur_) {
+	if (auto res = reserve(n); !res) {
+	    return res;
+	}
+	std::memset(void_p(n_cur_), 0, (n - n_cur_) * sizeof(T));
+    }
+    n_cur_ = n;
+    return c7result_ok();
+}
+
+
+template <typename T, typename MM>
+c7::result<>
+rawbuf<T, MM>::insert_from(c7::fd& fd, size_t pos)
+{
+    if (pos > n_cur_) {
+	return c7result_err(EINVAL, "insert position is out of range");
+    }
+
     size_t n_read;
     if (auto res = fd.stat(); !res) {
 	return res.as_error();
     } else {
-	n_read = res.value().st_size / sizeof(T);
+	n_read = res.value().st_size;
     }
+    if (auto res = fd.seek_cur(0); !res) {
+	return res.as_error();
+    } else {
+	n_read -= res.value();
+    }
+    n_read /= sizeof(T);
+
     size_t n_req = n_cur_ + n_read;
     if (auto res = reserve(n_req); !res) {
 	return res;
     }
-    if (auto res = fd.read_n(void_p(n_cur_), n_read * sizeof(T)); !res) {
+
+    std::memmove(void_p(pos + n_read), void_p(pos), (n_cur_ - pos) * sizeof(T));
+
+    if (auto res = fd.read_n(void_p(pos), n_read * sizeof(T)); !res) {
 	return std::move(res.get_result());
     }
+
     n_cur_ += n_read;
     return c7result_ok();
+}
+
+
+template <typename T, typename MM>
+c7::result<>
+rawbuf<T, MM>::append_from(c7::fd& fd)
+{
+    return insert_from(fd, n_cur_);
 }
 
 

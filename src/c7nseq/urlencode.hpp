@@ -111,6 +111,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    urlencode_common_iter() = default;
+    urlencode_common_iter(const urlencode_common_iter&) = default;
+    urlencode_common_iter(urlencode_common_iter&&) = default;
+    urlencode_common_iter& operator=(const urlencode_common_iter&) = default;
+    urlencode_common_iter& operator=(urlencode_common_iter&&) = default;
+
     urlencode_common_iter(Iter it, Iterend itend, bool for_body):
 	it_(it), itend_(itend), for_body_(for_body) {
 	do_encode();
@@ -151,6 +157,8 @@ public:
 template <typename Iter, typename Iterend>
 class urlencode_url_iter: public urlencode_common_iter<Iter, Iterend> {
 public:
+    using urlencode_common_iter<Iter, Iterend>::urlencode_common_iter;
+
     urlencode_url_iter(Iter it, Iterend itend):
 	urlencode_common_iter<Iter, Iterend>(it, itend, false) {
     }
@@ -160,6 +168,8 @@ public:
 template <typename Iter, typename Iterend>
 class urlencode_body_iter: public urlencode_common_iter<Iter, Iterend> {
 public:
+    using urlencode_common_iter<Iter, Iterend>::urlencode_common_iter;
+
     urlencode_body_iter(Iter it, Iterend itend):
 	urlencode_common_iter<Iter, Iterend>(it, itend, true) {
     }

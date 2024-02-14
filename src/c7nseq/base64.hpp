@@ -131,6 +131,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    base64enc_iter() = default;
+    base64enc_iter(const base64enc_iter&) = default;
+    base64enc_iter(base64enc_iter&&) = default;
+    base64enc_iter& operator=(const base64enc_iter&) = default;
+    base64enc_iter& operator=(base64enc_iter&&) = default;
+
     base64enc_iter(Iter it, Iterend itend): it_(it), itend_(itend) {
 	do_encode();
     }
@@ -258,6 +264,12 @@ public:
     using value_type		= std::remove_reference_t<decltype(*it_)>;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    base64dec_iter() = default;
+    base64dec_iter(const base64dec_iter&) = default;
+    base64dec_iter(base64dec_iter&&) = default;
+    base64dec_iter& operator=(const base64dec_iter&) = default;
+    base64dec_iter& operator=(base64dec_iter&&) = default;
 
     base64dec_iter(Iter it, Iterend itend): it_(it), itend_(itend) {
 	do_decode();

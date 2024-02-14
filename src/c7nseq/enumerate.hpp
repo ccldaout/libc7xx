@@ -37,6 +37,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    enumerate_iter() = default;
+    enumerate_iter(const enumerate_iter&) = default;
+    enumerate_iter(enumerate_iter&&) = default;
+    enumerate_iter& operator=(const enumerate_iter&) = default;
+    enumerate_iter& operator=(enumerate_iter&&) = default;
+
     enumerate_iter(Iter it, Iterend itend, int i, int step):
 	it_(it), itend_(itend), i_(i), step_(step) {}
 

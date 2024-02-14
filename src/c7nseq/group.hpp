@@ -56,6 +56,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    group_range_iter() = default;
+    group_range_iter(const group_range_iter&) = default;
+    group_range_iter(group_range_iter&&) = default;
+    group_range_iter& operator=(const group_range_iter&) = default;
+    group_range_iter& operator=(group_range_iter&&) = default;
+
     group_range_iter(Iter it, Iterend itend, Equal eq): it_(it), itend_(itend), eq_(eq) {
 	make_group();
     }
@@ -120,6 +126,12 @@ public:
     using value_type		= val_type;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    group_vec_iter() = default;
+    group_vec_iter(const group_vec_iter&) = default;
+    group_vec_iter(group_vec_iter&&) = default;
+    group_vec_iter& operator=(const group_vec_iter&) = default;
+    group_vec_iter& operator=(group_vec_iter&&) = default;
 
     group_vec_iter(Iter it, Iterend itend, Equal eq): it_(it), itend_(itend), eq_(eq) {
 	make_group();

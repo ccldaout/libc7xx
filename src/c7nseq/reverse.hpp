@@ -36,6 +36,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    reverse_iter() = default;
+    reverse_iter(const reverse_iter&) = default;
+    reverse_iter(reverse_iter&&) = default;
+    reverse_iter& operator=(const reverse_iter&) = default;
+    reverse_iter& operator=(reverse_iter&&) = default;
+
     reverse_iter(Iter it, Iterend itend): it_(it), itend_(itend) {
     }
 

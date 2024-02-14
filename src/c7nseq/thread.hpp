@@ -119,13 +119,11 @@ struct th_iter_end {};
 template <typename T>
 class th_output {
 private:
-    size_t buffer_size_;
     impl::double_buffer<T> dbuf_;
     std::vector<T> v_th_;
 
 public:
-    explicit th_output(size_t buffer_size):
-	buffer_size_(buffer_size), dbuf_(buffer_size) {
+    explicit th_output(size_t buffer_size): dbuf_(buffer_size) {
 	dbuf_.init_producer(v_th_);
     }
 

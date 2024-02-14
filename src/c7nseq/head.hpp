@@ -39,6 +39,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    head_seq_iter() = default;
+    head_seq_iter(const head_seq_iter&) = default;
+    head_seq_iter(head_seq_iter&&) = default;
+    head_seq_iter& operator=(const head_seq_iter&) = default;
+    head_seq_iter& operator=(head_seq_iter&&) = default;
+
     head_seq_iter(Iter it, Iterend itend, size_t n):
 	it_(it), itend_(itend), n_(it_ == itend_ ? 0 : n) {
     }
@@ -185,6 +191,12 @@ public:
     using value_type		= std::remove_reference_t<decltype(*it_)>;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    skip_head_seq_iter() = default;
+    skip_head_seq_iter(const skip_head_seq_iter&) = default;
+    skip_head_seq_iter(skip_head_seq_iter&&) = default;
+    skip_head_seq_iter& operator=(const skip_head_seq_iter&) = default;
+    skip_head_seq_iter& operator=(skip_head_seq_iter&&) = default;
 
     skip_head_seq_iter(Iter it, Iterend itend, size_t n):
 	it_(it), itend_(itend), n_(it_ == itend_ ? 0 : n) {

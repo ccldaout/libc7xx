@@ -43,22 +43,22 @@ public:
     using reference		= value_type&;
 
 private:
-    c7::pipeline& pl_;
-    c7::fd& rfd_;
+    c7::pipeline *pl_;
+    c7::fd *rfd_;
     size_t buffer_size_;
     std::vector<Output> vec_;
     size_t idx_ = 0;
 
     void readvec() {
 	vec_.resize(buffer_size_);
-	auto iores = rfd_.read_n(static_cast<void*>(vec_.data()),
+	auto iores = rfd_->read_n(static_cast<void*>(vec_.data()),
 				sizeof(Output) * vec_.capacity());
 	if (iores.get_status() == c7::io_result::status::OK ||
 	    iores.get_status() == c7::io_result::status::INCOMP) {
 	    vec_.resize(iores.get_done()/sizeof(Output));
 	    idx_ = 0;
 	} else {
-	    rfd_.close();
+	    rfd_->close();
 	}
     }
 
@@ -70,7 +70,7 @@ public:
     command_iter& operator=(command_iter&&) = default;
 
     command_iter(c7::pipeline& pl, c7::fd& rfd, size_t buffer_size):
-	pl_(pl), rfd_(rfd), buffer_size_(buffer_size) {
+	pl_(&pl), rfd_(&rfd), buffer_size_(buffer_size) {
 	vec_.reserve(buffer_size);
 	vec_.resize(buffer_size);
 	readvec();
@@ -85,10 +85,13 @@ public:
     }
 
     bool operator==(const command_iter_end&) const {
-	if (rfd_) {
+	if (rfd_ == nullptr || pl_ == nullptr) {
+	    return true;
+	}
+	if (*rfd_) {
 	    return false;
 	}
-	for (auto s: pl_.wait()) {
+	for (auto s: pl_->wait()) {
 	    if (s != 0 && s != -SIGPIPE) {
 		auto err = s > 0 ? s : EFAULT;
 		c7result_err(err, "pipeline failed").raise();

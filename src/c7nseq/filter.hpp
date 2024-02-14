@@ -37,6 +37,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    filter_iter() = default;
+    filter_iter(const filter_iter&) = default;
+    filter_iter(filter_iter&&) = default;
+    filter_iter& operator=(const filter_iter&) = default;
+    filter_iter& operator=(filter_iter&&) = default;
+
     filter_iter(Iter it, Iterend itend, Predicate pred): it_(it), itend_(itend), pred_(pred) {
 	while (it_ != itend_) {
 	    if (pred_(*it_)) {

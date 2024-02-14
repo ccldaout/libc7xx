@@ -15,6 +15,9 @@
 #include <cstring>
 
 
+#define PAGESIZE	sysconf(_SC_PAGESIZE)
+
+
 namespace c7 {
 
 
@@ -48,14 +51,15 @@ c7::result<std::pair<void *, size_t>>
 anon_mmap_manager::reserve(size_t size)
 {
     size = c7_align(size, PAGESIZE);
-    if (size > map_size_) {
-	void *addr = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-	if (addr == MAP_FAILED) {
-	    return c7result_err(errno, "mmap(, %{}, ...) failed", size);
+    if (size != map_size_) {
+	void *addr;
+	if (map_size_ == 0) {
+	    addr = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	} else {
+	    addr = ::mremap(map_addr_, map_size_, size, MREMAP_MAYMOVE);
 	}
-	if (map_addr_ != nullptr) {
-	    (void)std::memcpy(addr, map_addr_, map_size_);
-	    (void)::munmap(map_addr_, map_size_);
+	if (addr == MAP_FAILED) {
+	    return c7result_err(errno, "mmap/mremap(size:%{}) failed", size);
 	}
 	map_addr_ = addr;
 	map_size_ = size;
@@ -78,31 +82,33 @@ anon_mmap_manager::reset()
                             switchable mmap object
 ----------------------------------------------------------------------------*/
 
-result<> mmobj::resize_anon_mm(size_t size)
+result<> mmobj::resize_anon_mm(size_t new_size)
 {
-    size = c7_align(size, PAGESIZE);
-    if (size == 0) {
+    new_size = c7_align(new_size, PAGESIZE);
+    if (new_size == 0 || size_ == new_size) {
 	return c7result_ok();
     }
-    void *np = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if (np == MAP_FAILED) {
+    void *new_top;
+    if (size_ == 0) {
+	new_top = ::mmap(nullptr, new_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    } else {
+	new_top = ::mremap(top_, size_, new_size, MREMAP_MAYMOVE);
+    }
+
+    if (new_top == MAP_FAILED) {
 	if (path_.empty()) {
-	    return c7result_err(errno, "mmap(nullptr, %{}, ..., -1, 0) failed", size);
+	    return c7result_err(errno, "mmap/mremap(size:%{}) failed", new_size);
 	}
-	return switch_to_file_mm(size);
+	return switch_to_file_mm(new_size);
     }
-    if (top_ != nullptr) {
-	(void)std::memcpy(np, top_, std::min(size_, size));
-	(void)::munmap(top_, size_);
-    }
-    top_  = np;
-    size_ = size;
+    top_  = new_top;
+    size_ = new_size;
     return c7result_ok();
 }
 
-result<> mmobj::switch_to_file_mm(size_t size)
+result<> mmobj::switch_to_file_mm(size_t new_size)
 {
-    size = c7_align(size, PAGESIZE);
+    new_size = c7_align(new_size, PAGESIZE);
 
     result<c7::fd> res1;
     if (c7::path::is_dir(path_)) {
@@ -115,49 +121,39 @@ result<> mmobj::switch_to_file_mm(size_t size)
     }
     fd_ = std::move(res1.value());
 
-    auto res2 = fd_.stat();
-    if (!res2) {
-	return res2.as_error();
-    }
-    auto fsize = res2.value().st_size;
-
-    if (size > (size_t)fsize) {
-	if (auto res = fd_.truncate(size); !res) {
-	    return res;
-	}
-    } else {
-	size = fsize;
+    if (auto res = fd_.truncate(new_size); !res) {
+	return res;
     }
 
-    void *np = ::mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd_, 0);
-    if (np == MAP_FAILED) {
-	return c7result_err(errno, "mmap(nullptr, %{}, ..., %{}, 0) failed", size, fd_);
+    void *new_top = ::mmap(nullptr, new_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd_, 0);
+    if (new_top == MAP_FAILED) {
+	return c7result_err(errno, "mmap(nullptr, %{}, ..., %{}, 0) failed", new_size, fd_);
     }
     if (top_ != nullptr) {
-	(void)std::memcpy(np, top_, size_);
+	(void)std::memcpy(new_top, top_, size_);
 	(void)::munmap(top_, size_);
     }
-    top_  = np;
-    size_ = size;
+    top_  = new_top;
+    size_ = new_size;
     return c7result_ok();
 }
 
-result<> mmobj::resize_file_mm(size_t size)
+result<> mmobj::resize_file_mm(size_t new_size)
 {
-    size = c7_align(size, PAGESIZE);
-    if (auto res = fd_.truncate(size); !res) {
+    new_size = c7_align(new_size, PAGESIZE);
+    if (auto res = fd_.truncate(new_size); !res) {
 	return res;
     }
-    void *np = ::mmap(top_, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd_, 0);
-    if (np == MAP_FAILED) {
-	return c7result_err(errno, "mmap(%{}, %{}, ..., %{}, 0) failed", top_, size, fd_);
+    void *new_top = ::mmap(top_, new_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd_, 0);
+    if (new_top == MAP_FAILED) {
+	return c7result_err(errno, "mmap(%{}, %{}, ..., %{}, 0) failed", top_, new_size, fd_);
     }
-    if (np != top_) {
+    if (new_top != top_) {
 	// std::memcpy is not needed in MAP_SHARED file mapping
 	(void)::munmap(top_, size_);
-	top_  = np;
+	top_  = new_top;
     }
-    size_ = size;
+    size_ = new_size;
     return c7result_ok();
 }
 

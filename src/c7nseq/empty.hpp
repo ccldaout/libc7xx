@@ -32,6 +32,10 @@ class empty_seq {
 	using reference		= value_type&;
 
 	iter() = default;
+	iter(const iter&) = default;
+	iter(iter&&) = default;
+	iter& operator=(const iter&) = default;
+	iter& operator=(iter&&) = default;
 
 	bool operator==(const iter& o) const {
 	    return true;

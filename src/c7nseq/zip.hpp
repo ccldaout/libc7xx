@@ -62,6 +62,12 @@ public:
     using pointer		= value_type*;
     using reference		= value_type&;
 
+    zipN_iter() = default;
+    zipN_iter(const zipN_iter&) = default;
+    zipN_iter(zipN_iter&&) = default;
+    zipN_iter& operator=(const zipN_iter&) = default;
+    zipN_iter& operator=(zipN_iter&&) = default;
+
     zipN_iter(ItsTuple iters, ItendsTuple iterends):
 	its_(iters), itends_(iterends) {
     }
@@ -152,6 +158,12 @@ public:
     using value_type		= std::pair<decltype(*it1_), decltype(*it2_)>;
     using pointer		= value_type*;
     using reference		= value_type&;
+
+    zip2_iter() = default;
+    zip2_iter(const zip2_iter&) = default;
+    zip2_iter(zip2_iter&&) = default;
+    zip2_iter& operator=(const zip2_iter&) = default;
+    zip2_iter& operator=(zip2_iter&&) = default;
 
     zip2_iter(Iter1 it1, Iterend1 itend1, Iter2 it2, Iterend2 itend2):
 	it1_(it1), itend1_(itend1), it2_(it2), itend2_(itend2) {
