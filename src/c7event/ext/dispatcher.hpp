@@ -15,9 +15,48 @@
 
 
 #include <c7event/service.hpp>
+#include <c7typefunc.hpp>
 
 
 namespace c7::event::ext {
+
+
+namespace {
+
+c7typefunc_define_has_member(enter_callback);
+c7typefunc_define_has_member(exit_callback);
+
+template <typename Msgbuf, typename Port, typename... Hooks>
+struct dispatcher_hooks;
+
+template <typename Msgbuf, typename Port, typename Hook, typename... Hooks>
+struct dispatcher_hooks<Msgbuf, Port, Hook, Hooks...>:
+    public Hook, public dispatcher_hooks<Msgbuf, Port, Hooks...> {
+private:
+    using base_type = dispatcher_hooks<Msgbuf, Port, Hooks...>;
+
+public:
+    void enter_callback(monitor& mon, Port& port, Msgbuf& msg) {
+	if constexpr (has_enter_callback_v<Hook>) {
+	    Hook::enter_callback(mon, port, msg);
+	}
+	base_type::enter_callback(mon, port, msg);
+    }
+    void exit_callback(monitor& mon, Port& port, Msgbuf& msg) {
+	if constexpr (has_exit_callback_v<Hook>) {
+	    Hook::exit_callback(mon, port, msg);
+	}
+	base_type::exit_callback(mon, port, msg);
+    }
+};
+
+template <typename Msgbuf, typename Port>
+struct dispatcher_hooks<Msgbuf, Port> {
+    void enter_callback(monitor&, Port&, Msgbuf&) {}
+    void exit_callback(monitor&, Port&, Msgbuf&) {}
+};
+
+}
 
 
 // event dispatch extention
@@ -110,28 +149,37 @@ namespace c7::event::ext {
 //          //[dispatcher:setup end]
 //      }
 //
-template <typename DelivedService, typename BaseService>
-class dispatcher: public BaseService {
+template <typename DelivedService, typename BaseService, typename... Hooks>
+class dispatcher:
+	public BaseService,
+	public dispatcher_hooks<typename BaseService::msgbuf_type,
+				typename BaseService::port_type,
+				Hooks...> {
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
     using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, const msgbuf_type&);
+    using hooks_base = dispatcher_hooks<msgbuf_type, port_type, Hooks...>;
 
     dispatcher() {
 	static_cast<DelivedService*>(this)->dispatcher_setup();
     }
 
     void on_message(monitor& mon, port_type& port, msgbuf_type& msg) override {
+	BaseService::on_message(mon, port, msg);
 	auto& evmap = dispatcher_.event_map;
 	if (auto it = evmap.find(get_event(msg)); it != evmap.end()) {
 	    auto [_, vec_index] = (*it).second;
-	    (static_cast<DelivedService*>(this)->*dispatcher_.callback_vec[vec_index])(mon, port, msg);
+	    auto mfp = dispatcher_.callback_vec[vec_index];
+	    hooks_base::enter_callback(mon, port, msg);
+	    (static_cast<DelivedService*>(this)->*mfp)(mon, port, msg);
+	    hooks_base::exit_callback(mon, port, msg);
 	} else {
 	    callback_default(mon, port, msg);
 	}
     }
 
-    virtual void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) = 0;
+    virtual void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) {}
 
 protected:
     // high priority assign:

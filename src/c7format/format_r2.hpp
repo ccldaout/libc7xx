@@ -196,8 +196,8 @@ private:
 
     template <typename T>
     void handle_arg(const format_item& fmt, const T& arg, formatter_printas_tag) noexcept {
-	auto as_value = arg.print_as();
-	typedef decltype(as_value) U;
+	const auto& as_value = arg.print_as();
+	using U = std::remove_reference_t<std::remove_cv_t<decltype(as_value)>>;
 	handle_arg<U>(fmt, as_value, formatter_tag<U>::value);
     }
 

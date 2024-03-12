@@ -16,10 +16,22 @@
 
 #include <sys/uio.h>
 #include <cstring>
+#include <string_view>
+#include <c7slice.hpp>
 #include <c7result.hpp>
 
 
+#if defined(C7_IOVEC_PROXY_DEBUG)
+# define debug__(v)	c7echo(v)
+#else
+# define debug__(v)
+#endif
+
+
 namespace c7::event {
+
+
+using c7::typefunc::is_buffer_type_v;
 
 
 class iovec_proxy {
@@ -32,7 +44,10 @@ private:
 	explicit iov_len_t(::iovec &iov): iov_(iov) {}
 	iov_len_t& operator=(len_t n) { iov_.iov_len = n; return *this; }
 	operator len_t() { return iov_.iov_len; }
+	template <typename T> bool operator==(T v) const { return iov_.iov_len == v; }
+	template <typename T> bool operator!=(T v) const { return !(*this == v); }
 	auto print_as() const { return iov_.iov_len; }
+
     private:
 	::iovec &iov_;
     };
@@ -40,42 +55,98 @@ private:
     class iov_base_t {
     public:
 	explicit iov_base_t(::iovec &iov): iov_(iov) {}
+
+	// operator=(nullptr)
+
+	iov_base_t& operator=(std::nullptr_t) {
+	    debug__("(std::nullptr_t)");
+	    iov_.iov_base = nullptr;
+	    iov_.iov_len  = 0;
+	    return *this;
+	}
+
+	// operator=(*), operator=(const*)
+
 	iov_base_t& operator=(void *p) {
+	    debug__("(void *)");
 	    iov_.iov_base = p;
 	    return *this;
 	}
 	iov_base_t& operator=(const void *p) {
+	    debug__("(const void *)");
 	    iov_.iov_base = const_cast<void*>(p);
 	    return *this;
 	}
+
+	iov_base_t& operator=(char *s) {
+	    debug__("(char *)");
+	    iov_.iov_base = s;
+	    iov_.iov_len  = std::strlen(s) + 1;
+	    return *this;
+	}
 	iov_base_t& operator=(const char *s) {
+	    debug__("(const char *)");
 	    iov_.iov_base = const_cast<char*>(s);
-	    iov_.iov_len = std::strlen(s) + 1;
+	    iov_.iov_len  = std::strlen(s) + 1;
 	    return *this;
 	}
-	iov_base_t& operator=(const std::string& s) {
-	    iov_.iov_base = const_cast<char*>(s.c_str());
-	    iov_.iov_len = s.size() + 1;
+
+	iov_base_t& operator=(std::string *s) {
+	    debug__("(std::string*)");
+	    iov_.iov_base = const_cast<char*>(s->data());
+	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
-	template <typename T> iov_base_t& operator=(T *p) {
-	    iov_.iov_base = p;
-	    iov_.iov_len = sizeof(T);
+	iov_base_t& operator=(const std::string *s) {
+	    debug__("(const std::string*)");
+	    iov_.iov_base = const_cast<char*>(s->data());
+	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
-	template <typename T> iov_base_t& operator=(const T *p) {
-	    return operator=(const_cast<T*>(p));
-	}
-	template <typename T> iov_base_t& operator=(const std::vector<T>& v) {
-	    iov_.iov_base = const_cast<void*>(static_cast<const void*>(v.data()));
-	    iov_.iov_len = sizeof(T) * v.size();
+
+	iov_base_t& operator=(std::string_view *s) {
+	    debug__("(std::string_view*)");
+	    iov_.iov_base = const_cast<char*>(s->data());
+	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
-	template <typename T, size_t N> iov_base_t& operator=(const std::array<T, N>& v) {
-	    iov_.iov_base = const_cast<void*>(static_cast<const void*>(v.data()));
-	    iov_.iov_len = sizeof(T) * N;
+	iov_base_t& operator=(const std::string_view *s) {
+	    debug__("(const std::string_view*)");
+	    iov_.iov_base = const_cast<char*>(s->data());
+	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
+
+	template <typename T>
+	iov_base_t& operator=(T *v) {
+	    if constexpr (is_buffer_type_v<T>) {
+		debug__("(is_buffer_type_v*)");
+		using d_type = c7::typefunc::remove_cref_t<decltype(*v->data())>;
+		iov_.iov_base = const_cast<d_type*>(v->data());
+		iov_.iov_len  = v->size() * sizeof((*v)[0]);
+	    } else {
+		debug__("(T *)");
+		using d_type = std::remove_const_t<T*>;
+		iov_.iov_base = const_cast<d_type>(v);
+		iov_.iov_len  = sizeof(T);
+	    }
+	    return *this;
+	}
+	template <typename T>
+	iov_base_t& operator=(const T *v) {
+	    debug__("(const T*) ->");
+	    return (*this = const_cast<T*>(v));
+	}
+
+	// operator=(const&)
+
+	template <typename T, typename = std::enable_if_t<is_buffer_type_v<T>>>
+	iov_base_t& operator=(const T& v) {
+	    debug__("(const is_buffer_type_v&) ->");
+	    return (*this = &v);
+	}
+
+	// operator==
 
 	bool operator==(const void *p) const {
 	    return iov_.iov_base == p;
@@ -104,19 +175,29 @@ private:
 	::iovec &iov_;
     };
 
-    c7::result<> size_error(size_t elm_size) const {
-	return c7result_err(EINVAL, "type size mismatch: sizeof():%{}, actual:%{}",
-			    elm_size, iov_.iov_len);
-    }
+    c7::result<> size_error(size_t elm_size, size_t expect_min, size_t expect_max) const;
 
 public:
     iov_len_t iov_len;
     iov_base_t iov_base;
 
-    explicit iovec_proxy(::iovec& iov):
-	iov_(iov), iov_len(iov_), iov_base(iov_) {}
+    iovec_proxy(const iovec_proxy& iov):
+	iov_(iov.iov_), iov_len(iov_), iov_base(iov_) {}
+
     explicit iovec_proxy(const ::iovec& iov):
 	iov_(const_cast<::iovec&>(iov)), iov_len(iov_), iov_base(iov_) {}
+
+    iovec_proxy& operator=(const iovec_proxy& iov) {
+	if (this != &iov) {
+	    iov_ = iov.iov_;
+	}
+	return *this;
+    }
+
+    iovec_proxy& operator=(const ::iovec& iov) {
+	iov_ = iov;
+	return *this;
+    }
 
     ::iovec* operator&() { return &iov_; }
 
@@ -126,7 +207,7 @@ public:
 	if (iov_.iov_len == sizeof(T)) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 1, 1);
 	}
     }
     template <typename T>
@@ -135,7 +216,7 @@ public:
 	if (iov_.iov_len == sizeof(T) || p == nullptr) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 0, 1);
 	}
     }
     template <typename T>
@@ -145,7 +226,7 @@ public:
 	if (n > 0 && (iov_.iov_len % sizeof(T)) == 0) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 1, -1UL);
 	}
     }
     template <typename T>
@@ -155,7 +236,7 @@ public:
 	if (n >= 0 && (iov_.iov_len % sizeof(T)) == 0) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 0, -1UL);
 	}
     }
     template <typename T>
@@ -164,7 +245,7 @@ public:
 	if ((iov_.iov_len / sizeof(T)) == n) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), n, n);
 	}
     }
     template <typename T>
@@ -173,7 +254,7 @@ public:
 	if (iov_.iov_len >= sizeof(T)) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 1, -1UL);
 	}
     }
     template <typename T>
@@ -182,7 +263,33 @@ public:
 	if (iov_.iov_len >= sizeof(T) || p == nullptr) {
 	    return c7result_ok();
 	} else {
-	    return size_error(sizeof(T));
+	    return size_error(sizeof(T), 0, -1UL);
+	}
+    }
+
+    template <typename T>
+    c7::result<> strict_slice(c7::slice<T>& s, size_t n_min=0, size_t n_max=-1UL) const {
+	auto p = static_cast<T*>(iov_.iov_base);
+	auto n = iov_.iov_len / sizeof(T);
+	if (n_min <= n && n <= n_max && (iov_.iov_len % sizeof(T)) == 0) {
+	    s = c7::make_slice(p, n);
+	    return c7result_ok();
+	} else {
+	    return size_error(sizeof(T), n_min, n_max);
+	}
+    }
+
+    c7::result<> string_view(std::string_view& s, size_t n_min=0, size_t n_max=-1UL) const {
+	auto p = static_cast<char*>(iov_.iov_base);
+	auto n = iov_.iov_len;
+	if (n > 0 && p[n-1] == 0) {
+	    n--;
+	}
+	if (n_min <= n && n <= n_max) {
+	    s = std::string_view{p, n};
+	    return c7result_ok();
+	} else {
+	    return size_error(sizeof(char), n_min, n_max);
 	}
     }
 };

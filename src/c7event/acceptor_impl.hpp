@@ -52,7 +52,7 @@ void acceptor<Msgbuf, Port>::on_event(monitor& mon, int, uint32_t)
 	on_error(port_, res);
     } else {
 	auto port = std::move(res.value());
-	auto prv = make_receiver<service_base>(std::move(port), svc_factory_(), hint_);
+	auto prv = make_receiver(std::move(port), svc_factory_(), hint_);
 	mon.manage(std::move(prv));
     }
 }

@@ -55,7 +55,7 @@ struct delegate_traits<void, Args...> {
 // delegate
 
 class delegate_base {
-protected:
+public:
     class id {
     private:
 	static std::atomic<unsigned long> id_counter_;

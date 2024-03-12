@@ -25,8 +25,10 @@
 #define c7event_receiver_hpp__ 1
 #define c7event_receiver_impl_hpp__ 1
 #define c7event_service_hpp__ 1
+#define c7event_shared_port_hpp__ 1
 #define c7event_submit_hpp__ 1
 #define c7event_timer_hpp__ 1
+#define c7event_traits_hpp__ 1
 #define c7fd_hpp__ 1
 #define c7file_hpp__ 1
 #define c7format_format_cmn_hpp__ 1
@@ -36,6 +38,8 @@
 #define c7format_helper_hpp__ 1
 #define c7format_hpp__ 1
 #define c7fsm_hpp__ 1
+#define c7hash_hpp__ 1
+#define c7iters_hpp__ 1
 #define c7mlog_hpp__ 1
 #define c7mm_hpp__ 1
 #define c7mpool_hpp__ 1
@@ -83,6 +87,7 @@
 #define c7result_hpp__ 1
 #define c7seq_hpp__ 1
 #define c7signal_hpp__ 1
+#define c7slice_hpp__ 1
 #define c7socket_hpp__ 1
 #define c7sort_hpp__ 1
 #define c7string_hpp__ 1

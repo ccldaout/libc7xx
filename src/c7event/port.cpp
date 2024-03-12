@@ -50,12 +50,12 @@ socket_port socket_port::unix()
     return socket_port(c7::socket());
 }
 
-int socket_port::fd_number()
+int socket_port::fd_number() const
 {
     return int(sock_);
 }
 
-bool socket_port::is_alive()
+bool socket_port::is_alive() const
 {
     return bool(sock_);
 }

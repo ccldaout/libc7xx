@@ -73,7 +73,7 @@ result<> manage_connector(const sockaddr_gen& addr,
 			  std::shared_ptr<Service> svc,
 			  provider_hint hint = nullptr)
 {
-    return manage(make_connector<Service>(addr, svc, hint));
+    return manage(make_connector(addr, svc, hint));
 }
 
 
@@ -83,7 +83,7 @@ result<> manage_connector(monitor& mon,
 			  std::shared_ptr<Service> svc,
 			  provider_hint hint = nullptr)
 {
-    return mon.manage(make_connector<Service>(addr, svc, hint));
+    return mon.manage(make_connector(addr, svc, hint));
 }
 
 

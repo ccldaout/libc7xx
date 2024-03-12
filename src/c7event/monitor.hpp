@@ -69,7 +69,14 @@ public:
     result<> suspend(int prvfd);
     result<> resume(int prvfd);
     result<> unmanage(int prvfd);
-    template <typename T> result<std::shared_ptr<T>> find(const std::string& key);
+
+    template <typename T = provider_interface>
+    result<std::shared_ptr<T>> find(const std::string& key);
+
+    template <typename T = provider_interface>
+    result<std::shared_ptr<T>> find(int prvfd);
+
+    std::shared_ptr<provider_interface> try_hold_provider(int prvfd);
 
 private:
     struct provider_info {
@@ -89,18 +96,41 @@ private:
     c7::thread::mutex lock_;
 
     result<std::shared_ptr<provider_interface>> find_provider(const std::string& key);
+    result<std::shared_ptr<provider_interface>> find_provider(int prvfd);
     void unmanage_all();
 };
 
 template <typename T>
-result<std::shared_ptr<T>> monitor::find(const std::string& key)
+result<std::shared_ptr<T>>
+monitor::find(const std::string& key)
 {
-    if (auto res = find_provider(key); !res) {
-	return res.as_error();
-    } else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {
-	return c7result_err(EINVAL, "downcast failed: key: %{}", key);
-    } else {
-	return c7result_ok(std::move(sp));
+    if constexpr (std::is_same_v<T, provider_interface>) {
+	return find_provider(key);
+    } else { 
+	if (auto res = find_provider(key); !res) {
+	    return res.as_error();
+	} else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {
+	    return c7result_err(EINVAL, "downcast failed: key: %{}", key);
+	} else {
+	    return c7result_ok(std::move(sp));
+	}
+    }
+}
+
+template <typename T>
+result<std::shared_ptr<T>>
+monitor::find(int prvfd)
+{
+    if constexpr (std::is_same_v<T, provider_interface>) {
+	return find_provider(prvfd);
+    } else { 
+	if (auto res = find_provider(prvfd); !res) {
+	    return res.as_error();
+	} else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {
+	    return c7result_err(EINVAL, "downcast failed: prvfd: %{}", prvfd);
+	} else {
+	    return c7result_ok(std::move(sp));
+	}
     }
 }
 
@@ -116,11 +146,15 @@ result<> change_provider(int prvfd, std::shared_ptr<provider_interface> provider
 result<> suspend(int prvfd);
 result<> resume(int prvfd);
 result<> unmanage(int prvfd);
-template <typename T>
-result<std::shared_ptr<T>> find(const std::string& key)
-{
+template <typename T = provider_interface> result<std::shared_ptr<T>>
+find(const std::string& key) {
     return default_event_monitor().find<T>(key);
 }
+template <typename T = provider_interface> result<std::shared_ptr<T>>
+find(int prvfd) {
+    return default_event_monitor().find<T>(prvfd);
+}
+std::shared_ptr<provider_interface> try_hold_provider(int prvfd);
 result<> start_thread();
 result<> wait_thread();
 [[noreturn]] void forever();

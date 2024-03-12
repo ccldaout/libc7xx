@@ -30,8 +30,8 @@
 enum c7_dconf_reserve_t {
     C7_DCONF_rsv_90 = C7_DCONF_USER_INDEX_LIM,
     C7_DCONF_MLOG,
-    C7_DCONF_rsv_91,
     C7_DCONF_rsv_92,
+    C7_DCONF_rsv_93,
     C7_DCONF_MLOG_CATMASK,
     C7_DCONF_numof
 };

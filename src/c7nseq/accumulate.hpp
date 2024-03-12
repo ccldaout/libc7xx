@@ -31,7 +31,13 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return std::accumulate(std::begin(seq), std::end(seq), val_, op_);
+	auto it = std::begin(seq);
+	auto end = std::end(seq);
+	auto a = val_;
+	for (; it != end; ++it) {
+	    a = op_(a, *it);
+	}
+	return a;
     }
 };
 
@@ -46,9 +52,13 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	auto beg = std::begin(seq);
-	auto init = *beg;
-	return std::accumulate(++beg, std::end(seq), init, op_);
+	auto it = std::begin(seq);
+	auto end = std::end(seq);
+	auto a = *it;
+	for (++it; it != end; ++it) {
+	    a = op_(a, *it);
+	}
+	return a;
     }
 };
 

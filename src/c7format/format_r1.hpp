@@ -82,7 +82,7 @@ private:
     template <typename T>
     void handle_arg(state_t s, const T& arg, formatter_printas_tag) noexcept {
 	auto as_value = arg.print_as();
-	typedef decltype(as_value) U;
+	using U = std::remove_reference_t<std::remove_cv_t<decltype(as_value)>>;
 	handle_arg<U>(s, as_value, formatter_tag<U>::value);
     }
 

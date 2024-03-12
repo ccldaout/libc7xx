@@ -51,6 +51,8 @@ template <typename Msgbuf, typename Port = socket_port>
 class service_interface:
     public std::enable_shared_from_this<service_interface<Msgbuf, Port>> {
 public:
+    using provider_hint = c7::event::provider_hint;
+    using monitor   = c7::event::monitor;
     using attach_id = c7::event::attach_id;
     using detach_id = c7::event::detach_id;
     using msgbuf_type = Msgbuf;
@@ -82,7 +84,7 @@ public:
     virtual detach_id on_detached(monitor&, port_type&, provider_hint) { return detach_id(); }
 
     // case: Msgbuf::recv() return io_result::status::OK
-    virtual void on_message(monitor&, port_type&, msgbuf_type&) = 0;
+    virtual void on_message(monitor&, port_type&, msgbuf_type&) {}
 
     // case: Msgbuf::recv() return io_result::status::CLOSED
     //       If Port object is alive when returned from on_disconnect,

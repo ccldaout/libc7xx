@@ -317,6 +317,44 @@ template <typename Seq, typename T>
 inline constexpr bool is_sequence_of_v = is_sequence_of<Seq, T>::value;
 
 
+// is_buffer_type
+struct is_buffer_type_impl {
+    template <typename T>
+    static auto check(const T *o) -> decltype(
+	(*o)[0],
+	o->data(),
+	o->size(),
+	std::true_type{});
+
+    template <typename T>
+    static auto check(...) -> std::false_type;
+};
+
+template <typename T>
+struct is_buffer_type:
+	decltype(is_buffer_type_impl::check<T>(nullptr)) {};
+
+template <typename T>
+inline constexpr bool is_buffer_type_v = is_buffer_type<T>::value;
+
+
+// has_MEMBER generator macro
+#define c7typefunc_define_has_member(_M_)				\
+    struct has_##_M_##_impl {						\
+	template <typename T>						\
+	static auto check(T*) -> decltype((&T::_M_, std::true_type{}));	\
+									\
+	template <typename T>						\
+	static auto check(...) -> std::false_type;			\
+    };									\
+									\
+    template <typename T>						\
+    struct has_##_M_: public decltype(has_##_M_##_impl::check<T>(nullptr)) {}; \
+									\
+    template <typename T>						\
+    inline constexpr bool has_##_M_##_v = has_##_M_<T>::value
+
+
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
 

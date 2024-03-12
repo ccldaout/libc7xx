@@ -16,6 +16,7 @@
 
 #include <c7app.hpp>
 #include <c7event/msgbuf.hpp>
+#include <c7event/traits.hpp>
 #include <cstring>
 
 
@@ -33,15 +34,19 @@ multipart_msgbuf<Header, N>::multipart_msgbuf(multipart_msgbuf&& o):
     header(o.header), storage_(std::move(o.storage_))
 {
     std::memcpy(iov_, o.iov_, sizeof(iov_));
+    o.clear();
 }
 
 template <typename Header, int N>
 auto
 multipart_msgbuf<Header, N>::operator=(multipart_msgbuf&& o) -> multipart_msgbuf&
 {
-    header = o.header;
-    std::memcpy(iov_, o.iov_, sizeof(iov_));
-    storage_ = std::move(o.storage_);
+    if (this != &o) {
+	header = o.header;
+	std::memcpy(iov_, o.iov_, sizeof(iov_));
+	storage_ = std::move(o.storage_);
+	o.clear();
+    }
     return *this;
 }
 
@@ -175,9 +180,11 @@ multipart_msgbuf<Header, N>::send(Port& port)
     ::iovec iov[N + 1];
     ::iovec *iovp = iov;
     std::memcpy(iov, iov_, sizeof(iov));
-    auto res = port.write_v(iovp, ioc);
-
-    return res;
+    {
+	auto unlock = lock_traits<Port>::lock_ifimpl(port);
+	auto res = port.write_v(iovp, ioc);
+	return res;
+    }
 }
 
 template <typename Header, int N>
@@ -186,11 +193,34 @@ result<>
 multipart_msgbuf<Header, N>::send(portgroup<Port>& ports)
 {
     ports.clear_errors();
-    for (auto pp: ports) {
-	if (pp != nullptr) {
-	    auto& port = *pp;
+
+    if constexpr (lock_traits<portgroup<Port>>::has_lock) {
+	// thread safe implementation
+	std::vector<Port> ports_holder;
+	{
+	    auto unlock = lock_traits<portgroup<Port>>::lock_ifimpl(ports);
+	    for (auto pp: ports) {
+		ports_holder.push_back(*pp);	// DON'T std::move(*pp)
+	    }
+	}
+
+	std::vector<std::pair<Port, io_result>> errs;
+	for (auto& port: ports_holder) {
 	    if (auto io_res = send(port); !io_res) {
+		errs.emplace_back(std::move(port), std::move(io_res));
+	    }
+	}
+
+	{
+	    auto unlock = lock_traits<portgroup<Port>>::lock_ifimpl(ports);
+	    for (auto& [port, io_res]: errs) {
 		ports.add_error(port, std::move(io_res));
+	    }
+	}
+    } else {
+	for (auto pp: ports) {
+	    if (auto io_res = send(*pp); !io_res) {
+		ports.add_error(*pp, std::move(io_res));
 	    }
 	}
     }

@@ -293,8 +293,8 @@ static result<char*> rx_repeat(int fd, size_t& size)
     char *ep = tp;
     char *cp = tp;
 
-    // tp will be changed at realloc, so it must be captured by reference.
-    auto free_on_error = c7::defer([tp](){ std::free(tp); });
+    // tp will be changed after realloc, so it must be captured by reference.
+    auto free_on_error = c7::defer([&tp](){ std::free(tp); });
 
     for (;;) {
 	if (ep == cp) {

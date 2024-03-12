@@ -128,7 +128,7 @@ result<> manage_acceptor(typename Service::port_type&& port,
 			 std::shared_ptr<Service> svc,
 			 provider_hint hint = nullptr)
 {
-    return manage(make_acceptor<Service>(std::move(port), std::move(svc), hint));
+    return manage(make_acceptor(std::move(port), std::move(svc), hint));
 }
 
 
@@ -138,7 +138,7 @@ result<> manage_acceptor(monitor& mon,
 			 std::shared_ptr<Service> svc,
 			 provider_hint hint = nullptr)
 {
-    return mon.manage(make_acceptor<Service>(std::move(port), std::move(svc), hint));
+    return mon.manage(make_acceptor(std::move(port), std::move(svc), hint));
 }
 
 

@@ -53,6 +53,8 @@ struct port_rw_extention {
 
 class socket_port: public port_rw_extention<socket_port> {
 public:
+    using delegate_id = delegate_base::id;
+
     using port_rw_extention<socket_port>::read;
     using port_rw_extention<socket_port>::read_n;
     using port_rw_extention<socket_port>::write;
@@ -71,14 +73,19 @@ public:
     static socket_port unix();
 
     // receiver, acceptor, connector
-    int fd_number();
+    int fd_number() const;
 
     // receiver
-    bool is_alive();
+    bool is_alive() const;
 
     // receiver, acceptor
-    template <typename Func> void add_on_close(Func&& func) {
-	sock_.on_close += [f = std::forward<Func>(func)](c7::fd&){ f(); };
+    template <typename Func> delegate_id
+    add_on_close(Func&& func) {
+	return sock_.on_close.push_back([f = std::forward<Func>(func)](auto&){ f(); });
+    }
+
+    void remove_on_close(delegate_id id) {
+	sock_.on_close.remove(id);
     }
 
     // connector

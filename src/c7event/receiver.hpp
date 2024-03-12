@@ -65,7 +65,7 @@ result<> manage_receiver(typename Service::port_type&& port,
 			 std::shared_ptr<Service> svc,
 			 provider_hint hint = nullptr)
 {
-    return manage(make_receiver<Service>(std::move(port), std::move(svc), hint));
+    return manage(make_receiver(std::move(port), std::move(svc), hint));
 }
 
 
@@ -75,7 +75,7 @@ result<> manage_receiver(monitor& mon,
 			 std::shared_ptr<Service> svc,
 			 provider_hint hint = nullptr)
 {
-    return mon.manage(make_receiver<Service>(std::move(port), std::move(svc), hint));
+    return mon.manage(make_receiver(std::move(port), std::move(svc), hint));
 }
 
 

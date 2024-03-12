@@ -126,7 +126,7 @@ public:
 template <typename T>
 class range_iter {
 private:
-    size_t it_;		// identifier 'it_' is used for _iter_ops.hpp
+    ssize_t it_;		// identifier 'it_' is used for _iter_ops.hpp
     T beg_, step_;
 
 public:
@@ -160,7 +160,7 @@ public:
 	return *this;
     }
 
-    decltype(auto) operator*() {
+    T operator*() {
 	return beg_ + step_ * it_;
     }
 
@@ -198,10 +198,10 @@ template <typename T>
 class range_seq {
 public:
     range_seq(size_t n, T beg, T step):
-	n_(n), beg_(beg), step_(step) {
+	n_(static_cast<ssize_t>(n)), beg_(beg), step_(step) {
     }
 
-    auto size() const {
+    size_t size() const {
 	return n_;
     }
 
@@ -240,7 +240,7 @@ public:
     }
 
 private:
-    size_t n_;
+    ssize_t n_;
     T beg_, step_;
 };
 

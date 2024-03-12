@@ -227,12 +227,13 @@ static result<pid_t> forkexec(int conf_fd,
 	// child process
 	//
 	if (fd_renumber(chkpipe, conf_fd) && fd_setcloexec(chkpipe)) {
-	    if (!preexec || preexec()) {
-		// DON'T INHERIT signal mask
-		::sigset_t sigs;
-		::sigemptyset(&sigs);
-		(void)::sigprocmask(SIG_SETMASK, &sigs, nullptr);
+	    // DON'T INHERIT signal mask
+	    ::sigset_t sigs;
+	    ::sigemptyset(&sigs);
+	    (void)::sigprocmask(SIG_SETMASK, &sigs, nullptr);
+	    ::signal(SIGPIPE, SIG_DFL);
 
+	    if (!preexec || preexec()) {
 		// vector<string> -> vector<char *> with terminal null pointer
 		auto c_av = argv.c_strv();
 

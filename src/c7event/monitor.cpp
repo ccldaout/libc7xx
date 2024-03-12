@@ -259,7 +259,8 @@ void monitor::unmanage_all()
     // 3rd step: all provider are released in destructing tmp.
 }
 
-result<std::shared_ptr<provider_interface>> monitor::find_provider(const std::string& key)
+result<std::shared_ptr<provider_interface>>
+monitor::find_provider(const std::string& key)
 {
     auto unlock = lock_.lock();
     auto it = keyprvdic_.find(key);
@@ -272,6 +273,23 @@ result<std::shared_ptr<provider_interface>> monitor::find_provider(const std::st
 	return c7result_err(ENOENT, "provider is already unmanage: key: %{}", key);
     }
     return c7result_ok(std::move(sp));
+}
+
+result<std::shared_ptr<provider_interface>>
+monitor::find_provider(int prvfd)
+{
+    auto unlock = lock_.lock();
+    auto it = prvdic_.find(prvfd);
+    if (it == prvdic_.end()) {
+	return c7result_err(ENOENT, "prvfd:%{} is not managed.", prvfd);
+    }
+    return c7result_ok((*it).second.s_ptr);
+}
+
+std::shared_ptr<provider_interface>
+monitor::try_hold_provider(int prvfd)
+{
+    return find_provider(prvfd).value(std::shared_ptr<provider_interface>{});
 }
 
 
@@ -331,6 +349,11 @@ result<> resume(int prvfd)
 result<> unmanage(int prvfd)
 {
     return default_monitor.unmanage(prvfd);
+}
+
+std::shared_ptr<provider_interface> try_hold_provider(int prvfd)
+{
+    return default_event_monitor().try_hold_provider(prvfd);
 }
 
 result<> start_thread()

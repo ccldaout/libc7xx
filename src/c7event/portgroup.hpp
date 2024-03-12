@@ -15,6 +15,8 @@
 
 
 #include <c7event/port.hpp>
+#include <c7event/shared_port.hpp>
+#include <c7iters.hpp>
 
 
 namespace c7::event {
@@ -22,6 +24,10 @@ namespace c7::event {
 
 template <typename Port = socket_port>
 class portgroup {
+private:
+    std::vector<Port*> ports_;
+    std::vector<std::pair<Port*, io_result>> errs_;
+
 public:
     portgroup() = default;
     portgroup(const portgroup&) = delete;
@@ -70,10 +76,84 @@ public:
     explicit operator bool() const {
 	return errs_.empty();
     }
+};
 
+
+template <>
+class portgroup<shared_port> {
 private:
-    std::vector<Port*> ports_;
-    std::vector<std::pair<Port*, io_result>> errs_;
+    using delegate_id = shared_port::delegate_id;
+
+    mutable c7::thread::mutex mutex_;
+    std::vector<std::pair<shared_port, delegate_id>> ports_;
+    std::vector<std::pair<shared_port, io_result>> errs_;
+
+    static auto extract(std::pair<shared_port, delegate_id>& v) {
+	return &v.first;
+    }
+    static auto cextract(const std::pair<shared_port, delegate_id>& v) {
+	return &v.first;
+    }
+
+public:
+    ~portgroup();
+    portgroup() = default;
+    portgroup(const portgroup&) = delete;
+    portgroup(portgroup&&) = delete;
+    portgroup& operator=(const portgroup&) = delete;
+    portgroup& operator=(portgroup&&) = delete;
+
+    auto lock() const {
+	return mutex_.lock();
+    }
+
+    void add(shared_port& port);
+    void remove(shared_port& port);
+    void remove(int fd);
+
+    auto empty() const {
+	return ports_.empty();
+    }
+    auto size() const {
+	return ports_.size();
+    }
+
+    auto begin() {
+	return make_convert_iter(ports_.begin(), portgroup::cextract);
+    }
+    auto end() {
+	return make_convert_iter(ports_.end(), portgroup::cextract);
+    }
+    auto begin() const {
+	return make_convert_iter(ports_.cbegin(), portgroup::cextract);
+    }
+    auto end() const {
+	return make_convert_iter(ports_.cend(), portgroup::cextract);
+    }
+
+    void clear_errors() {
+	errs_.clear();
+    }
+    void add_error(shared_port port, io_result&& io_res) {
+	errs_.emplace_back(std::move(port), std::move(io_res));
+    }
+    std::vector<std::pair<shared_port*, io_result>> errors();
+    std::vector<std::pair<const shared_port*, io_result>> errors() const;
+    explicit operator bool() const {
+	return errs_.empty();
+    }
+};
+
+
+template <>
+struct lock_traits<portgroup<shared_port>> {
+    static inline constexpr bool has_lock = true;
+    static auto lock(portgroup<shared_port>& pg) {
+	return pg.lock();
+    }
+    static auto lock_ifimpl(portgroup<shared_port>& pg) {
+	return pg.lock();
+    }
 };
 
 

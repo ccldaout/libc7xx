@@ -87,7 +87,7 @@ void connector<Msgbuf, Port>::on_event(monitor& mon, int prvfd, uint32_t)
 
     // SUCCESS
     port_.set_nonblocking(false);
-    auto rcv = make_receiver<service_interface<Msgbuf, Port>>(std::move(port_), svc_, hint_);
+    auto rcv = make_receiver(std::move(port_), svc_, hint_);
     mon.change_provider(prvfd, std::move(rcv));
     mon.change_event(prvfd, EPOLLIN);
 }
