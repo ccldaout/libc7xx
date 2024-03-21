@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  *
- * Google spreadsheets:
- * (nothing)
+ * Google document:
+ * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
 #ifndef C7_NSEQ_SLICE_HPP_LOADED__
 #define C7_NSEQ_SLICE_HPP_LOADED__
@@ -179,7 +179,7 @@ public:
     slice_seq(slice_seq&&) = default;
     slice_seq& operator=(slice_seq&&) = delete;
 
-    auto size() const {
+    size_t size() const {
 	return std::min((static_cast<ssize_t>(seq_.size()) - off_ + gap_ - 1) / gap_,
 			n_);
     }

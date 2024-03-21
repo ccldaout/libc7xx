@@ -15,6 +15,9 @@
 
 #include <cstdint>
 #include <_c7header_macro.hpp>
+#if __has_include(<_c7version.hpp>)
+# include <_c7version.hpp>
+#endif
 
 
 /*----------------------------------------------------------------------------

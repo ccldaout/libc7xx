@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  *
- * Google spreadsheets:
- * (nothing)
+ * Google document:
+ * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
 #ifndef C7_NSEQ_STORE_MAP_HPP_LOADED__
 #define C7_NSEQ_STORE_MAP_HPP_LOADED__
@@ -27,8 +27,8 @@ public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
 	using std::begin;
-	using key_type = typename decltype(*begin(seq))::first_type;
-	using val_type = typename decltype(*begin(seq))::second_type;
+	using key_type = typename c7::typefunc::remove_cref_t<decltype(*begin(seq))>::first_type;
+	using val_type = typename c7::typefunc::remove_cref_t<decltype(*begin(seq))>::second_type;
 	std::unordered_map<c7::typefunc::remove_cref_t<key_type>,
 			   c7::typefunc::remove_cref_t<val_type>> cnt;
 	for (auto&& v: seq) {

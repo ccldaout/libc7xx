@@ -7,6 +7,7 @@
  * http://opensource.org/licenses/mit-license.php
  *
  * Google spreadsheets:
+ * (nothing)
  */
 #ifndef C7_THREAD_JOBQUE_HPP_LOADED__
 #define C7_THREAD_JOBQUE_HPP_LOADED__

@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  *
- * Google spreadsheets:
- * (Nothing)
+ * Google document:
+ * https://docs.google.com/document/d/1_2Pj_MDBpX0PwGYouK46sXM1qWyUOi8iUv1zynuXqA0/edit?usp=sharing
  */
 #ifndef C7_EVENT_CONNECTOR_IMPL_HPP_LOADED__
 #define C7_EVENT_CONNECTOR_IMPL_HPP_LOADED__

@@ -8,6 +8,8 @@
 #
 
 
+SHELL = /bin/bash
+
 C7_TARGET_BASE = libc7++$(C7_TARGET_DBGSFX)
 C7_CC_IPATH = .
 
@@ -22,6 +24,7 @@ C7_NOLIBC7XX = y
 C7_SONAME      = $(C7_TARGET_BASE).$(C7_LIBSFX).$(C7_VER_MAJOR)
 C7_REAL_NAME   = $(C7_TARGET_BASE).$(C7_LIBSFX).$(C7_VER_MAJOR).$(C7_VER_MINOR).$(C7_VER_PATCH)
 C7_LINKER_NAME = $(C7_TARGET_BASE).$(C7_LIBSFX)
+C7_VERSION_HPP = $(C7_OUT_INCDIR)/_c7version.hpp
 
 LDFLAGS += -Wl,-soname,$(C7_SONAME)
 
@@ -61,6 +64,10 @@ $(C7_TARGET_LIB): $(OBJS) .
 headers:
 	@mkdir -p $(C7_OUT_INCDIR) >/dev/null 2>&1
 	@tar cf - $(HDRS) | tar xpf - -C $(C7_OUT_INCDIR)
+	@echo "#define C7XX_VERSION_MAJOR ($(C7_VER_MAJOR)UL)" >| $(C7_VERSION_HPP)
+	@echo "#define C7XX_VERSION_MINOR ($(C7_VER_MINOR)UL)" >> $(C7_VERSION_HPP)
+	@echo "#define C7XX_VERSION_PATCH ($(C7_VER_PATCH)UL)" >> $(C7_VERSION_HPP)
+	@echo "#define C7XX_VERSION (C7XX_VERSION_MAJOR*1000000 + C7XX_VERSION_MINOR*1000 + C7XX_VERSION_PATCH)" >> $(C7_VERSION_HPP)
 	@find $(C7_OUT_INCDIR) -name _private.hpp | xargs rm -f
 
 .PHONY: depend

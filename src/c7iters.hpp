@@ -7,7 +7,7 @@
  * http://opensource.org/licenses/mit-license.php
  *
  * Google spreadsheets:
- * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1803310993
+ * (nothing)
  */
 #ifndef C7_ITERS_HPP_LOADED__
 #define C7_ITERS_HPP_LOADED__

@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  *
- * Google spreadsheets:
- * (nothing)
+ * Google document:
+ * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
 #ifndef C7_NSEQ_UNIQUE_HPP_LOADED__
 #define C7_NSEQ_UNIQUE_HPP_LOADED__
@@ -26,7 +26,7 @@ class unique {
 public:
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	std::decay_t<decltype(*seq.begin())> save;
+	std::decay_t<decltype(*seq.begin())> save{};
 	bool next = false;
 	auto pred = [save, next](const auto& v) mutable {
 			if (next) {

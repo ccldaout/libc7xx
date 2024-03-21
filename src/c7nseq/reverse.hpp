@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  *
- * Google spreadsheets:
- * (nothing)
+ * Google document:
+ * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
 #ifndef C7_NSEQ_REVERSE_HPP_LOADED__
 #define C7_NSEQ_REVERSE_HPP_LOADED__
@@ -142,6 +142,26 @@ public:
 
     auto end() const {
 	return reverse_iter_end{};
+    }
+
+    auto rbegin() {
+	using std::begin;
+	return begin(seq_);
+    }
+
+    auto rend() {
+	using std::end;
+	return end(seq_);
+    }
+
+    auto rbegin() const {
+	using std::begin;
+	return begin(seq_);
+    }
+
+    auto rend() const {
+	using std::end;
+	return end(seq_);
     }
 };
 
