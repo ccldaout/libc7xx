@@ -64,7 +64,7 @@ struct rec_t {
     uint64_t sn_size :  6;	// length of source name (exclude null character)
     uint64_t src_line: 14;	// source line
     uint64_t control :  6;	// (internal control flags)
-    uint64_t __rsv1  : 24;
+    uint64_t _rsv1   : 24;
     uint32_t pid;		// process id
     uint32_t th_id;		// thread id
     uint32_t br_order;		// ~order
@@ -92,8 +92,8 @@ public:
 	top_(static_cast<char*>(addr)), end_(top_ + size), size_(size) {
     }
 
-    void get(raddr_t addr, raddr_t size, void *__ubuf) {
-	char *ubuf = static_cast<char*>(__ubuf);
+    void get(raddr_t addr, raddr_t size, void *_ubuf) {
+	char *ubuf = static_cast<char*>(_ubuf);
 	char *rbuf = top_ + (addr % size_);
 	raddr_t rrest = end_ - rbuf;
 
@@ -109,10 +109,10 @@ public:
 	}
     }
 
-    raddr_t put(raddr_t addr, raddr_t size, const void *__ubuf) {
+    raddr_t put(raddr_t addr, raddr_t size, const void *_ubuf) {
 	const raddr_t ret_addr = addr + size;
 
-	const char *ubuf = static_cast<const char*>(__ubuf);
+	const char *ubuf = static_cast<const char*>(_ubuf);
 	char *rbuf = top_ + (addr % size_);
 	raddr_t rrest = end_ - rbuf;
 

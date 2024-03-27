@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * (nothing)
  */
-#ifndef C7_SLICE_HPP_LOADED__
-#define C7_SLICE_HPP_LOADED__
+#ifndef C7_SLICE_HPP_LOADED_
+#define C7_SLICE_HPP_LOADED_
 #include <c7common.hpp>
 
 

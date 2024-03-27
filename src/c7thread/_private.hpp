@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1557099975
  */
-#ifndef C7_THREAD__PRIVATE_HPP_LOADED__
-#define C7_THREAD__PRIVATE_HPP_LOADED__
+#ifndef C7_THREAD_x_PRIVATE_HPP_LOADED_
+#define C7_THREAD_x_PRIVATE_HPP_LOADED_
 #include <c7common.hpp>
 
 
@@ -66,7 +66,7 @@ public:
 	(void)pthread_mutex_unlock(&m_);
     }
 
-    pthread_mutex_t& pthread_mutex__() {
+    pthread_mutex_t& pthread_mutex_() {
 	return m_;
     }
 };

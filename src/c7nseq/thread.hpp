@@ -9,13 +9,13 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_THREAD_HPP_LOADED__
-#define C7_NSEQ_THREAD_HPP_LOADED__
+#ifndef C7_NSEQ_THREAD_HPP_LOADED_
+#define C7_NSEQ_THREAD_HPP_LOADED_
 
 
 #include <list>
 #include <vector>
-#include <c7thread/queue.hpp>
+#include <c7thread/condvar.hpp>
 #include <c7thread/thread.hpp>
 #include <c7nseq/_cmn.hpp>
 #include <c7nseq/empty.hpp>
@@ -361,7 +361,7 @@ using thread_seq = th_builder<Output, Thread>;
 } // namespace c7::nseq
 
 
-#if defined(C7_FORMAT_HELPER_HPP_LOADED__)
+#if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
 template <typename Seq, typename Output, typename Thread>
 struct format_ident<c7::nseq::th_seq<Seq, Output, Thread>> {

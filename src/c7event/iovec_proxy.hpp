@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1_2Pj_MDBpX0PwGYouK46sXM1qWyUOi8iUv1zynuXqA0/edit?usp=sharing
  */
-#ifndef C7_EVENT_IOVEC_PROXY_HPP_LOADED__
-#define C7_EVENT_IOVEC_PROXY_HPP_LOADED__
+#ifndef C7_EVENT_IOVEC_PROXY_HPP_LOADED_
+#define C7_EVENT_IOVEC_PROXY_HPP_LOADED_
 #include <c7common.hpp>
 
 
@@ -22,9 +22,9 @@
 
 
 #if defined(C7_IOVEC_PROXY_DEBUG)
-# define debug__(v)	c7echo(v)
+# define debug_(v)	c7echo(v)
 #else
-# define debug__(v)
+# define debug_(v)
 #endif
 
 
@@ -59,7 +59,7 @@ private:
 	// operator=(nullptr)
 
 	iov_base_t& operator=(std::nullptr_t) {
-	    debug__("(std::nullptr_t)");
+	    debug_("(std::nullptr_t)");
 	    iov_.iov_base = nullptr;
 	    iov_.iov_len  = 0;
 	    return *this;
@@ -68,50 +68,50 @@ private:
 	// operator=(*), operator=(const*)
 
 	iov_base_t& operator=(void *p) {
-	    debug__("(void *)");
+	    debug_("(void *)");
 	    iov_.iov_base = p;
 	    return *this;
 	}
 	iov_base_t& operator=(const void *p) {
-	    debug__("(const void *)");
+	    debug_("(const void *)");
 	    iov_.iov_base = const_cast<void*>(p);
 	    return *this;
 	}
 
 	iov_base_t& operator=(char *s) {
-	    debug__("(char *)");
+	    debug_("(char *)");
 	    iov_.iov_base = s;
 	    iov_.iov_len  = std::strlen(s) + 1;
 	    return *this;
 	}
 	iov_base_t& operator=(const char *s) {
-	    debug__("(const char *)");
+	    debug_("(const char *)");
 	    iov_.iov_base = const_cast<char*>(s);
 	    iov_.iov_len  = std::strlen(s) + 1;
 	    return *this;
 	}
 
 	iov_base_t& operator=(std::string *s) {
-	    debug__("(std::string*)");
+	    debug_("(std::string*)");
 	    iov_.iov_base = const_cast<char*>(s->data());
 	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
 	iov_base_t& operator=(const std::string *s) {
-	    debug__("(const std::string*)");
+	    debug_("(const std::string*)");
 	    iov_.iov_base = const_cast<char*>(s->data());
 	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
 
 	iov_base_t& operator=(std::string_view *s) {
-	    debug__("(std::string_view*)");
+	    debug_("(std::string_view*)");
 	    iov_.iov_base = const_cast<char*>(s->data());
 	    iov_.iov_len  = s->size() + 1;
 	    return *this;
 	}
 	iov_base_t& operator=(const std::string_view *s) {
-	    debug__("(const std::string_view*)");
+	    debug_("(const std::string_view*)");
 	    iov_.iov_base = const_cast<char*>(s->data());
 	    iov_.iov_len  = s->size() + 1;
 	    return *this;
@@ -120,12 +120,12 @@ private:
 	template <typename T>
 	iov_base_t& operator=(T *v) {
 	    if constexpr (is_buffer_type_v<T>) {
-		debug__("(is_buffer_type_v*)");
+		debug_("(is_buffer_type_v*)");
 		using d_type = c7::typefunc::remove_cref_t<decltype(*v->data())>;
 		iov_.iov_base = const_cast<d_type*>(v->data());
 		iov_.iov_len  = v->size() * sizeof((*v)[0]);
 	    } else {
-		debug__("(T *)");
+		debug_("(T *)");
 		using d_type = std::remove_const_t<T*>;
 		iov_.iov_base = const_cast<d_type>(v);
 		iov_.iov_len  = sizeof(T);
@@ -134,7 +134,7 @@ private:
 	}
 	template <typename T>
 	iov_base_t& operator=(const T *v) {
-	    debug__("(const T*) ->");
+	    debug_("(const T*) ->");
 	    return (*this = const_cast<T*>(v));
 	}
 
@@ -142,7 +142,7 @@ private:
 
 	template <typename T, typename = std::enable_if_t<is_buffer_type_v<T>>>
 	iov_base_t& operator=(const T& v) {
-	    debug__("(const is_buffer_type_v&) ->");
+	    debug_("(const is_buffer_type_v&) ->");
 	    return (*this = &v);
 	}
 

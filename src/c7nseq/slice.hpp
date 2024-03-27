@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_SLICE_HPP_LOADED__
-#define C7_NSEQ_SLICE_HPP_LOADED__
+#ifndef C7_NSEQ_SLICE_HPP_LOADED_
+#define C7_NSEQ_SLICE_HPP_LOADED_
 
 
 #include <c7nseq/_cmn.hpp>
@@ -83,7 +83,7 @@ public:
     }
 
     // introducing operators
-#define C7_NSEQ_ITER_TYPE__	slice_ra_iter
+#define C7_NSEQ_ITER_TYPE_	slice_ra_iter
 #include <c7nseq/_iter_ops.hpp>
 };
 
@@ -281,7 +281,7 @@ private:
 } // namespace c7::nseq
 
 
-#if defined(C7_FORMAT_HELPER_HPP_LOADED__)
+#if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
 template <typename Seq>
 struct format_ident<c7::nseq::slice_seq<Seq>> {

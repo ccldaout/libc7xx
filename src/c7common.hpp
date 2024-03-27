@@ -9,12 +9,15 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_COMMON_HPP_LOADED__
-#define C7_COMMON_HPP_LOADED__
+#ifndef C7_COMMON_HPP_LOADED_
+#define C7_COMMON_HPP_LOADED_
 
 
 #include <cstdint>
-#include <_c7header_macro.hpp>
+#if __has_include(<_c7header_macro.hpp>)
+// _c7header_macro.hpp is deprecated, but include it for compatibility.
+# include <_c7header_macro.hpp>
+#endif
 #if __has_include(<_c7version.hpp>)
 # include <_c7version.hpp>
 #endif

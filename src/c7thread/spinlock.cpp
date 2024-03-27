@@ -45,7 +45,7 @@ public:
 	(void)pthread_spin_unlock(&m_);
     }
 
-    pthread_spinlock_t& __pthread_spinlock() {
+    pthread_spinlock_t& pthread_spinlock_() {
 	return m_;
     }
 };

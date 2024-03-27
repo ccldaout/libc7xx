@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * (Nothing)
  */
-#ifndef C7_HASH_HPP_LOADED__
-#define C7_HASH_HPP_LOADED__
+#ifndef C7_HASH_HPP_LOADED_
+#define C7_HASH_HPP_LOADED_
 
 
 #include <functional>
@@ -20,7 +20,7 @@
 namespace std {
 
 
-#define C7_HASH_SIMPLE_WRAP__	(1)	// hash for c7::simple_wrapper<,>
+#define C7_HASH_SIMPLE_WRAP_	(1)	// hash for c7::simple_wrapper<,>
 template <typename T, typename Tag>
 struct hash<c7::simple_wrap<T, Tag>>: public hash<T> {
     size_t operator()(c7::simple_wrap<T, Tag> k) const {

@@ -73,7 +73,7 @@ public:
     // ------------ functions ------------
 private:
     void thread();
-    static void* entry_point(void *__arg);
+    static void* entry_point(void *arg);
 
 public:
     impl(const impl&) = delete;
@@ -210,9 +210,9 @@ thread::impl::start()
 
 
 void*
-thread::impl::entry_point(void *__arg)
+thread::impl::entry_point(void *arg)
 {
-    auto spp = static_cast<std::shared_ptr<impl>*>(__arg);
+    auto spp = static_cast<std::shared_ptr<impl>*>(arg);
     auto shared_this = *spp;
     current_thread_ = shared_this.get();
     shared_this->thread();

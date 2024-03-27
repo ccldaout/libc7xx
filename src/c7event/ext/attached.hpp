@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1_2Pj_MDBpX0PwGYouK46sXM1qWyUOi8iUv1zynuXqA0/edit?usp=sharing
  */
-#ifndef C7_EVENT_EXT_ATTACHED_HPP_LOADED__
-#define C7_EVENT_EXT_ATTACHED_HPP_LOADED__
+#ifndef C7_EVENT_EXT_ATTACHED_HPP_LOADED_
+#define C7_EVENT_EXT_ATTACHED_HPP_LOADED_
 #include <c7common.hpp>
 
 
