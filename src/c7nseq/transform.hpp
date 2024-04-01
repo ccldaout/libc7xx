@@ -138,26 +138,6 @@ public:
     auto end() const {
 	return transform_iter_end{};
     }
-
-    auto rbegin() {
-	using std::rbegin;
-	using std::rend;
-	auto it = rbegin(seq_);
-	auto itend = rend(seq_);
-	return transform_iter<decltype(it), decltype(itend), UnaryOperator>(it, itend, op_);
-    }
-
-    auto rend() {
-	return transform_iter_end{};
-    }
-
-    auto rbegin() const {
-	return const_cast<transform_seq<Seq, UnaryOperator>*>(this)->rbegin();
-    }
-
-    auto rend() const {
-	return transform_iter_end{};
-    }
 };
 
 

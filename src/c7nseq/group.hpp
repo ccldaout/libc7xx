@@ -210,26 +210,6 @@ public:
     auto end() const {
 	return group_iter_end{};
     }
-
-    auto rbegin() {
-	using std::rbegin;
-	using std::rend;
-	auto it = rbegin(seq_);
-	auto itend = rend(seq_);
-	return GroupIter<decltype(it), decltype(itend), Equal>(it, itend, eq_);
-    }
-
-    auto rend() {
-	return group_iter_end{};
-    }
-
-    auto rbegin() const {
-	return const_cast<group_by_seq<Seq, Equal, GroupIter>*>(this)->rbegin();
-    }
-
-    auto rend() const {
-	return group_iter_end{};
-    }
 };
 
 

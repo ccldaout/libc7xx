@@ -86,7 +86,7 @@ public:
 	    cv_.notify_all();
 	    return c7result_ok();
 	} else {
-	    return c7result_err(EPIPE, "queue is closed or aborted");
+	    return c7result_err(EPIPE, "queue is not alived (closing/closed/aborted)");
 	}
     }
 
@@ -102,8 +102,11 @@ public:
 	if (is_closed()) {
 	    return c7result_err(ENODATA, "queue is closed");
 	}
-	if (is_empty()) {
+	if (is_aborted()) {
 	    return c7result_err(EPIPE, "queue is aborted");
+	}
+	if (is_empty()) {
+	    return c7result_err(ENODATA, "queue is closing");
 	}
 	auto item = get_item(weight);
 	cv_.notify_all();

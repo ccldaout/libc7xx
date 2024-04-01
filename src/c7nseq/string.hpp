@@ -60,12 +60,15 @@ struct split_lines {
 struct trim {
     template <typename Seq>
     auto operator()(Seq&& seq) {
+	// `reverse | filter | reverse' is don't work well.
+	// so, to_string is needed before 2nd reverse.
 	return std::forward<Seq>(seq)
 	    | c7::nseq::reverse()
 	    | c7::nseq::skip_while(
 		[](auto c) {
 		    return std::isspace(c);
 		})
+	    | c7::nseq::to_string()		// [IMPORTANT]
 	    | c7::nseq::reverse()
 	    | c7::nseq::skip_while(
 		[](auto c) {

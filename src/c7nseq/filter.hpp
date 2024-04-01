@@ -132,27 +132,6 @@ public:
     auto end() const {
 	return filter_iter_end{};
     }
-
-    auto rbegin() {
-	using std::rbegin;
-	using std::rend;
-	auto it = rbegin(seq_);
-	auto itend = rend(seq_);
-	return filter_iter<decltype(it), decltype(itend), Predicate>(it, itend, pred_);
-    }
-
-    auto rend() {
-	return filter_iter_end{};
-    }
-
-    auto rbegin() const {
-	return const_cast<filter_seq<Seq, Predicate>*>(this)->rbegin();
-    }
-
-    auto rend() const {
-	return filter_iter_end{};
-    }
-
 };
 
 
