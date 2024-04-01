@@ -34,12 +34,12 @@ struct program_attr {
     }
 };
 
-static program_attr __program_attr;
-const std::string& progname = __program_attr.name;
+static program_attr program_attr_;
+const std::string& progname = program_attr_.name;
 
 void set_progname(const std::string& name)
 {
-    __program_attr.name = name;
+    program_attr_.name = name;
 }
 
 

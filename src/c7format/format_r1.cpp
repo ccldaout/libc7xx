@@ -249,35 +249,35 @@ void formatter::handle_arg(state_t s, T arg, formatter_float_tag) noexcept
 }
 
 
-#undef  __C7_EXTERN
-#define __C7_EXTERN(T)							\
+#undef  C7_EXPLICIT_
+#define C7_EXPLICIT_(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_int_tag)
-__C7_EXTERN(bool);
-__C7_EXTERN(char);
-__C7_EXTERN(signed char);
-__C7_EXTERN(unsigned char);
-__C7_EXTERN(short int);
-__C7_EXTERN(unsigned short int);
-__C7_EXTERN(int);
-__C7_EXTERN(unsigned int);
-__C7_EXTERN(long);
-__C7_EXTERN(unsigned long);
+C7_EXPLICIT_(bool);
+C7_EXPLICIT_(char);
+C7_EXPLICIT_(signed char);
+C7_EXPLICIT_(unsigned char);
+C7_EXPLICIT_(short int);
+C7_EXPLICIT_(unsigned short int);
+C7_EXPLICIT_(int);
+C7_EXPLICIT_(unsigned int);
+C7_EXPLICIT_(long);
+C7_EXPLICIT_(unsigned long);
 
-#undef  __C7_EXTERN
-#define __C7_EXTERN(T)							\
+#undef  C7_EXPLICIT_
+#define C7_EXPLICIT_(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_int8_tag)
-__C7_EXTERN(char);
-__C7_EXTERN(signed char);
+C7_EXPLICIT_(char);
+C7_EXPLICIT_(signed char);
 
 template void formatter::handle_arg<unsigned char>(state_t s, unsigned char arg, formatter_uint8_tag);
 
-#undef  __C7_EXTERN
-#define __C7_EXTERN(T)							\
+#undef  C7_EXPLICIT_
+#define C7_EXPLICIT_(T)							\
     template void formatter::handle_arg<T>(state_t s, T arg, formatter_float_tag)
-__C7_EXTERN(float);
-__C7_EXTERN(double);
+C7_EXPLICIT_(float);
+C7_EXPLICIT_(double);
 
-#undef __C7_EXTERN
+#undef C7_EXPLICIT_
 
 
 /*----------------------------------------------------------------------------

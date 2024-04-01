@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=1803310993
  */
-#ifndef C7_UTILS_HPP_LOADED__
-#define C7_UTILS_HPP_LOADED__
+#ifndef C7_UTILS_HPP_LOADED_
+#define C7_UTILS_HPP_LOADED_
 #include <c7common.hpp>
 
 

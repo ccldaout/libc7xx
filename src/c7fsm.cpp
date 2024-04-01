@@ -217,9 +217,9 @@ void driver_base::reset()
 void driver_base::dump() const
 {
 
-    c7::p__("currents_:");
+    c7::P_("currents_:");
     for (auto cur: currents_) {
-	c7::p__(" %{}", cur);
+	c7::P_(" %{}", cur);
     }
     c7::p_("");
     for (auto& [key, val]: table_) {

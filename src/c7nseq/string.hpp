@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_STRING_HPP_LOADED__
-#define C7_NSEQ_STRING_HPP_LOADED__
+#ifndef C7_NSEQ_STRING_HPP_LOADED_
+#define C7_NSEQ_STRING_HPP_LOADED_
 
 
 #include <cctype>
@@ -60,12 +60,15 @@ struct split_lines {
 struct trim {
     template <typename Seq>
     auto operator()(Seq&& seq) {
+	// `reverse | filter | reverse' is don't work well.
+	// so, to_string is needed before 2nd reverse.
 	return std::forward<Seq>(seq)
 	    | c7::nseq::reverse()
 	    | c7::nseq::skip_while(
 		[](auto c) {
 		    return std::isspace(c);
 		})
+	    | c7::nseq::to_string()		// [IMPORTANT]
 	    | c7::nseq::reverse()
 	    | c7::nseq::skip_while(
 		[](auto c) {
@@ -102,7 +105,7 @@ struct upper {
 } // namespace c7::nseq
 
 
-#if defined(C7_FORMAT_HELPER_HPP_LOADED__)
+#if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
 template <>
 struct format_ident<std::string> {

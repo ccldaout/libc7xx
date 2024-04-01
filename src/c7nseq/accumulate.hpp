@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_STORE_ACCUMULATE_HPP_LOADED__
-#define C7_NSEQ_STORE_ACCUMULATE_HPP_LOADED__
+#ifndef C7_NSEQ_STORE_ACCUMULATE_HPP_LOADED_
+#define C7_NSEQ_STORE_ACCUMULATE_HPP_LOADED_
 
 
 #include <numeric>

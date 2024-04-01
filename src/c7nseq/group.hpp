@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_GROUP_HPP_LOADED__
-#define C7_NSEQ_GROUP_HPP_LOADED__
+#ifndef C7_NSEQ_GROUP_HPP_LOADED_
+#define C7_NSEQ_GROUP_HPP_LOADED_
 
 
 #include <c7nseq/_cmn.hpp>
@@ -210,26 +210,6 @@ public:
     auto end() const {
 	return group_iter_end{};
     }
-
-    auto rbegin() {
-	using std::rbegin;
-	using std::rend;
-	auto it = rbegin(seq_);
-	auto itend = rend(seq_);
-	return GroupIter<decltype(it), decltype(itend), Equal>(it, itend, eq_);
-    }
-
-    auto rend() {
-	return group_iter_end{};
-    }
-
-    auto rbegin() const {
-	return const_cast<group_by_seq<Seq, Equal, GroupIter>*>(this)->rbegin();
-    }
-
-    auto rend() const {
-	return group_iter_end{};
-    }
 };
 
 
@@ -268,7 +248,7 @@ private:
 } // namespace c7::nseq
 
 
-#if defined(C7_FORMAT_HELPER_HPP_LOADED__)
+#if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
 template <typename Seq, typename Equal,
 	  template <typename, typename, typename> class GroupIter>

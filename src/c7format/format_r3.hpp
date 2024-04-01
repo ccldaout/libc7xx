@@ -6,8 +6,8 @@
  * This software is released under the MIT License.
  * http://opensource.org/licenses/mit-license.php
  */
-#ifndef C7_FORMAT_R3_HPP_LOADED__
-#define C7_FORMAT_R3_HPP_LOADED__
+#ifndef C7_FORMAT_R3_HPP_LOADED_
+#define C7_FORMAT_R3_HPP_LOADED_
 #include <c7common.hpp>
 
 
@@ -179,7 +179,7 @@ inline std::string format(const std::string& fmt, const Args&... args) noexcept
 // std::cout without NL(new line) and with lock
 
 template <typename... Args>
-inline void p__(const analyzed_format& fmts, const Args&... args) noexcept
+inline void P_(const analyzed_format& fmts, const Args&... args) noexcept
 {
     c7::format_cmn::cout_lock lock;
     formatter formatter(std::cout);
@@ -187,48 +187,48 @@ inline void p__(const analyzed_format& fmts, const Args&... args) noexcept
 }
 
 template <typename... Args>
-inline void p__(const char *fmt, const Args&... args) noexcept
+inline void P_(const char *fmt, const Args&... args) noexcept
 {
-    p__(analyzed_format::get_for_literal(fmt), args...);
+    P_(analyzed_format::get_for_literal(fmt), args...);
 }
 
 template <typename... Args>
-inline void p__var(const char *fmt, const Args&... args) noexcept
+inline void P_var(const char *fmt, const Args&... args) noexcept
 {
-    p__(analyzed_format::get(fmt), args...);
+    P_(analyzed_format::get(fmt), args...);
 }
 
 template <typename... Args>
-inline void p__(const std::string& fmt, const Args&... args) noexcept
+inline void P_(const std::string& fmt, const Args&... args) noexcept
 {
-    p__(analyzed_format::get(fmt.c_str()), args...);
+    P_(analyzed_format::get(fmt.c_str()), args...);
 }
 
 // std::cout without NL(new line) and with lock
 
 template <typename... Args>
-inline void p__nolock(const analyzed_format& fmts, const Args&... args) noexcept
+inline void P_nolock(const analyzed_format& fmts, const Args&... args) noexcept
 {
     formatter formatter(std::cout);
     formatter.apply(fmts, 0, args...);
 }
 
 template <typename... Args>
-inline void p__nolock(const char *fmt, const Args&... args) noexcept
+inline void P_nolock(const char *fmt, const Args&... args) noexcept
 {
-    p__nolock(analyzed_format::get_for_literal(fmt), args...);
+    P_nolock(analyzed_format::get_for_literal(fmt), args...);
 }
 
 template <typename... Args>
-inline void p__nolock_var(const char *fmt, const Args&... args) noexcept
+inline void P_nolock_var(const char *fmt, const Args&... args) noexcept
 {
-    p__nolock(analyzed_format::get(fmt), args...);
+    P_nolock(analyzed_format::get(fmt), args...);
 }
 
 template <typename... Args>
-inline void p__nolock(const std::string& fmt, const Args&... args) noexcept
+inline void P_nolock(const std::string& fmt, const Args&... args) noexcept
 {
-    p__nolock(analyzed_format::get(fmt.c_str()), args...);
+    P_nolock(analyzed_format::get(fmt.c_str()), args...);
 }
 
 // std::cout with NL(new line) and with lock

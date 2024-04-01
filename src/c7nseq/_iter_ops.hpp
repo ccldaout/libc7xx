@@ -1,9 +1,9 @@
-#if defined(C7_NSEQ_ITEREND_TYPE__)
-    bool operator==(const C7_NSEQ_ITEREND_TYPE__&) const {
+#if defined(C7_NSEQ_ITEREND_TYPE_)
+    bool operator==(const C7_NSEQ_ITEREND_TYPE_&) const {
 	return (it_ == itend_);
     }
 
-    bool operator!=(const C7_NSEQ_ITEREND_TYPE__& o) const {
+    bool operator!=(const C7_NSEQ_ITEREND_TYPE_& o) const {
 	return !(*this == o);
     }
 #endif
@@ -29,69 +29,69 @@
 	return (*this) + (-n);
     }
 
-    bool operator<(const C7_NSEQ_ITER_TYPE__& o) const {
+    bool operator<(const C7_NSEQ_ITER_TYPE_& o) const {
 	return it_ < o.it_;
     }
 
-    bool operator<=(const C7_NSEQ_ITER_TYPE__& o) const {
+    bool operator<=(const C7_NSEQ_ITER_TYPE_& o) const {
 	return it_ <= o.it_;
     }
 
-    bool operator>(const C7_NSEQ_ITER_TYPE__& o) const {
+    bool operator>(const C7_NSEQ_ITER_TYPE_& o) const {
 	return o < *this;
     }
 
-    bool operator>=(const C7_NSEQ_ITER_TYPE__& o) const {
+    bool operator>=(const C7_NSEQ_ITER_TYPE_& o) const {
 	return o <= *this;
     }
 
-#if defined(C7_NSEQ_ITEREND_TYPE__)
-    bool operator<(const C7_NSEQ_ITEREND_TYPE__&) const {
+#if defined(C7_NSEQ_ITEREND_TYPE_)
+    bool operator<(const C7_NSEQ_ITEREND_TYPE_&) const {
 	return it_ < itend_;
     }
 
-    bool operator<=(const C7_NSEQ_ITEREND_TYPE__&) const {
+    bool operator<=(const C7_NSEQ_ITEREND_TYPE_&) const {
 	return it_ <= itend_;
     }
 
-    bool operator>(const C7_NSEQ_ITEREND_TYPE__&) const {
+    bool operator>(const C7_NSEQ_ITEREND_TYPE_&) const {
 	return it_ > itend_;
     }
 
-    bool operator>=(const C7_NSEQ_ITEREND_TYPE__&) const {
+    bool operator>=(const C7_NSEQ_ITEREND_TYPE_&) const {
 	return it_ >= itend_;
     }
 
     friend
-    bool operator==(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator==(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b == a;
     }
 
     friend
-    bool operator!=(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator!=(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b != a;
     }
 
     friend
-    bool operator<(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator<(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b > a;
     }
 
     friend
-    bool operator<=(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator<=(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b >= a;
     }
 
     friend
-    bool operator>(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator>(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b < a;
     }
 
     friend
-    bool operator>=(const C7_NSEQ_ITEREND_TYPE__& a, const C7_NSEQ_ITER_TYPE__& b) {
+    bool operator>=(const C7_NSEQ_ITEREND_TYPE_& a, const C7_NSEQ_ITER_TYPE_& b) {
 	return b <= a;
     }
 #endif
 
-#undef C7_NSEQ_ITER_TYPE__
-#undef C7_NSEQ_ITEREND_TYPE__
+#undef C7_NSEQ_ITER_TYPE_
+#undef C7_NSEQ_ITEREND_TYPE_

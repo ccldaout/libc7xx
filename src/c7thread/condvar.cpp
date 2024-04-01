@@ -49,10 +49,10 @@ public:
     bool wait(const ::timespec *timeout_abs) {
 	int ret;
 	if (timeout_abs == nullptr) {
-	    ret = pthread_cond_wait(&c_, &mimpl_->pthread_mutex__());
+	    ret = pthread_cond_wait(&c_, &mimpl_->pthread_mutex_());
 	} else {
 	    do {
-		ret = pthread_cond_timedwait(&c_, &mimpl_->pthread_mutex__(), timeout_abs);
+		ret = pthread_cond_timedwait(&c_, &mimpl_->pthread_mutex_(), timeout_abs);
 	    } while (ret == EINTR);
 	}
 	if (ret != C7_SYSOK) {

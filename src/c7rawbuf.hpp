@@ -9,8 +9,8 @@
  * Google spreadsheets:
  * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit#gid=566388067
  */
-#ifndef C7_RAWBUF_HPP_LOADED__
-#define C7_RAWBUF_HPP_LOADED__
+#ifndef C7_RAWBUF_HPP_LOADED_
+#define C7_RAWBUF_HPP_LOADED_
 #include <c7common.hpp>
 
 
@@ -21,7 +21,7 @@
 #include <c7utils.hpp>
 
 
-#define C7_RAWBUF_API_EXT__	(1)
+#define C7_RAWBUF_API_EXT_	(1)
 
 
 namespace c7 {
@@ -79,14 +79,14 @@ public:
 	return c7result_ok();
     }
 
-    // C7_RAWBUF_API_EXT__(1)
+    // C7_RAWBUF_API_EXT_(1)
     template <typename MM2>
     c7::result<> push_back(const rawbuf<T, MM2>& rb, size_t rb_pos=0, size_t rb_n=-1UL);
 
-    // C7_RAWBUF_API_EXT__(1)
+    // C7_RAWBUF_API_EXT_(1)
     c7::result<> resize(size_t n);
 
-    // C7_RAWBUF_API_EXT__(1)
+    // C7_RAWBUF_API_EXT_(1)
     c7::result<> insert_from(c7::fd& fd, size_t pos = 0);
 
     c7::result<> append_from(c7::fd& fd);
@@ -111,7 +111,7 @@ public:
 	return static_cast<void *>(top_ + n_elm);
     }
 
-    // C7_RAWBUF_API_EXT__(1)
+    // C7_RAWBUF_API_EXT_(1)
     size_t capacity() const {
 	return n_rsv_;
     }

@@ -9,8 +9,8 @@
  * Google document:
  * https://docs.google.com/document/d/1sOpE7FtN5s5dtPNiGcSfTYbTDG-0lxE2PZb47yksa90/edit?usp=sharing
  */
-#ifndef C7_NSEQ_TRANSFORM_HPP_LOADED__
-#define C7_NSEQ_TRANSFORM_HPP_LOADED__
+#ifndef C7_NSEQ_TRANSFORM_HPP_LOADED_
+#define C7_NSEQ_TRANSFORM_HPP_LOADED_
 
 
 #include <c7nseq/_cmn.hpp>
@@ -89,8 +89,8 @@ public:
     }
 
     // introducing operators
-#define C7_NSEQ_ITER_TYPE__	transform_iter
-#define C7_NSEQ_ITEREND_TYPE__	transform_iter_end
+#define C7_NSEQ_ITER_TYPE_	transform_iter
+#define C7_NSEQ_ITEREND_TYPE_	transform_iter_end
 #include <c7nseq/_iter_ops.hpp>
 };
 
@@ -136,26 +136,6 @@ public:
     }
 
     auto end() const {
-	return transform_iter_end{};
-    }
-
-    auto rbegin() {
-	using std::rbegin;
-	using std::rend;
-	auto it = rbegin(seq_);
-	auto itend = rend(seq_);
-	return transform_iter<decltype(it), decltype(itend), UnaryOperator>(it, itend, op_);
-    }
-
-    auto rend() {
-	return transform_iter_end{};
-    }
-
-    auto rbegin() const {
-	return const_cast<transform_seq<Seq, UnaryOperator>*>(this)->rbegin();
-    }
-
-    auto rend() const {
 	return transform_iter_end{};
     }
 };
@@ -207,7 +187,7 @@ public:
 } // namespace c7::nseq
 
 
-#if defined(C7_FORMAT_HELPER_HPP_LOADED__)
+#if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
 template <typename Seq, typename UnaryOperator>
 struct format_ident<c7::nseq::transform_seq<Seq, UnaryOperator>> {
