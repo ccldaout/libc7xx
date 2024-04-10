@@ -123,6 +123,13 @@ private:
     std::ostream& out_;
 
     template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_charseq_tag) noexcept {
+	for (auto c: arg) {
+	    out_ << c;
+	}
+    }
+
+    template <typename T>
     inline void handle_arg(const format_item& fmt, const T& arg, formatter_enum_tag) noexcept {
 	handle_arg<ssize_t>(fmt, static_cast<ssize_t>(arg), formatter_int_tag());
     }

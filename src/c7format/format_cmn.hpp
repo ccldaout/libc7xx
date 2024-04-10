@@ -115,6 +115,7 @@ struct formatter_has_operator:
 
 // tag dispatch
 
+struct formatter_charseq_tag {};
 struct formatter_int_tag {};
 struct formatter_int8_tag {};
 struct formatter_uint8_tag {};
@@ -140,6 +141,7 @@ struct formatter_tag {
 	formatter_has_printas<T>,	formatter_printas_tag,
 	std::is_enum<T>,		formatter_enum_tag,
 	formatter_has_operator<T>,	formatter_operator_tag,
+	c7::typefunc::is_sequence_of<T, char>,	formatter_charseq_tag,
 	std::true_type,			formatter_error_tag
 	> type;
 
@@ -166,6 +168,18 @@ struct formatter_tag<const char*> {
 
 template <>
 struct formatter_tag<char*> {
+    typedef formatter_operator_tag type;
+    static constexpr type value{};
+};
+
+template <size_t N>
+struct formatter_tag<char[N]> {
+    typedef formatter_operator_tag type;
+    static constexpr type value{};
+};
+
+template <size_t N>
+struct formatter_tag<const char[N]> {
     typedef formatter_operator_tag type;
     static constexpr type value{};
 };

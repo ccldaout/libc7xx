@@ -101,15 +101,16 @@ bool is_exists(const std::string& path)
 
 result<std::string> cwd()
 {
-    auto buf = c7::make_unique_cptr<char>();
+    char *p = nullptr;
+    c7::defer autofree([&p](){ std::free(p); });
 
     for (int z = 64; ; z += 64) {
-	if (auto np = realloc(buf.get(), z); np == nullptr)
+	if (auto np = realloc(p, z); np == nullptr)
 	    return c7result_err(errno, "realloc failed");
 	else
-	    buf.reset(static_cast<char*>(np));
-	if (::getcwd(buf.get(), z) != nullptr) {
-	    return c7result_ok(std::string(buf.get()));
+	    p = static_cast<char*>(np);
+	if (::getcwd(p, z) != nullptr) {
+	    return c7result_ok(std::string(p));
 	}
 	if (errno != ERANGE) {
 	    return c7result_err(errno, "getcwd failed");

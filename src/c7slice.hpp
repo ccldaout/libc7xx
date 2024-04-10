@@ -127,7 +127,7 @@ public:
 private:
     U *top_;
     ptrdiff_t idx_;
-    const ptrdiff_t gap_;
+    ptrdiff_t gap_;
 };
 
 

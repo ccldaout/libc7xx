@@ -199,7 +199,7 @@ c7::result<> rewrite(const std::string& path, void *buf, size_t size)
     auto unblock_defer = c7::signal::block();
     auto lastret = c7result_ok();
     if (::rename(tmppath.c_str(), path.c_str()) == C7_SYSERR) {
-	c7result_seterr(lastret, "rewrite failed: rename: %{} -> %{}", tmppath, path);
+	drop = c7result_seterr(lastret, "rewrite failed: rename: %{} -> %{}", tmppath, path);
     }
 
     return lastret;

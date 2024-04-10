@@ -43,6 +43,13 @@ private:
     state_t next_format(state_t prev_state, bool no_args);
 
     template <typename T>
+    void handle_arg(state_t s, const T& arg, formatter_charseq_tag) noexcept {
+	for (auto c: arg) {
+	    out_ << c;
+	}
+    }
+
+    template <typename T>
     inline void handle_arg(state_t s, const T& arg, formatter_enum_tag) noexcept {
 	handle_arg<ssize_t>(s, static_cast<ssize_t>(arg), formatter_int_tag());
     }

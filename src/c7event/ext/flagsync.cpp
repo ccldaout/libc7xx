@@ -91,8 +91,8 @@ auto flagsync_provider::assign(std::weak_ptr<void> owner_wp,
 void flagsync_provider::unassign(callback_id_t id)
 {
     auto unlock_cbs = lock_cbs_.lock();
-    std::remove_if(callbacks_.begin(), callbacks_.end(),
-		   [id](auto& it) { return it.id == id; });
+    drop = std::remove_if(callbacks_.begin(), callbacks_.end(),
+			  [id](auto& it) { return it.id == id; });
 }
 
 void flagsync_provider::update(flags_t on, flags_t off)
