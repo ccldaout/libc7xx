@@ -128,24 +128,31 @@ static inline void reverse( int32_t& u) { __asm__("bswapl %0":"+r"(u)); }
 static inline void reverse(uint16_t& u) { __asm__("rorw $8,%0":"+r"(u)); }
 static inline void reverse( int16_t& u) { __asm__("rorw $8,%0":"+r"(u)); }
 
+#elif defined(__aarch64__)
+
+static inline void reverse(uint64_t& u) { __asm__("rev %0,%0":"+r"(u)); }
+static inline void reverse( int64_t& u) { __asm__("rev %0,%0":"+r"(u)); }
+static inline void reverse(uint32_t& u) { __asm__("rev32 %0,%0":"+r"(u)); }
+static inline void reverse( int32_t& u) { __asm__("rev32 %0,%0":"+r"(u)); }
+static inline void reverse(uint16_t& u) { __asm__("rev16 %0,%0":"+r"(u)); }
+static inline void reverse( int16_t& u) { __asm__("rev16 %0,%0":"+r"(u)); }
+
 #else
 
 static inline void reverse(uint64_t& u) {
-    uint64_t v = u;
-    uint64_t m;
-    m = 0x00ff00ff;
-    m = (m << 32) | m;
-    v = ((m & u) << 8) | (((m << 8) & u) >> 8);
-    m = 0x0000ffff;
-    m = (m << 32) | m;
-    v = ((m & v) << 16) | (((m << 16) & v) >> 16);
-    u = (v << 32) | (v >> 32);
+    uint64_t m = 0x00ff00ff00ff00ffUL;
+    u = ((u & m) << 8) | ((u & (m << 8)) >> 8);
+    m = 0x0000ffff0000ffffUL;
+    u = ((u & m) << 16) | ((u & (m << 16)) >> 16);
+    u = (u << 32) | (u >> 32);
 }
+
 static inline void reverse(uint32_t& u) {
-    uint32_t m = 0x00ff00ff;
-    uint32_t v = ((m & u) << 8) | (((m << 8) & u) >> 8);
-    u = (v << 16) | (v >> 16);
+    uint32_t m = 0x00ff00ffUL;
+    u = ((u & m) << 8) | ((u & (m << 8)) >> 8);
+    u = (u << 16) | (u >> 16);
 }
+
 static inline void reverse(uint16_t& u) {
     u = (u << 8) | (u >> 8);
 }

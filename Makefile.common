@@ -48,12 +48,19 @@ C7_LD_RPATH_OPT = -Wl,-rpath,
 # DON'T assign $(C7_OUT_ROOT) to C7_CLEAN_REMOVED
 C7_CLEAN_REMOVED += $(C7_TMP_ROOT)
 
-CXXFLAGS += -std=c++17 $(if $(C7_NOTHREAD),,-pthread)
+CXX      ?= c++
+CXX_STD  ?= c++17
+CXXFLAGS += -std=$(CXX_STD) $(if $(C7_NOTHREAD),,-pthread)
 CXXFLAGS += $(addprefix -I,$(C7_CC_IPATH))
 CXXFLAGS += -Wall $(if $(C7_WERROR),-Werror,)
 
+AS      ?= as
+ifeq "$(shell uname -m)" "x86_64"
+  ASFLAGS += --64 -noexecstack
+endif
+
 LDFLAGS = $(addprefix -L,$(C7_LD_LPATH)) $(addprefix $(C7_LD_RPATH_OPT),$(C7_LD_RPATH))
-LDLIBS = $(if $(C7_NOLIBC7XX),,-lc7++) $(if $(C7_NOTHREAD),,-lpthread)
+LDLIBS  = $(if $(C7_NOLIBC7XX),,-lc7++) $(if $(C7_NOTHREAD),,-lpthread)
 
 ifeq "$(wildcard DEBUG)" ""
   C7_ECHO_BEG="\x1b[32m"
@@ -89,10 +96,13 @@ $(C7_OUT_PY2DIR)/%.py: %.py
 	$(call cmd_o,cp -p $< $@)
 
 $(C7_OUT_BINDIR)/%: %.cpp
-	$(call cmd_bin,c++ $(CXXFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS))
+	$(call cmd_bin,$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS))
 
 $(C7_OUT_OBJDIR)/%.o: %.cpp
-	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
+	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
+
+$(C7_OUT_OBJDIR)/%.o: %.s
+	$(call cmd_o,$(AS) $(ASFLAGS) -o $@ $<)
 
 .PHONY: c7_build
 c7_build: build

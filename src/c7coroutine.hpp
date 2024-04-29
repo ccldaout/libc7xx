@@ -18,7 +18,22 @@
 #include <c7typefunc.hpp>
 #include <memory>
 #include <type_traits>
-#include <ucontext.h>
+#if !defined(C7XX_VERSION_MAJOR) || C7XX_VERSION_MAJOR < 6
+# include <ucontext.h>
+#endif
+
+
+#if defined(__x86_64) || defined(__aarch64__)
+# define USE_C7_CONTEXT
+#endif
+
+
+#if defined(USE_C7_CONTEXT)
+struct c7_context_data_t;
+#else
+using c7_context_data_t = ucontext_t;
+#endif
+using c7_context_t = c7_context_data_t*;
 
 
 namespace c7 {
@@ -76,7 +91,13 @@ public:
 private:
     std::unique_ptr<char[]> stack_;
     std::function<void()> target_;
-    ucontext_t context_;
+    union {
+#if !defined(C7XX_VERSION_MAJOR) || C7XX_VERSION_MAJOR < 6
+	// keep binary compatibility
+	ucontext_t ucontext_;
+#endif
+	c7_context_t c7context_;
+    };
     status_t status_ = ALIVE;
     coroutine* from_ = nullptr;
 

@@ -28,9 +28,10 @@ C7_VERSION_HPP = $(C7_OUT_INCDIR)/_c7version.hpp
 
 LDFLAGS += -Wl,-soname,$(C7_SONAME)
 
+ARCH := $(shell uname -m)
 HDRS := $(wildcard *.hpp */*.hpp */*/*.hpp)
-SRCS := $(wildcard *.cpp */*.cpp */*/*.cpp)
-OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.cpp,%.o,$(SRCS)))
+SRCS := $(wildcard *.$(ARCH).s *.cpp */*.cpp */*/*.cpp)
+OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.s,%.o,$(patsubst %.cpp,%.o,$(SRCS))))
 
 C7_DIRS += $(C7_OUT_OBJDIR)/c7event
 C7_DIRS += $(C7_OUT_OBJDIR)/c7event/ext
@@ -41,13 +42,13 @@ C7_DIRS += $(C7_OUT_OBJDIR)/c7thread
 
 
 $(C7_OUT_OBJDIR)/c7event/%.o: %.cpp
-	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
+	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
 
 $(C7_OUT_OBJDIR)/c7event/ext/%.o: %.cpp
-	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
+	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
 
 $(C7_OUT_OBJDIR)/c7thread/%.o: %.cpp
-	$(call cmd_o,c++ -c $(CXXFLAGS) -o $@ $<)
+	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
 
 
 .PHONY: build
@@ -73,7 +74,8 @@ headers:
 .PHONY: depend
 depend:
 	@rm -f $(C7_OUT_OBJDIR)/Makefile.dep.*
-	@for cpp in $(SRCS); do \
+	@rm -f $(C7_VERSION_HPP)
+	@for cpp in $(filter %.cpp,$(SRCS)); do \
 	  c++ -c $(CXXFLAGS) -MM -MT '$$(C7_OUT_OBJDIR)'/$${cpp%.cpp}.o $${cpp} >| $(C7_OUT_OBJDIR)/Makefile.dep.$${cpp##*/}; \
 	done
 	@cat $(C7_OUT_OBJDIR)/Makefile.dep.* >| Makefile.dep
