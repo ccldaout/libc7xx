@@ -102,22 +102,14 @@ static void inline init_by_thread()
 coroutine::coroutine()
 {
     init_by_thread();
-#if defined(USE_C7_CONTEXT)
     c7context_ = new c7_context_data_t{};
-#else
-    c7context_ = &ucontext_;
-#endif
 }
 
 coroutine::coroutine(size_t stack_b):
     stack_(new char[stack_b + _STACK_MIN_b])
 {
     init_by_thread();
-#if defined(USE_C7_CONTEXT)
     c7context_ = new c7_context_data_t{};
-#else
-    c7context_ = &ucontext_;
-#endif
     if (c7_getcontext(c7context_) != C7_SYSOK) {
 	stack_.reset();
 	throw std::runtime_error("c7_getcontext failure");
@@ -136,9 +128,7 @@ coroutine::coroutine(size_t stack_b):
 coroutine::~coroutine()
 {
     stack_.reset();
-#if defined(USE_C7_CONTEXT)
     delete c7context_;
-#endif
 }
 
 void coroutine::setup_context()

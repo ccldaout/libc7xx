@@ -110,7 +110,7 @@ public:
     }
     template <typename T>
     io_result recvfrom(T *buf, sockaddr_gen& addr, int flags = 0) {
-	return recvfrom(buf, sizeof(buf), addr, flags);
+	return recvfrom(buf, sizeof(*buf), addr, flags);
     }
 
     io_result sendto(const void *buf, size_t bufsize, const sockaddr_gen&, int flags = 0);
