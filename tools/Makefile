@@ -14,11 +14,14 @@ include ../Makefile.common
 
 SRCS := $(wildcard *.cpp)
 PRGS := $(addprefix $(C7_OUT_BINDIR)/,$(patsubst %.c,%,$(SRCS)))
+PY3  := $(wildcard *.py)
+PY2  := cxx_token.py setup_dispatcher.py
 
 C7_CLEAN_REMOVED += $(PRGS)
 
 .PHONY: build
-build: pytools $(PRGS)
+build: py3tools py2tools $(PRGS)
 
-.PHONY: pytools
-pytools: $(addprefix $(C7_OUT_PY2DIR)/,$(wildcard *.py))
+.PHONY: py3tools py2tools
+py3tools: $(addprefix $(C7_OUT_PY3DIR)/,$(PY3))
+py2tools: $(addprefix $(C7_OUT_PY2DIR)/,$(PY2))

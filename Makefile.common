@@ -24,10 +24,12 @@ endif
 C7_OUT_ROOT   ?= ../build
 C7_OUT_INCNAM ?= include
 C7_OUT_PY2NAM ?= python2
+C7_OUT_PY3NAM ?= python3
 C7_OUT_BINDIR ?= $(C7_OUT_ROOT)/bin
 C7_OUT_INCDIR ?= $(C7_OUT_ROOT)/$(C7_OUT_INCNAM)
 C7_OUT_LIBDIR ?= $(C7_OUT_ROOT)/$(C7_SODIR)
 C7_OUT_PY2DIR ?= $(C7_OUT_ROOT)/lib/$(C7_OUT_PY2NAM)
+C7_OUT_PY3DIR ?= $(C7_OUT_ROOT)/lib/$(C7_OUT_PY3NAM)
 C7_TARGET_EXE ?= $(C7_OUT_BINDIR)/$(C7_TARGET_BASE)
 C7_TARGET_LIB ?= $(C7_OUT_LIBDIR)/$(C7_TARGET_BASE).$(C7_LIBSFX).$(C7_VER_MAJOR).$(C7_VER_MINOR).$(C7_VER_PATCH)
 C7_TMP_ROOT   ?= $(C7_OUT_ROOT)/tmp
@@ -38,7 +40,7 @@ ifneq "$(C7_RTLD_LIBDIR_REL)" ""
   C7_RTLD_LIBDIR ?= '$$(ORIGIN)'/$(C7_RTLD_LIBDIR_REL)
 endif
 
-C7_DIRS = $(sort $(C7_OUT_BINDIR) $(C7_OUT_INCDIR) $(C7_OUT_LIBDIR) $(C7_OUT_PY2DIR) $(C7_OUT_OBJDIR))
+C7_DIRS = $(sort $(C7_OUT_BINDIR) $(C7_OUT_INCDIR) $(C7_OUT_LIBDIR) $(C7_OUT_PY2DIR) $(C7_OUT_PY3DIR) $(C7_OUT_OBJDIR))
 
 C7_CC_IPATH += $(C7_OUT_INCDIR)
 C7_LD_LPATH += $(C7_OUT_LIBDIR)
@@ -93,6 +95,9 @@ define cmd_bin
 endef
 
 $(C7_OUT_PY2DIR)/%.py: %.py
+	$(call cmd_o,cp -p $< $@)
+
+$(C7_OUT_PY3DIR)/%.py: %.py
 	$(call cmd_o,cp -p $< $@)
 
 $(C7_OUT_BINDIR)/%: %.cpp
