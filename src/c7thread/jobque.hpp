@@ -23,7 +23,7 @@ namespace c7::thread {
 template <typename T,
 	  template <typename, typename = std::allocator<T>>
 	  class Container = std::list>
-class jobque: protected queue_base<T, jobque<T, Container>> {
+class jobque: public queue_base<T, jobque<T, Container>> {
 private:
     using base_type = queue_base<T, jobque<T, Container>>;
     friend class queue_base<T, jobque<T, Container>>;
@@ -90,14 +90,6 @@ public:
     }
 
     using base_type::wait_finished;
-    using base_type::close;
-    using base_type::abort;
-    using base_type::reset;
-    using base_type::scan;
-    using base_type::is_aborted;
-    using base_type::is_closed;
-    using base_type::is_closing;
-    using base_type::is_alive;
 };
 
 
@@ -106,7 +98,9 @@ template <typename T,
 	  class Container = std::list>
 class weight_jobque: public queue_base<T, weight_jobque<T, Container>> {
 private:
-    friend class queue_base<T, weight_jobque<T, Container>>;
+    using base_type = queue_base<T, weight_jobque<T, Container>>;
+
+    friend base_type;
 
     Container<std::pair<T, size_t>> que_;
     size_t uncommitted_ = 0;
@@ -180,6 +174,11 @@ public:
 	}
 	return c7result_ok(uncommitted_);
     }
+
+    using base_type::put;
+    using base_type::get;
+    using base_type::commit;
+    using base_type::wait_finished;
 };
 
 

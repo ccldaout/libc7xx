@@ -23,7 +23,7 @@ namespace c7::thread {
 template <typename T,
 	  template <typename, typename = std::allocator<T>>
 	  class Container = std::list>
-class queue: protected queue_base<T, queue<T, Container>> {
+class queue: public queue_base<T, queue<T, Container>> {
 private:
     using base_type = queue_base<T, queue<T, Container>>;
     friend class queue_base<T, queue<T, Container>>;
@@ -79,15 +79,6 @@ public:
 	[[maybe_unused]] size_t weight;
 	return base_type::get(weight, tmo_us);
     }
-
-    using base_type::close;
-    using base_type::abort;
-    using base_type::reset;
-    using base_type::scan;
-    using base_type::is_aborted;
-    using base_type::is_closed;
-    using base_type::is_closing;
-    using base_type::is_alive;
 };
 
 

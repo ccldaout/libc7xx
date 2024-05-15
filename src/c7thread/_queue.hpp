@@ -72,7 +72,6 @@ protected:
 	cv_.notify_all();
     }
 
-public:
     c7::result<> put(T&& item, size_t weight, c7::usec_t tmo_us = -1) {
 	auto unlock = cv_.lock();
 	auto abstime_p = c7::mktimespec(tmo_us);
@@ -140,6 +139,7 @@ public:
 	return c7result_ok();
     }
 
+public:
     void close() {
 	auto unlock = cv_.lock();
 	if (is_idle()) {
