@@ -42,6 +42,7 @@ private:
     class iov_len_t {
     public:
 	explicit iov_len_t(::iovec &iov): iov_(iov) {}
+	iov_len_t& operator=(const iov_len_t& o) { iov_.iov_len = o.iov_.iov_len; return *this; }
 	iov_len_t& operator=(len_t n) { iov_.iov_len = n; return *this; }
 	operator len_t() { return iov_.iov_len; }
 	template <typename T> bool operator==(T v) const { return iov_.iov_len == v; }
@@ -55,6 +56,14 @@ private:
     class iov_base_t {
     public:
 	explicit iov_base_t(::iovec &iov): iov_(iov) {}
+
+	// operator=(const iov_base_t&)
+
+	iov_base_t& operator=(const iov_base_t& o) {
+	    debug_("(const iov_base_t&)");
+	    iov_.iov_base = const_cast<void*>(o.iov_.iov_base);
+	    return *this;
+	}
 
 	// operator=(nullptr)
 
@@ -164,8 +173,8 @@ private:
 	template <typename T> T* as() {
 	    return static_cast<T*>(iov_.iov_base);
 	}
-	template <typename T> const T* as() const {
-	    return static_cast<T*>(iov_.iov_base);
+	template <typename T> T* as() const {
+	    return static_cast<T*>(const_cast<void*>(iov_.iov_base));
 	}
 
 	auto print_as() const {
