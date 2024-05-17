@@ -68,7 +68,8 @@ headers:
 	@echo "#define C7XX_VERSION_MAJOR ($(C7_VER_MAJOR)UL)" >| $(C7_VERSION_HPP)
 	@echo "#define C7XX_VERSION_MINOR ($(C7_VER_MINOR)UL)" >> $(C7_VERSION_HPP)
 	@echo "#define C7XX_VERSION_PATCH ($(C7_VER_PATCH)UL)" >> $(C7_VERSION_HPP)
-	@echo "#define C7XX_VERSION (C7XX_VERSION_MAJOR*1000000 + C7XX_VERSION_MINOR*1000 + C7XX_VERSION_PATCH)" >> $(C7_VERSION_HPP)
+	@echo "#define C7XX_VERSION_make(r0_, r1_, r2_) ((r0_)*1000000UL + (r1_)*1000UL + (r2_))" >> $(C7_VERSION_HPP)
+	@echo "#define C7XX_VERSION C7XX_VERSION_make(C7XX_VERSION_MAJOR, C7XX_VERSION_MINOR, C7XX_VERSION_PATCH)" >> $(C7_VERSION_HPP)
 	@find $(C7_OUT_INCDIR) -name _private.hpp | xargs rm -f
 
 .PHONY: depend

@@ -48,8 +48,16 @@ public:
     template <typename H2> multipart_msgbuf& borrow_iov_from(const multipart_msgbuf<H2, N>& src);
 
     template <typename Port> io_result recv(Port& port);
-    template <typename Port> io_result send(Port& port);
-    template <typename Port> result<> send(portgroup<Port>& ports);
+
+    template <typename Port> io_result send(Port& port, const Header&) const;
+    template <typename Port> io_result send(Port& port) const {
+	return send(port, header);
+    }
+    template <typename Port> result<>  send(portgroup<Port>& ports, const Header&) const;
+    template <typename Port> result<>  send(portgroup<Port>& ports) const {
+	return send(ports, header);
+    }
+
     void dump() const;
 
     iovec_proxy operator[](int n) { return iovec_proxy{iov_[n]}; }
@@ -67,7 +75,7 @@ private:
 	int32_t size[N];
     };
 
-    ::iovec iov_[N + 1];
+    mutable ::iovec iov_[N + 1];
     c7::storage storage_ {whole_align_};
 
     void setup_iov_len(const internal_header&, ::iovec (&)[N+1]);

@@ -154,11 +154,11 @@ multipart_msgbuf<Header, N>::recv(Port& port)
 template <typename Header, int N>
 template <typename Port>
 io_result
-multipart_msgbuf<Header, N>::send(Port& port)
+multipart_msgbuf<Header, N>::send(Port& port, const Header& h) const
 {
     internal_header header;
 
-    header.header = this->header;
+    header.header = h;
     iov_[0].iov_base = &header;
     iov_[0].iov_len  = sizeof(header);
 
@@ -190,7 +190,7 @@ multipart_msgbuf<Header, N>::send(Port& port)
 template <typename Header, int N>
 template <typename Port>
 result<>
-multipart_msgbuf<Header, N>::send(portgroup<Port>& ports)
+multipart_msgbuf<Header, N>::send(portgroup<Port>& ports, const Header& h) const
 {
     ports.clear_errors();
 
@@ -206,7 +206,7 @@ multipart_msgbuf<Header, N>::send(portgroup<Port>& ports)
 
 	std::vector<std::pair<Port, io_result>> errs;
 	for (auto& port: ports_holder) {
-	    if (auto io_res = send(port); !io_res) {
+	    if (auto io_res = send(port, h); !io_res) {
 		errs.emplace_back(std::move(port), std::move(io_res));
 	    }
 	}

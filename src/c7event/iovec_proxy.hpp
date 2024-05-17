@@ -167,7 +167,7 @@ private:
 	template <typename T> operator T* () {
 	    return as<T>();
 	}
-	template <typename T> operator const T* () const {
+	template <typename T> operator T* () const {
 	    return as<T>();
 	}
 	template <typename T> T* as() {
