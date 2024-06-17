@@ -394,6 +394,9 @@ public:
 };
 
 
+extern mlog_writer mlog;
+
+
 } // namespace c7
 
 

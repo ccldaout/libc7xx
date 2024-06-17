@@ -18,6 +18,13 @@
 namespace c7 {
 
 
+static std::vector<dconf_def> sys_defv{
+    C7_DCONF_DEF_I3(C7_DCONF_rsv_91, MLOG_former, "--- (moved to MLOG_MAIN) ---"),
+    C7_DCONF_DEF_I3(C7_DCONF_MLOG, MLOG_MAIN, "mlog level (default:4)"),
+    C7_DCONF_DEF_I3(C7_DCONF_MLOG_LIBC7, MLOG_LIBC7, "mlog level: libc7++"),
+};
+
+
 static std::string dconfpath(const std::string& path, bool exists)
 {
     if (exists) {
@@ -51,23 +58,24 @@ static const dconf_def *finddef(const std::vector<dconf_def>& defv, int index)
     return nullptr;
 }
 
-static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& defv)
+static bool check_user_index(int index)
 {
-    std::vector<dconf_def> c7defv{
-	C7_DCONF_DEF_I(C7_DCONF_MLOG, "mlog level (default:4)"),
-	C7_DCONF_DEF_I(C7_DCONF_MLOG_CATMASK, "mlog category bit mask (default:0)"),
-    };
+    return ((C7_DCONF_USER_INDEX_BASE <= index && index < C7_DCONF_USER_INDEX_LIM) ||
+	    (C7_DCONF_MLOG_1 <= index && index < C7_DCONF_MLOG_LIBC7));
+}
 
-    for (auto [i, d]: defv | c7::nseq::enumerate()) {
-	if (d.index < C7_DCONF_USER_INDEX_BASE ||
-	    d.index >= C7_DCONF_USER_INDEX_LIM) {
+static std::vector<dconf_def> mergedef(const std::vector<dconf_def>& user_defv)
+{
+    auto defv = sys_defv;
+    for (auto [i, d]: user_defv | c7::nseq::enumerate()) {
+	if (!check_user_index(d.index)) {
 	    throw std::runtime_error(
 		c7::format("%{}th dconf index:%{} is out of range", i, d.index));
 	}
-	c7defv.push_back(d);
+	defv.push_back(d);
     }
 
-    return c7defv;
+    return defv;
 }
 
 static c7::file::unique_mmap<c7_dconf_head_t>
@@ -94,6 +102,15 @@ mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
     }
     auto dh = res.value().get();
 
+    if (dh->version < C7_DCONF_VERSION) {
+	for (int i = C7_DCONF_MLOG_BASE; i < C7_DCONF_INDEX_LIM; i++) {
+	    dh->array[i].i = 0;
+	}
+	if (dh->version <= 2) {
+	    dh->array[C7_DCONF_MLOG].i = dh->array[C7_DCONF_rsv_91].i;
+	}
+    }
+
     dh->version = C7_DCONF_VERSION;
     dh->mapsize = n;
 
@@ -116,15 +133,31 @@ mapdconf(const std::string& name, const std::vector<dconf_def>& defv)
     return std::move(res.value());
 }
 
-void dconf::init(const std::string& name, const std::vector<dconf_def>& user_defv)
+void dconf_type::add_defs(const std::vector<dconf_def>& defv)
+{
+    for (auto& d: defv) {
+	if (finddef(sys_defv, d.index) == nullptr) {
+	    sys_defv.push_back(d);
+	}
+    }
+}
+
+void dconf_type::init(const std::string& name, const std::vector<dconf_def>& user_defv)
 {
     auto defv = mergedef(user_defv);
     storage_ = mapdconf(name, defv);
 
+    int level = C7_LOG_BRF;
+
     auto& self = *this;
     if (self[C7_DCONF_MLOG].i == 0) {
-	self[C7_DCONF_MLOG].i = C7_LOG_BRF;
+	if (0 < self[C7_DCONF_rsv_91].i && self[C7_DCONF_rsv_91].i < 8) {
+	    level = self[C7_DCONF_rsv_91].i;
+	}
+	self[C7_DCONF_MLOG].i = level;
     }
+    self[C7_DCONF_rsv_91].i = self[C7_DCONF_MLOG].i;
+
     for (auto& d: defv) {
 	storage_->types[d.index] = d.type;
     }
@@ -180,7 +213,7 @@ static std::vector<dconf_def> makedef(const c7_dconf_head_t *dh)
     return defv;
 }
 
-c7::result<std::vector<dconf_def>> dconf::load(const std::string& name)
+c7::result<std::vector<dconf_def>> dconf_type::load(const std::string& name)
 {
     auto res = loaddconf(name);
     if (!res) {
@@ -202,13 +235,15 @@ static int get_i(const std::string &env, int defval)
     return std::strtol(v, nullptr, 0);
 }
 
-dconf::dconf()
+dconf_type::dconf_type()
 {
     storage_ = mapalt(sizeof(c7_dconf_head_t));
     auto& self = *this;
     self[C7_DCONF_MLOG].i         = get_i("C7_DCONF_MLOG", C7_LOG_BRF);
-    self[C7_DCONF_MLOG_CATMASK].i = get_i("C7_DCONF_MLOG_CATMASK", 0);
 }
+
+
+dconf_type dconf;
 
 
 } // namespace c7

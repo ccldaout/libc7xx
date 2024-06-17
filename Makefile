@@ -30,3 +30,11 @@ push:
 
 pull:
 	git pull; git fetch github; git fetch -f --tags
+
+re_dev:
+	git branch -D dev
+	git push x22 :dev
+	git push github :dev
+	git checkout -b dev
+	git push -u x22 dev
+	git push github dev

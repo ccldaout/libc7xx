@@ -41,27 +41,111 @@ public:
     uint64_t wait(std::function<uint64_t(uint64_t& in_out)> func, c7::usec_t timeout = -1);
 
     void change(uint64_t on_mask, uint64_t off_mask) {
-	change([on_mask,off_mask](uint64_t& in_out){
+	change(
+	    [on_mask,off_mask](uint64_t& in_out){
 		in_out = (in_out|on_mask) & ~off_mask;
 	    });
     }
 
-    uint64_t wait_all(uint64_t expect_all, uint64_t clear, c7::usec_t timeout = -1) {
-	return wait([expect_all,clear](uint64_t& in_out){
-		if ((expect_all & in_out) == expect_all) {
+    uint64_t wait_all(uint64_t expect_allon,
+		      uint64_t clear,
+		      c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_allon,clear](uint64_t& in_out){
+		if ((expect_allon & in_out) == expect_allon) {
 		    in_out &= ~clear;
-		    return expect_all;
+		    return expect_allon;
 		}
 		return 0UL;
 	    }, timeout);
     }
 
-    uint64_t wait_any(uint64_t expect_any, uint64_t clear, c7::usec_t timeout = -1) {
-	return wait([expect_any,clear](uint64_t& in_out){
-		uint64_t ret = (expect_any & in_out);
-		if (ret != 0)
+    uint64_t wait_alloff(uint64_t expect_alloff,
+			 uint64_t clear,
+			 c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_alloff,clear](uint64_t& in_out){
+		if ((expect_alloff & in_out) == 0) {
 		    in_out &= ~clear;
-		return ret;
+		    return expect_alloff;
+		}
+		return 0UL;
+	    }, timeout);
+    }
+
+    uint64_t wait_all_or(uint64_t expect_allon,
+			 uint64_t expect_anyon,
+			 uint64_t clear,
+			 c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_allon,expect_anyon,clear](uint64_t& in_out){
+		if ((expect_allon & in_out) == expect_allon ||
+		    (expect_anyon & in_out) != 0) {
+		    uint64_t ret = in_out & (expect_allon | expect_anyon);
+		    in_out &= ~clear;
+		    return ret;
+		}
+		return 0UL;
+	    }, timeout);
+    }
+
+    uint64_t wait_alloff_or(uint64_t expect_alloff,
+			    uint64_t expect_anyon,
+			    uint64_t clear,
+			    c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_alloff,expect_anyon,clear](uint64_t& in_out){
+		if ((expect_alloff & in_out) == 0 ||
+		    (expect_anyon  & in_out) != 0) {
+		    uint64_t ret = (expect_alloff & ~in_out) | (expect_anyon & in_out);
+		    in_out &= ~clear;
+		    return ret;
+		}
+		return 0UL;
+	    }, timeout);
+    }
+
+    uint64_t wait_any(uint64_t expect_anyon,
+		      uint64_t clear,
+		      c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_anyon,clear](uint64_t& in_out){
+		if ((expect_anyon & in_out) != 0) {
+		    uint64_t ret = (expect_anyon & in_out);
+		    in_out &= ~clear;
+		    return ret;
+		}
+		return 0UL;
+	    }, timeout);
+    }
+
+    uint64_t wait_anyoff(uint64_t expect_anyoff,
+			 uint64_t clear,
+			 c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_anyoff,clear](uint64_t& in_out){
+		if ((expect_anyoff & ~in_out) != 0) {
+		    uint64_t ret = (expect_anyoff & ~in_out);
+		    in_out &= ~clear;
+		    return ret;
+		}
+		return 0UL;
+	    }, timeout);
+    }
+
+    uint64_t wait_anyoff_or(uint64_t expect_anyoff,
+			    uint64_t expect_anyon,
+			    uint64_t clear,
+			    c7::usec_t timeout = -1) {
+	return wait(
+	    [expect_anyoff,expect_anyon,clear](uint64_t& in_out){
+		if ((expect_anyoff & ~in_out) != 0 ||
+		    (expect_anyon  & in_out) != 0) {
+		    uint64_t ret = (expect_anyoff & ~in_out) | (expect_anyon & in_out);
+		    in_out &= ~clear;
+		    return ret;
+		}
+		return 0UL;
 	    }, timeout);
     }
 };
