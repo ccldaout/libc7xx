@@ -22,24 +22,19 @@
 namespace c7::thread::datapara {
 
 
-static inline constexpr int MAX_N_THREAD = 20;
+static inline constexpr int MAX_N_THREAD = 30;
 
 static inline constexpr uint64_t M_FINISH_REQ   = (1UL << 63);
 static inline constexpr uint64_t M_FINISHED_ANY = (1UL << 62);
 
 static inline constexpr uint64_t mask_start_req(int th_idx)
 {
-    return (1UL << (th_idx * 3 + 0));
+    return (1UL << (th_idx * 2 + 0));
 }
 
 static inline constexpr uint64_t mask_paused(int th_idx)
 {
-    return (1UL << (th_idx * 3 + 1));
-}
-
-static inline constexpr uint64_t mask_finished(int th_idx)
-{
-    return (1UL << (th_idx * 3 + 1));
+    return (1UL << (th_idx * 2 + 1));
 }
 
 
@@ -158,7 +153,6 @@ private:
     std::vector<c7::thread::thread> ths_;
 
     uint64_t m_all_paused_;		// include post_thread
-    uint64_t m_all_finished_;		// include post_thread
     uint64_t m_allmain_start_req_;	// exclude post_thread
     uint64_t m_allmain_paused_;		// exclude post_thread
     size_t   main_mt_threshold_;
@@ -196,14 +190,12 @@ driver<Dereived, ItemIn, ItemOut>::init(const configure& cfg)
 
     m_allmain_start_req_ = 0;
     m_allmain_paused_	 = 0;
-    m_all_finished_      = 0;
     for (int i = 0; i < main_n_thread_; i++) {
 	m_allmain_start_req_ |= mask_start_req(i);
 	m_allmain_paused_    |= mask_paused(i);
-	m_all_finished_      |= mask_finished(i);
     }
-    m_all_paused_    = mask_paused(main_n_thread_) | m_allmain_paused_;
-    m_all_finished_ |= mask_finished(main_n_thread_);	// for post_thread
+    m_all_paused_    = (m_allmain_paused_ |
+			mask_paused(main_n_thread_));	// for post_thread
 
     sync_mask_.clear();
 
@@ -312,8 +304,7 @@ driver<Dereived, ItemIn, ItemOut>::main_thread(const int th_idx)
 {
     c7::defer on_exit{[this, th_idx]() {
 			  uint64_t m = (M_FINISHED_ANY|
-					mask_paused(th_idx)|
-					mask_finished(th_idx));
+					mask_paused(th_idx));
 			  sync_mask_.on(m);
 		      }};
 
@@ -377,8 +368,7 @@ driver<Dereived, ItemIn, ItemOut>::post_thread(const int th_idx)
 
     c7::defer on_exit{[this, th_idx]() {
 			  uint64_t m = (M_FINISHED_ANY|
-					mask_paused(th_idx)|
-					mask_finished(th_idx));
+					mask_paused(th_idx));
 			  sync_mask_.on(m);
 		      }};
 

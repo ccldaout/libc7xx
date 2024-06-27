@@ -28,18 +28,19 @@ public:
     using msgbuf_type  = typename BaseService::msgbuf_type;
     using service_type = service_interface<msgbuf_type, port_type>;
 
+private:
     class broker {
     private:
 	friend class delegate;
 
 	c7::thread::mutex mutex_;
-	std::list<std::weak_ptr<service_type>> services_;
+	std::list<std::pair<int, std::weak_ptr<service_type>>> services_;
 
 	auto services() {
 	    std::vector<std::shared_ptr<service_type>> spv;
 	    auto unlock = mutex_.lock();
 	    for (auto it = services_.begin(); it != services_.end();) {
-		auto sp = (*it).lock();
+		auto sp = (*it).second.lock();
 		if (!sp) {
 		    it = services_.erase(it);
 		} else {
@@ -52,13 +53,23 @@ public:
 	}
 
     public:
-	void operator+=(std::shared_ptr<service_type> sp) {
+	void install(int priority, std::shared_ptr<service_type> sp) {
 	    auto unlock = mutex_.lock();
-	    services_.push_back(sp);
+	    auto it = std::find_if(services_.begin(), services_.end(),
+				   [priority](auto& t){ return t.first < priority; });
+	    if (it == services_.end()) {
+		services_.emplace_back(priority, sp);
+	    } else {
+		services_.insert(it, std::make_pair(priority, std::move(sp)));
+	    }
+	}
+
+	void operator+=(std::shared_ptr<service_type> sp) {
+	    install(0, std::move(sp));
 	}
     };
 
-
+public:
     broker ext_delegate;
 
     delegate() {}
@@ -99,8 +110,6 @@ public:
 	    sp->on_error(mon, port, res);
 	}
     }
-
-private:
 };
 
 
