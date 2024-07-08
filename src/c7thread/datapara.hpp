@@ -45,7 +45,7 @@ struct configure {
 };
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 class driver_for_main {
 public:
     driver_for_main() {}
@@ -70,7 +70,7 @@ protected:
 	size_t n = in_items_.size();
 	out_items_.resize(n);
 	for (size_t i = th_idx; i < n; i += n_thread) {
-	    static_cast<Dereived*>(this)->datapara_main_process(th_idx,
+	    static_cast<Derived*>(this)->datapara_main_process(th_idx,
 								in_items_[i],
 								out_items_[i]);
 	}
@@ -86,8 +86,8 @@ private:
 };
 
 
-template <typename Dereived, typename Item>
-class driver_for_main<Dereived, Item, Item> {
+template <typename Derived, typename Item>
+class driver_for_main<Derived, Item, Item> {
 public:
     driver_for_main() {}
 
@@ -108,7 +108,7 @@ protected:
     void apply_main_process(int th_idx, int n_thread) {
 	size_t n = items_.size();
 	for (size_t i = th_idx; i < n; i += n_thread) {
-	    static_cast<Dereived*>(this)->datapara_main_process(th_idx,
+	    static_cast<Derived*>(this)->datapara_main_process(th_idx,
 								items_[i]);
 	}
     }
@@ -124,15 +124,15 @@ private:
 
 // [Requirement]
 //
-// const char *Dereived::datapara_name();
-// void Dereived::datapara_main_process(int th_idx, ItemIn&, ItemOut&);	// ItemIn != ItemOut
-// void Dereived::datapara_main_process(int th_idx, ItemIn&);		// ItemIn == ItemOut
-// void Dereived::datapara_post_process(ItemOut&);
-// void Dereived::datapara_logger(const char *src_name, int src_line,
+// const char *Derived::datapara_name();
+// void Derived::datapara_main_process(int th_idx, ItemIn&, ItemOut&);	// ItemIn != ItemOut
+// void Derived::datapara_main_process(int th_idx, ItemIn&);		// ItemIn == ItemOut
+// void Derived::datapara_post_process(ItemOut&);
+// void Derived::datapara_logger(const char *src_name, int src_line,
 //	    		          uint32_t level, const std::string& s);
 //
-template <typename Dereived, typename ItemIn, typename ItemOut = ItemIn>
-class driver: public driver_for_main<Dereived, ItemIn, ItemOut> {
+template <typename Derived, typename ItemIn, typename ItemOut = ItemIn>
+class driver: public driver_for_main<Derived, ItemIn, ItemOut> {
 public:
     void init(const configure& cfg);
     void start_round();
@@ -141,7 +141,7 @@ public:
     void end();
 
 private:
-    using driver_base = driver_for_main<Dereived, ItemIn, ItemOut>;
+    using driver_base = driver_for_main<Derived, ItemIn, ItemOut>;
 
     size_t max_items_;
     std::vector<ItemIn> rcv_items_;
@@ -162,20 +162,20 @@ private:
     void main_thread(const int th_idx);
     void post_thread(const int th_idx);
     const char *name() {
-	return static_cast<Dereived*>(this)->datapara_name();
+	return static_cast<Derived*>(this)->datapara_name();
     }
     template <typename... Args>
     void logger(const char *src_name, int src_line,
 		uint32_t level, const char *format, const Args&... args) {
-	static_cast<Dereived*>(this)->datapara_logger(src_name, src_line, level,
+	static_cast<Derived*>(this)->datapara_logger(src_name, src_line, level,
 						      c7::format(format, args...));
     }
 };
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::init(const configure& cfg)
+driver<Derived, ItemIn, ItemOut>::init(const configure& cfg)
 {
     main_n_thread_     = std::min(cfg.n_thread, MAX_N_THREAD);
     main_mt_threshold_ = cfg.mt_threshold * main_n_thread_;
@@ -215,17 +215,17 @@ driver<Dereived, ItemIn, ItemOut>::init(const configure& cfg)
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::start_round()
+driver<Derived, ItemIn, ItemOut>::start_round()
 {
     rcv_items_.clear();
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 c7::result<>
-driver<Dereived, ItemIn, ItemOut>::put(const ItemIn& item)
+driver<Derived, ItemIn, ItemOut>::put(const ItemIn& item)
 {
     if (rcv_items_.size() == max_items_) {
 	if (auto res = wait_process(); !res) {
@@ -238,9 +238,9 @@ driver<Dereived, ItemIn, ItemOut>::put(const ItemIn& item)
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 c7::result<>
-driver<Dereived, ItemIn, ItemOut>::end_round()
+driver<Derived, ItemIn, ItemOut>::end_round()
 {
     auto res = wait_process();
     if (res) {
@@ -254,9 +254,9 @@ driver<Dereived, ItemIn, ItemOut>::end_round()
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::end()
+driver<Derived, ItemIn, ItemOut>::end()
 {
     sync_mask_.on(M_FINISH_REQ);
     for (auto& th: ths_) {
@@ -267,9 +267,9 @@ driver<Dereived, ItemIn, ItemOut>::end()
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 c7::result<>
-driver<Dereived, ItemIn, ItemOut>::wait_process()
+driver<Derived, ItemIn, ItemOut>::wait_process()
 {
     const uint64_t m_except = M_FINISHED_ANY;
     uint64_t ret = sync_mask_.wait_all_or(m_allmain_paused_, m_except, 0);
@@ -283,9 +283,9 @@ driver<Dereived, ItemIn, ItemOut>::wait_process()
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::resume_process()
+driver<Derived, ItemIn, ItemOut>::resume_process()
 {
     // resume main_thread
     driver_base::swap_rcv(rcv_items_);
@@ -298,9 +298,9 @@ driver<Dereived, ItemIn, ItemOut>::resume_process()
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::main_thread(const int th_idx)
+driver<Derived, ItemIn, ItemOut>::main_thread(const int th_idx)
 {
     c7::defer on_exit{[this, th_idx]() {
 			  uint64_t m = (M_FINISHED_ANY|
@@ -358,9 +358,9 @@ driver<Dereived, ItemIn, ItemOut>::main_thread(const int th_idx)
 }
 
 
-template <typename Dereived, typename ItemIn, typename ItemOut>
+template <typename Derived, typename ItemIn, typename ItemOut>
 void
-driver<Dereived, ItemIn, ItemOut>::post_thread(const int th_idx)
+driver<Derived, ItemIn, ItemOut>::post_thread(const int th_idx)
 {
     const uint64_t m_my_start_req = mask_start_req(th_idx);
     const uint64_t m_my_paused = mask_paused(th_idx);
@@ -383,7 +383,7 @@ driver<Dereived, ItemIn, ItemOut>::post_thread(const int th_idx)
 	}
 
 	for (auto& data: snd_items_) {
-	    static_cast<Dereived*>(this)->datapara_post_process(data);
+	    static_cast<Derived*>(this)->datapara_post_process(data);
 	}
     }
 }
