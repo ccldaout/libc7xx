@@ -110,7 +110,10 @@ c7::result<unique_mmap<T>> mmap_r(const std::string& path, size_t& size_io)
     if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_r failed");
     }
-    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return c7result_ok(unique_mmap<T>(static_cast<item_type*>(res.value()),
 				      mmap_deleter(size_io)));
 }
 
@@ -121,7 +124,10 @@ c7::result<unique_mmap<T>> mmap_r(int fd, size_t& size_io)
     if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_r failed");
     }
-    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return c7result_ok(unique_mmap<T>(static_cast<item_type*>(res.value()),
 				      mmap_deleter(size_io)));
 }
 
@@ -153,7 +159,10 @@ c7::result<unique_mmap<T>> mmap_rw(const std::string& path, size_t& size_io, boo
     if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_rw failed");
     }
-    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return c7result_ok(unique_mmap<T>(static_cast<item_type*>(res.value()),
 				      mmap_deleter(size_io)));
 }
 
@@ -168,7 +177,10 @@ c7::result<unique_mmap<T>> mmap_rw(int fd, size_t& size_io, bool create)
     if (!res) {
 	return c7result_err(std::move(res), "c7::file::mmap_rw failed");
     }
-    return c7result_ok(unique_mmap<T>(static_cast<T*>(res.value()),
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return c7result_ok(unique_mmap<T>(static_cast<item_type*>(res.value()),
 				      mmap_deleter(size_io)));
 }
 
