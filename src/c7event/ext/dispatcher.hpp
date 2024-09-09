@@ -119,7 +119,7 @@ struct dispatcher_hooks<Msgbuf, Port> {
 //          void callback_default(monitor& mon, port_type& port, const msgbuf_type& msg) override;
 //
 //          // [TYPE 1]
-//          // callback function name is delived by event mnemonic with callback_ prefix.
+//          // callback function name is derived by event mnemonic with callback_ prefix.
 //
 //          void callback_EVENT_NAME(monitor& mon, port_type& port, const msgbuf_type& msg);
 //
@@ -143,13 +143,13 @@ struct dispatcher_hooks<Msgbuf, Port> {
 //          // The dispatcher_setup is defined out of class declaration and it include two
 //          // special comments //[dispatcher:setup begin] and //[dispatcher:setup end].
 //          // The setup_dispatcher.py replace the text surrounded by them with setup codes
-//          // delived from class declaration.
+//          // derived from class declaration.
 //
 //          //[dispatcher:setup begin]
 //          //[dispatcher:setup end]
 //      }
 //
-template <typename DelivedService, typename BaseService, typename... Hooks>
+template <typename DerivedService, typename BaseService, typename... Hooks>
 class dispatcher:
 	public BaseService,
 	public dispatcher_hooks<typename BaseService::msgbuf_type,
@@ -158,11 +158,11 @@ class dispatcher:
 public:
     using port_type = typename BaseService::port_type;
     using msgbuf_type = typename BaseService::msgbuf_type;
-    using memfunc_ptr = void (DelivedService::*)(monitor&, port_type&, const msgbuf_type&);
+    using memfunc_ptr = void (DerivedService::*)(monitor&, port_type&, const msgbuf_type&);
     using hooks_base = dispatcher_hooks<msgbuf_type, port_type, Hooks...>;
 
     dispatcher() {
-	static_cast<DelivedService*>(this)->dispatcher_setup();
+	static_cast<DerivedService*>(this)->dispatcher_setup();
     }
 
     void on_message(monitor& mon, port_type& port, msgbuf_type& msg) override {
@@ -172,7 +172,7 @@ public:
 	    auto [_, vec_index] = (*it).second;
 	    auto mfp = dispatcher_.callback_vec[vec_index];
 	    hooks_base::enter_callback(mon, port, msg);
-	    (static_cast<DelivedService*>(this)->*mfp)(mon, port, msg);
+	    (static_cast<DerivedService*>(this)->*mfp)(mon, port, msg);
 	    hooks_base::exit_callback(mon, port, msg);
 	} else {
 	    callback_default(mon, port, msg);
