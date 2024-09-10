@@ -58,7 +58,10 @@ using unique_cptr = std::unique_ptr<T, malloc_deleter>;
 template <typename T = void>
 unique_cptr<T> make_unique_cptr(void *p = nullptr)
 {
-    return unique_cptr<T>(static_cast<T*>(p), malloc_deleter());
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return unique_cptr<T>(static_cast<item_type*>(p), malloc_deleter());
 }
 
 template <typename R>

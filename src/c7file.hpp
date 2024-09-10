@@ -68,10 +68,13 @@ template <typename T = void>
 c7::result<c7::unique_cptr<T>> read(const std::string& path, size_t& size_io)
 {
     auto res = read_impl(path, size_io);
-    if (!res)
+    if (!res) {
 	return c7result_err(std::move(res), "c7::file::read failed");
-
-    return c7result_ok(c7::make_unique_cptr<T>(static_cast<T*>(res.value())));
+    }
+    using item_type = std::conditional_t<std::is_array_v<T>,
+					 std::remove_all_extents_t<T>,
+					 T>;
+    return c7result_ok(c7::make_unique_cptr<T>(static_cast<item_type*>(res.value())));
 }
 
 template <typename T = void>
