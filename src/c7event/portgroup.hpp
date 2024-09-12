@@ -119,10 +119,10 @@ public:
     }
 
     auto begin() {
-	return make_convert_iter(ports_.begin(), portgroup::cextract);
+	return make_convert_iter(ports_.begin(), portgroup::extract);
     }
     auto end() {
-	return make_convert_iter(ports_.end(), portgroup::cextract);
+	return make_convert_iter(ports_.end(), portgroup::extract);
     }
     auto begin() const {
 	return make_convert_iter(ports_.cbegin(), portgroup::cextract);
