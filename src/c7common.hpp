@@ -116,19 +116,44 @@ public:
 	value_ = o.value_;
 	return *this;
     }
-    operator T() {
+    operator T() const {
 	return value_;
     }
-    T& operator()() {
-	return value_;
-    }
-    const T& operator()() const {
+    T operator()() const {
 	return value_;
     }
     bool operator==(const simple_wrap& o) const {
 	return value_ == o.value_;
     }
     bool operator!=(const simple_wrap& o) const {
+	return !(*this == o);
+    }
+    T print_as() const {
+	return value_;
+    }
+};
+
+// strict wrapper (for basic types)
+#define C7_COMMON_STRICT_WRAP_		(1)
+template <typename T, typename Tag>
+class strict_wrap {
+private:
+    T value_;
+public:
+    strict_wrap(): value_() {}
+    strict_wrap(const T& v): value_(v) {}
+    strict_wrap(const strict_wrap& o): value_(o.value_) {}
+    strict_wrap& operator=(const strict_wrap& o) {
+	value_ = o.value_;
+	return *this;
+    }
+    T operator()() const {
+	return value_;
+    }
+    bool operator==(const strict_wrap& o) const {
+	return value_ == o.value_;
+    }
+    bool operator!=(const strict_wrap& o) const {
 	return !(*this == o);
     }
     T print_as() const {

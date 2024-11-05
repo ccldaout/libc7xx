@@ -29,6 +29,15 @@ struct hash<c7::simple_wrap<T, Tag>>: public hash<T> {
 };
 
 
+#define C7_HASH_STRICT_WRAP_	(1)	// hash for c7::strict_wrapper<,>
+template <typename T, typename Tag>
+struct hash<c7::strict_wrap<T, Tag>>: public hash<T> {
+    size_t operator()(c7::strict_wrap<T, Tag> k) const {
+	return hash<T>()(k);
+    }
+};
+
+
 } // namespace std
 
 

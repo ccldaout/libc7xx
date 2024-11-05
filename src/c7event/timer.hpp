@@ -48,7 +48,7 @@ private:
 
 inline result<timer_fd_t>
 timer_start(c7::usec_t beg, c7::usec_t interval,
-	    std::function<void(int, uint64_t)> callback)
+	    std::function<void(timer_fd_t, uint64_t)> callback)
 {
     return timer_provider::manage(default_event_monitor(),
 				     beg, interval, std::move(callback), false);
@@ -57,14 +57,14 @@ timer_start(c7::usec_t beg, c7::usec_t interval,
 inline result<timer_fd_t>
 timer_start(monitor& mon,
 	    c7::usec_t beg, c7::usec_t interval,
-	    std::function<void(int, uint64_t)> callback)
+	    std::function<void(timer_fd_t, uint64_t)> callback)
 {
     return timer_provider::manage(mon, beg, interval, std::move(callback), false);
 }
 
 inline result<timer_fd_t>
 timer_start_abs(c7::usec_t beg, c7::usec_t interval,
-		std::function<void(int, uint64_t)> callback)
+		std::function<void(timer_fd_t, uint64_t)> callback)
 {
     return timer_provider::manage(default_event_monitor(),
 				     beg, interval, std::move(callback), true);
@@ -73,7 +73,7 @@ timer_start_abs(c7::usec_t beg, c7::usec_t interval,
 inline result<timer_fd_t>
 timer_start_abs(monitor& mon,
 		c7::usec_t beg, c7::usec_t interval,
-		std::function<void(int, uint64_t)> callback)
+		std::function<void(timer_fd_t, uint64_t)> callback)
 {
     return timer_provider::manage(mon, beg, interval, std::move(callback), true);
 }

@@ -31,7 +31,6 @@ static void mark_exiting()
                                  thread::impl
 ----------------------------------------------------------------------------*/
 
-
 class thread::impl: public std::enable_shared_from_this<thread::impl> {
     // ------------ types ------------
 private:
@@ -44,12 +43,13 @@ private:
 	STARTING,	// thread::impl::start is called but thread() is not started.
 	START_FAILED,	// failed to run (per-thread initializer failed)
 	RUNNING,	// target() is running.
-	FINISHED,	// both target() and finalize() was finished (pthread was finished).
+	FINISHED,	// both target() and finalize() finished (pthread finished).
     };
 
     // ------------ static data ------------
     static std::atomic<uint64_t> id_counter_;
     static impl main_thread_;
+    static impl undef_thread_;
     static thread_local impl* current_thread_;
 
     // ------------ instance data ------------
@@ -107,7 +107,7 @@ public:
 
     bool join(c7::usec_t timeout);
 
-    thread::exit_type status() {
+    thread::exit_type status() const {
 	return exit_;
     }
 
@@ -115,29 +115,43 @@ public:
 	return term_result_;
     }
 
-    bool is_alive() {
-	return (state_ != IDLE && state_ != FINISHED);
+    const c7::result<>& terminate_result() const {
+	return term_result_;
     }
 
-    bool is_running() {
-	return (state_ == STARTING || state_ == RUNNING);
+    bool is_alive() const {
+	auto s = state_;
+	return (s != IDLE && s != FINISHED);
     }
 
-    const char *name() {
+    bool is_running() const {
+	auto s = state_;
+	return (s == STARTING || s == RUNNING);
+    }
+
+    const char *name() const {
 	return name_.c_str();
     }
 
-    uint64_t id() {
+    uint64_t id() const {
 	return id_;
     }
 
-    void signal(int sig) {
+    void signal(int sig) const {
 	if (state_ == RUNNING) {
 	    ::pthread_kill(pthread_, sig);
 	}
     }
 
     void print(std::ostream& out, const std::string&) const;
+
+    static void link_current(impl *pimpl) {
+	pimpl->id_ = id_counter_++;
+	if (pimpl->name_.empty()) {
+	    pimpl->name_ = "th<" + std::to_string(pimpl->id_) + ">";
+	}
+	current_thread_ = pimpl;
+    }
 
     static impl *current() {
 	return current_thread_;
@@ -161,25 +175,29 @@ public:
 };
 
 
-std::atomic<uint64_t> thread::impl::id_counter_;
-thread::impl  thread::impl::main_thread_;
-thread_local thread::impl* thread::impl::current_thread_;
+std::atomic<uint64_t> thread::impl::id_counter_ = 2;
+thread::impl thread::impl::main_thread_;
+thread::impl thread::impl::undef_thread_;
+thread_local thread::impl* thread::impl::current_thread_ = &thread::impl::undef_thread_;
 
 
 thread::impl::impl():
-    id_(id_counter_++),
-    name_("th<" + std::to_string(id_) + ">"),
+    id_(0),
     exit_(thread::NA_IDLE),
     state_(IDLE)
 {
     (void)pthread_attr_init(&attr_);
     (void)pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
     if (this == &main_thread_) {
-	current_thread_ = this;
+	id_   = 1;
 	name_ = "main";
-    }
-    if (id_ == 0) {
+	current_thread_ = this;
 	std::atexit(mark_exiting);
+    } else if (this == &undef_thread_) {
+	id_   = 0;
+	name_ = "?";
+    } else if (current_thread_ == &undef_thread_) {
+	link_current(this);
     }
 }
 
@@ -214,7 +232,7 @@ thread::impl::entry_point(void *arg)
 {
     auto spp = static_cast<std::shared_ptr<impl>*>(arg);
     auto shared_this = *spp;
-    current_thread_ = shared_this.get();
+    link_current(shared_this.get());
     shared_this->thread();
     return nullptr;
 }
@@ -246,14 +264,20 @@ thread::impl::thread()
 				    *this, e.what());
     } catch (...) {
 	exit_ = thread::CRASH;
-	term_result_ = c7result_err(EFAULT, "thread (${}) is terminated by unknown exception.",
+	term_result_ = c7result_err(EFAULT, "thread (%{}) is terminated by unknown exception.",
 				    *this);
     }
 
-    if (finalize_) {
-	finalize_();
+    try {
+	if (finalize_) {
+	    finalize_();
+	}
+	on_finish_(proxy(shared_from_this()));
+    } catch (...) {
+	exit_ = thread::CRASH;
+	term_result_ << c7result_err(EFAULT, "thread (%{}) is terminated by exception on finalize.",
+				    *this);
     }
-    on_finish_(proxy(shared_from_this()));
 
     cv_.lock_notify_all([this](){ state_ = FINISHED; });
 }
@@ -383,7 +407,7 @@ uint64_t thread::id() const
     return pimpl->id();
 }
 
-void thread::signal(int sig)
+void thread::signal(int sig) const
 {
     pimpl->signal(sig);
 }

@@ -65,20 +65,10 @@ inline constexpr bool is_empty_v = is_empty<Args...>::value;
 
 // --  count<T, ...> -> number of T,...
 
-template <typename T, typename... Types>
-static inline constexpr size_t count_()
-{
-    if constexpr (is_empty_v<Types...>) {
-	return 0;
-    } else {
-	return 1 + count_<Types...>();
-    }
-}
-
 template <typename... Types>
 static inline constexpr size_t count()
 {
-    return count_<void, Types...>();
+    return sizeof...(Types);
 }
 
 
@@ -96,6 +86,9 @@ template <int N, typename T, typename... Types>
 struct at<N, T, Types...> {
     typedef typename at<N-1, Types...>::type type;
 };
+
+template <int N, typename... Types>
+struct at<N, std::tuple<Types...>>: public at<N, Types...> {};
 
 template <int N, typename... Types>
 using at_t = typename at<N, Types...>::type;
@@ -268,7 +261,7 @@ template <typename>
 struct count_of_tuple {};
 template <typename... Types>
 struct count_of_tuple<std::tuple<Types...>> {
-    static constexpr int value = count<Types...>();
+    static constexpr int value = sizeof...(Types);
 };
 template <typename T>
 inline constexpr int count_of_tuple_v =

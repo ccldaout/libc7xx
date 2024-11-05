@@ -39,17 +39,17 @@ private:
 
 public:
     enum exit_type {
-	NA_IDLE,	// thread is not started yet.
-	NA_RUNNING,	// thread is running.
-	EXIT,		// thread call self::exit() or return from target function.
-	ABORT,		// thread call self::abort()
-	CRASH,		// thread is terminated by exception.
+	NA_IDLE,	// not started yet.
+	NA_RUNNING,	// running.
+	EXIT,		// terminated by self::exit() or return from target function.
+	ABORT,		// terminated by self::abort()
+	CRASH,		// terminated by exception.
     };
 
     c7::delegate<void, proxy>::proxy on_start;
     c7::delegate<void, proxy>::proxy on_finish;
 
-    thread(thread&) = delete;
+    thread(const thread&) = delete;
     thread& operator=(const thread&) = delete;
 
     thread();
@@ -75,13 +75,14 @@ public:
 
     bool join(c7::usec_t timeout = -1);
     exit_type status() const;
-    c7::result<>& terminate_result();
+    c7::result<>&       terminate_result();
+    const c7::result<>& terminate_result() const;
 
     bool is_alive() const;
     bool is_self() const;
     const char *name() const;
     uint64_t id() const;
-    void signal(int sig);
+    void signal(int sig) const;
 };
 
 
