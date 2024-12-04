@@ -19,14 +19,14 @@
 #include <c7format/format_r3.hpp>
 #include <c7result.hpp>
 #include <c7strmbuf/hybrid.hpp>
-//#include <c7thread.hpp>
 #include <c7utils.hpp>
 #include <string>
 
 
-// API support flags
+// API support 
 
-#define C7_MLOG_API_set_callback	(1U<<0)		// set_callback, enable_stdout
+#define C7_MLOG_API_set_callback	(1U)		// set_callback, enable_stdout
+#define C7_MLOG_API_partition		(1U)		// init(..., logsize_b_v, ...)
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -74,10 +74,17 @@ public:
     mlog_writer& operator=(mlog_writer&& o);
 
     result<> init(const std::string& name,
-		      size_t hdrsize_b,
-		      size_t logsize_b,
-		      uint32_t w_flags,
-		      const char *hint = nullptr);
+		  size_t hdrsize_b,
+		  size_t logsize_b,
+		  uint32_t w_flags,
+		  const char *hint = nullptr);
+
+    // C7_MLOG_API_partition
+    result<> init(const std::string& name,
+		  size_t hdrsize_b,
+		  std::vector<size_t> logsize_b_v,	// partition size
+		  uint32_t w_flags,
+		  const char *hint = nullptr);
 
     void set_callback(callback_t);
 
