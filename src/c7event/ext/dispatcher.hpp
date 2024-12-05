@@ -21,8 +21,6 @@
 namespace c7::event::ext {
 
 
-namespace {
-
 c7typefunc_define_has_member(enter_callback);
 c7typefunc_define_has_member(exit_callback);
 
@@ -55,8 +53,6 @@ struct dispatcher_hooks<Msgbuf, Port> {
     void enter_callback(monitor&, Port&, Msgbuf&) {}
     void exit_callback(monitor&, Port&, Msgbuf&) {}
 };
-
-}
 
 
 // event dispatch extention
