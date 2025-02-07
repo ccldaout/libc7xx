@@ -130,22 +130,22 @@ public:
     // for thread (producer)
 
     auto& operator<<(const T& data) {
+	v_th_.push_back(data);
 	if (v_th_.size() == v_th_.capacity()) {
 	    if (!dbuf_.put(v_th_)) {
 		c7::thread::self::exit();
 	    }
 	}
-	v_th_.push_back(data);
 	return *this;
     }
 
     auto& operator<<(T&& data) {
+	v_th_.push_back(std::move(data));
 	if (v_th_.size() == v_th_.capacity()) {
 	    if (!dbuf_.put(v_th_)) {
 		c7::thread::self::exit();
 	    }
 	}
-	v_th_.push_back(std::move(data));
 	return *this;
     }
 

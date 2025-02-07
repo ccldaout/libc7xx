@@ -38,20 +38,20 @@ public:
     }
 
     auto& operator<<(const T& data) {
+	data_.push_back(data);
 	if (data_.size() == data_.capacity()) {
 	    co_.yield();
 	    data_.clear();
 	}
-	data_.push_back(data);
 	return *this;
     }
 
     auto& operator<<(T&& data) {
+	data_.push_back(std::move(data));
 	if (data_.size() == data_.capacity()) {
 	    co_.yield();
 	    data_.clear();
 	}
-	data_.push_back(std::move(data));
 	return *this;
     }
 
