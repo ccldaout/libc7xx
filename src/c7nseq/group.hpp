@@ -90,6 +90,10 @@ public:
     auto operator*() {
 	return range(group_beg_, group_end_);
     }
+
+    auto operator*() const {
+	return range(group_beg_, group_end_);
+    }
 };
 
 
@@ -159,6 +163,10 @@ public:
     }
 
     decltype(auto) operator*() {
+	return std::move(group_);
+    }
+
+    decltype(auto) operator*() const {
 	return std::move(group_);
     }
 };

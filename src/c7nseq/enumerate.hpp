@@ -64,6 +64,10 @@ public:
 	return std::pair<int, decltype(*it_)>(i_, *it_);
     }
 
+    decltype(auto) operator*() const {
+	return std::pair<int, decltype(*it_)>(i_, *it_);
+    }
+
     // for random access
 
     auto& operator--() {

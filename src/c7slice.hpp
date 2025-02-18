@@ -7,7 +7,7 @@
  * http://opensource.org/licenses/mit-license.php
  *
  * Google spreadsheets:
- * (nothing)
+ * https://docs.google.com/spreadsheets/d/1PImFGZUZ0JtXuJrrQb8rQ7Zjmh9SqcjTBIe_lkNCl1E/edit?gid=1991115822
  */
 #ifndef C7_SLICE_HPP_LOADED_
 #define C7_SLICE_HPP_LOADED_
@@ -16,6 +16,9 @@
 
 #include <array>
 #include <vector>
+
+
+#define C7_SLICE_API_COPY_TO_		(1)
 
 
 namespace c7 {
@@ -163,8 +166,8 @@ public:
 
     slice() {}
 
-    slice(T *top, ptrdiff_t n, ptrdiff_t gap):
-	top_(top), n_(n), gap_(gap) {}
+    slice(T *top, size_t n, ptrdiff_t gap):
+	top_(top), n_(static_cast<ptrdiff_t>(n)), gap_(gap) {}
 
     slice(const slice& o):
 	top_(o.top_), n_(o.n_), gap_(o.gap_) {}
@@ -188,12 +191,12 @@ public:
 	return n_;
     }
 
-    T* data() {
-	return &(*this)[0];
+    ptrdiff_t gap() const {
+	return gap_;
     }
 
-    auto gap() {
-	return gap_;
+    T* data() {
+	return &(*this)[0];
     }
 
     const T* data() const {
@@ -217,43 +220,39 @@ public:
     }
 
     template <typename C>
-    C convert() {
-	return C{begin(), end()};
-    }
-
-    template <typename C>
     C convert() const {
-	return const_cast<slice*>(this)->convert<C>();
-    }
-
-    template <template <typename...> class C>
-    C<T> convert() {
-	return C<T>{begin(), end()};
+	return C{begin(), end()};
     }
 
     template <template <typename...> class C>
     C<T> convert() const {
-	return const_cast<slice*>(this)->convert<C>();
+	return C<T>{begin(), end()};
     }
 
+    // C7_SLICE_API_COPY_TO_
+
     template <typename C>
-    std::back_insert_iterator<C> back_insert(C& c) {
+    std::back_insert_iterator<C> copy_to(C& c) const {
 	return std::copy(begin(), end(), std::back_inserter(c));
     }
 
     template <typename C>
-    std::back_insert_iterator<C> back_insert(C& c) const {
-	return const_cast<slice*>(this)->back_insert(c);
-    }
-
-    template <typename C>
-    std::back_insert_iterator<C> copy(std::back_insert_iterator<C> it) {
+    std::back_insert_iterator<C> copy_to(std::back_insert_iterator<C> it) const {
 	return std::copy(begin(), end(), it);
     }
 
+    // deprecated
+
     template <typename C>
+    [[deprecated("please use copy_to()")]]
+    std::back_insert_iterator<C> back_insert(C& c) const {
+	return back_insert_to(c);
+    }
+
+    template <typename C>
+    [[deprecated("please use copy_to()")]]
     std::back_insert_iterator<C> copy(std::back_insert_iterator<C> it) const {
-	return const_cast<slice*>(this)->copy(it);
+	return copy_to(it);
     }
 
 private:

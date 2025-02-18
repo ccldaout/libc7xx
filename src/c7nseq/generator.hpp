@@ -156,6 +156,10 @@ public:
     decltype(auto) operator*() {
 	return std::move(ctx_->data_[idx_]);
     }
+
+    decltype(auto) operator*() const {
+	return std::move(ctx_->data_[idx_]);
+    }
 };
 
 

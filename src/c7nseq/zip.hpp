@@ -97,6 +97,10 @@ public:
     auto operator*() {
 	return tuple_transform(its_, [](auto& it) { return *it; });
     }
+
+    auto operator*() const {
+	return tuple_transform(its_, [](auto& it) { return *it; });
+    }
 };
 
 
@@ -192,6 +196,10 @@ public:
     }
 
     decltype(auto) operator*() {
+	return std::pair<decltype(*it1_), decltype(*it2_)>(*it1_, *it2_);
+    }
+
+    decltype(auto) operator*() const {
 	return std::pair<decltype(*it1_), decltype(*it2_)>(*it1_, *it2_);
     }
 };

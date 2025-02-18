@@ -84,6 +84,10 @@ public:
     decltype(auto) operator*() {
 	return rbuf_[idx_ % n_];
     }
+
+    decltype(auto) operator*() const {
+	return rbuf_[idx_ % n_];
+    }
 };
 
 

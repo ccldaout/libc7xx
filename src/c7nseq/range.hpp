@@ -63,6 +63,10 @@ public:
 	return *it_;
     }
 
+    decltype(auto) operator*() const {
+	return *it_;
+    }
+
     // for random access
 
     auto& operator--() {
@@ -161,6 +165,10 @@ public:
     }
 
     T operator*() {
+	return beg_ + step_ * it_;
+    }
+
+    T operator*() const {
 	return beg_ + step_ * it_;
     }
 

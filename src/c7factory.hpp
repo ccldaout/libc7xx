@@ -14,108 +14,196 @@
 #include <c7common.hpp>
 
 
+#include <memory>
+
+
+namespace c7::factory_util {
+
+
+// utility: smart pointer traits
+
+template <template <typename ...> class SmartPtr>
+struct smartptr_traits;
+
+template <>
+struct smartptr_traits<std::shared_ptr> {
+    template <typename T>
+    using type = std::shared_ptr<T>;
+
+    template <typename T, typename... Args>
+    static type<T> make(Args&&... args) {
+	return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+};
+
+template <>
+struct smartptr_traits<std::unique_ptr> {
+    template <typename T>
+    using type = std::unique_ptr<T>;
+
+    template <typename T, typename... Args>
+    static type<T> make(Args&&... args) {
+	return std::make_unique<T>(std::forward<Args>(args)...);
+    }
+};
+
+
+// utility: type function: Target -> configure type of Target
+
+template <typename Target>
+struct target_config {
+    using type = typename Target::config_type;
+};
+
+template <typename Target>
+using target_config_t = typename target_config<Target>::type;
+
+
+} // c7::factory_util
+
+
+//------------------------------------------------------------------------------
+
+
 namespace c7::factory_type1 {
 
 
-// utility: type function
-template <typename Target>
-struct target_config_type {
-    using type = typename Target::config_type;
-};
-template <typename Target>
-using target_config_type_t = typename target_config_type<Target>::type;
+using namespace c7::factory_util;
 
 
 // template to build abstract base class of factroy
 
-template <typename TargetInterface, typename... Configs>
-struct interface;
+template <template <typename...> class SmartPtr,
+	  typename...>
+struct interface_impl;
 
-template <typename TargetInterface>
-struct interface<TargetInterface> {
-    virtual ~interface() {}
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface>
+struct interface_impl<SmartPtr, TargetInterface> {
+    virtual ~interface_impl() {}
     virtual void make() const = 0;
 };
 
-template <typename TargetInterface, typename Config, typename... Configs>
-struct interface<TargetInterface, Config, Configs...>:
-	public interface<TargetInterface, Configs...> {
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename Config, typename... Configs>
+struct interface_impl<SmartPtr, TargetInterface, Config, Configs...>:
+	public interface_impl<SmartPtr, TargetInterface, Configs...> {
 
-    using interface<TargetInterface, Configs...>::make;
+    using interface_impl<SmartPtr, TargetInterface, Configs...>::make;
+    using traits = smartptr_traits<SmartPtr>;
 
-    virtual std::unique_ptr<TargetInterface> make(const Config& c) const = 0;
+    virtual typename traits::type<TargetInterface> make(const Config& c) const = 0;
 };
+
+template <template <typename...> class SmartPtr,
+	  typename... T>
+using interface_x = interface_impl<SmartPtr, T...>;
+
+template <typename... T>
+using interface = interface_x<std::unique_ptr, T...>;
+
+template <typename... T>
+using interface_sp = interface_x<std::shared_ptr, T...>;
 
 
 // template to build factroy
 //
 // [Requirement] Target::config_type is type of argument of constructor
 
-template <typename TargetInterface, typename Base, typename... Target>
+template <template <typename...> class SmartPtr,
+	  typename...>
 struct factory_impl;
 
-template <typename TargetInterface, typename Base>
-struct factory_impl<TargetInterface, Base>: public Base {
-    using Base::make;
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename FactoryInterface>	  
+struct factory_impl<SmartPtr, TargetInterface, FactoryInterface>: public FactoryInterface {
+    using FactoryInterface::make;
     void make() const override {}
 };
 
-template <typename TargetInterface, typename Base, typename Target, typename... Targets>
-struct factory_impl<TargetInterface, Base, Target, Targets...>:
-	public factory_impl<TargetInterface, Base, Targets...> {
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename FactoryInterface,
+	  typename Target, typename... Targets>
+struct factory_impl<SmartPtr, TargetInterface, FactoryInterface, Target, Targets...>:
+	public factory_impl<SmartPtr, TargetInterface, FactoryInterface, Targets...> {
 
-    using factory_impl<TargetInterface, Base, Targets...>::make;
+    using factory_impl<SmartPtr, TargetInterface, FactoryInterface, Targets...>::make;
+    using traits = smartptr_traits<SmartPtr>;
 
-    std::unique_ptr<TargetInterface> make(const target_config_type_t<Target>& c) const override {
-	return std::make_unique<Target>(c);
+    typename traits::type<TargetInterface> make(const target_config_t<Target>& c) const override {
+	return traits::template make<Target>(c);
     }
 };
 
-template <typename TargetInterface, typename... Targets>
-struct factory:
-	public factory_impl<TargetInterface,
-			    interface<TargetInterface,
-				      target_config_type_t<Targets>...>,
-			    Targets...> {
-    using factory_impl<TargetInterface,
-		       interface<TargetInterface,
-				 target_config_type_t<Targets>...>,
-		       Targets...>::make;
-};
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename... Targets>
+using factory_x = factory_impl<SmartPtr,
+			       TargetInterface,
+			       interface_x<SmartPtr, TargetInterface, target_config_t<Targets>...>,
+			       Targets...>;
+
+template <typename TargetInterface,
+	  typename... Targets>
+using factory = factory_x<std::unique_ptr, TargetInterface, Targets...>;
+
+template <typename TargetInterface,
+	  typename... Targets>
+using factory_sp = factory_x<std::shared_ptr, TargetInterface, Targets...>;
 
 
 } // namespace c7::factory_type1
 
 
+//------------------------------------------------------------------------------
+
+
 namespace c7::factory_type1c {
 
 
-template <typename TargetInterface, typename Base, typename... Configs>
+using namespace c7::factory_util;
+
+
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename FactoryInterface,
+	  typename... Configs>
 struct factory_impl;
 
-template <typename TargetInterface, typename Base>
-struct factory_impl<TargetInterface, Base>: public Base {
-    using Base::make;
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename FactoryInterface>
+struct factory_impl<SmartPtr, TargetInterface, FactoryInterface>:
+	public FactoryInterface {
+    using FactoryInterface::make;
     void set_maker() {}
     void assign() {}
     void make() const override {}
 };
 
-template <typename TargetInterface, typename Base, typename Config, typename... Configs>
-struct factory_impl<TargetInterface, Base, Config, Configs...>:
-	public factory_impl<TargetInterface, Base, Configs...> {
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename FactoryInterface,
+	  typename Config, typename... Configs>
+struct factory_impl<SmartPtr, TargetInterface, FactoryInterface, Config, Configs...>:
+	public factory_impl<SmartPtr, TargetInterface, FactoryInterface, Configs...> {
 private:
-    using ret_type = std::unique_ptr<TargetInterface>;
+    using ret_type = typename smartptr_traits<SmartPtr>::type<TargetInterface>;
     std::function<ret_type(const Config&)> maker_;
 
 public:
-    using factory_impl<TargetInterface, Base, Configs...>::set_maker;
-    using factory_impl<TargetInterface, Base, Configs...>::assign;
-    using factory_impl<TargetInterface, Base, Configs...>::make;
+    using factory_impl<SmartPtr, TargetInterface, FactoryInterface, Configs...>::set_maker;
+    using factory_impl<SmartPtr, TargetInterface, FactoryInterface, Configs...>::assign;
+    using factory_impl<SmartPtr, TargetInterface, FactoryInterface, Configs...>::make;
 
     template <typename Target>
     const auto& set_maker(const Config&) {
-	maker_ = [](const Config& c){ return std::make_unique<Target>(c); };
+	maker_ = [](const Config& c){
+		     return smartptr_traits<SmartPtr>::template make<Target>(c);
+		 };
 	return maker_;
     }
 
@@ -128,70 +216,93 @@ public:
     }
 };
 
-template <typename TargetInterface, typename... Configs>
-struct factory:
-	public factory_impl<TargetInterface,
-			    factory_type1::interface<TargetInterface, Configs...>,
-			    Configs...> {
-private:
-    using base_type = factory_impl<TargetInterface,
-				   factory_type1::interface<TargetInterface, Configs...>,
-				   Configs...>;
-    using base_type::set_maker;
-
-public:
-    using base_type::assign;
-    using base_type::make;
-
+template <template <typename...> class SmartPtr,
+	  typename TargetInterface,
+	  typename... Configs>
+struct factory_x: public factory_impl<SmartPtr,
+				      TargetInterface,
+				      factory_type1::interface_x<SmartPtr, TargetInterface, Configs...>,
+				      Configs...> {
     template <typename Target>
     const auto& set() {
 	return this->template set_maker<Target>(typename Target::config_type{});
     }
 };
 
+template <typename TargetInterface,
+	  typename... Configs>
+using factory = factory_x<std::unique_ptr, TargetInterface, Configs...>;
+
+template <typename TargetInterface,
+	  typename... Configs>
+using factory_sp = factory_x<std::shared_ptr, TargetInterface, Configs...>;
+
 
 } // namespace c7::factory_type1c;
 
 
+//------------------------------------------------------------------------------
+
+
 namespace c7::factory_type2 {
+
+
+using namespace c7::factory_util;
 
 
 template <typename T>
 struct tag {};
 
 
-template <typename... Itfs>
+// interface (type2)
+
+template <template <typename...> class SmartPtr,
+	  typename... Itfs>
 struct interface_impl;
 
-template <>
-struct interface_impl<> {
+template <template <typename...> class SmartPtr>
+struct interface_impl<SmartPtr> {
     virtual ~interface_impl() {}
     virtual void make_() const = 0;
 };
 
-template <typename Itf, typename... Itfs>
-struct interface_impl<Itf, Itfs...>:
-	public interface_impl<Itfs...> {
-    using interface_impl<Itfs...>::make_;
-    virtual std::unique_ptr<Itf> make_(tag<Itf>) const = 0;
+template <template <typename...> class SmartPtr,
+	  typename Itf, typename... Itfs>
+struct interface_impl<SmartPtr, Itf, Itfs...>:
+	public interface_impl<SmartPtr, Itfs...> {
+    using interface_impl<SmartPtr, Itfs...>::make_;
+    using pointer_type = typename smartptr_traits<SmartPtr>::type<Itf>;
+    virtual pointer_type make_(tag<Itf>) const = 0;
 };
 
-template <typename... Itfs>
-struct interface:
-	public interface_impl<Itfs...> {
+template <template <typename...> class SmartPtr,
+	  typename... Itfs>
+struct interface_x:
+	public interface_impl<SmartPtr, Itfs...> {
     template <typename Itf>
-    std::unique_ptr<Itf> make() const {
+    auto make() const {
 	return this->make_(tag<Itf>{});
     }
 
 };
 
+template <typename... Itfs>
+using interface = interface_x<std::unique_ptr, Itfs...>;
 
-template <int N, typename...>
+template <typename... Itfs>
+using interface_sp = interface_x<std::shared_ptr, Itfs...>;
+
+
+// at (type2)
+
+template <int N,
+	  typename...>
 struct at;
 
-template <int N, typename... Itfs>
-struct at<N, interface<Itfs...>> {
+template <int N,
+	  template <typename...> class SmartPtr,
+	  typename... Itfs>
+struct at<N, interface_x<SmartPtr, Itfs...>> {
     using type = typename c7::typefunc::at_t<N, Itfs...>;
 };
 
@@ -199,61 +310,106 @@ template <int N, typename T>
 using at_t = typename at<N, T>::type;
 
 
-template <int N, typename FactoryItfs, typename... Items>
+// factory_impl (type2)
+
+template <template <typename...> class SmartPtr,
+	  int N,
+	  typename FactoryItfs,
+	  typename... Items>
 struct factory_impl;
 
-template <int N, typename FactoryItfs>
-struct factory_impl<N, FactoryItfs>:
+template <template <typename...> class SmartPtr,
+	  int N,
+	  typename FactoryItfs>
+struct factory_impl<SmartPtr, N, FactoryItfs>:
 	public FactoryItfs {
     void make_() const {}
 };
 
-template <int N, typename FactoryItfs, typename Item, typename... Items>
-struct factory_impl<N, FactoryItfs, Item, Items...>:
-	public factory_impl<N+1, FactoryItfs, Items...> {
+template <template <typename...> class SmartPtr,
+	  int N,
+	  typename FactoryItfs,
+	  typename Item, typename... Items>
+struct factory_impl<SmartPtr, N, FactoryItfs, Item, Items...>:
+	public factory_impl<SmartPtr, N+1, FactoryItfs, Items...> {
 private:
     using Itf = at_t<N, FactoryItfs>;
 public:
-    using factory_impl<N+1, FactoryItfs, Items...>::make_;
-    std::unique_ptr<Itf> make_(tag<Itf>) const {
-	return std::make_unique<Item>();
+    using factory_impl<SmartPtr, N+1, FactoryItfs, Items...>::make_;
+    using pointer_type = typename smartptr_traits<SmartPtr>::type<Itf>;
+    pointer_type make_(tag<Itf>) const {
+	return smartptr_traits<SmartPtr>::template make<Item>();
     }
 };
 
-template <typename FactoryItfs, typename... Items>
-struct factory:
-	public factory_impl<0, FactoryItfs, Items...> {
-};
+template <template <typename...> class SmartPtr,
+	  typename FactoryItfs,
+	  typename... Items>
+using factory_x = factory_impl<SmartPtr, 0, FactoryItfs, Items...>;
+
+template <typename FactoryItfs,
+	  typename... Items>
+using factory = factory_x<std::unique_ptr, FactoryItfs, Items...>;
+
+template <typename FactoryItfs,
+	  typename... Items>
+using factory_sp = factory_x<std::shared_ptr, FactoryItfs, Items...>;
 
 
 } // namespace c7::factory_type2;
 
 
+//------------------------------------------------------------------------------
+
+
 namespace c7::factory_type3 {
 
 
-template <typename... Itfs>
-struct interface;
+using namespace c7::factory_util;
 
-template <>
-struct interface<> {
-    virtual ~interface() {}
+
+// interface (type3)
+
+template <template <typename...> class SmartPtr,
+	  typename... Itfs>
+struct interface_impl;
+
+template <template <typename...> class SmartPtr>
+struct interface_impl<SmartPtr> {
+    virtual ~interface_impl() {}
     virtual void make() const = 0;
 };
 
-template <typename Itf, typename... Itfs>
-struct interface<Itf, Itfs...>:
-	public interface<Itfs...> {
-    using interface<Itfs...>::make;
-    virtual std::unique_ptr<Itf> make(const typename Itf::config_type&) const = 0;
+template <template <typename...> class SmartPtr,
+	  typename Itf, typename... Itfs>
+struct interface_impl<SmartPtr, Itf, Itfs...>:
+	public interface_impl<SmartPtr, Itfs...> {
+    using interface_impl<SmartPtr, Itfs...>::make;
+    using pointer_type = typename smartptr_traits<SmartPtr>::type<Itf>;
+    virtual pointer_type make(const typename Itf::config_type&) const = 0;
 };
 
+template <template <typename...> class SmartPtr,
+	  typename... Itfs>
+using interface_x = interface_impl<SmartPtr, Itfs...>;
 
-template <int N, typename...>
+template <typename... Itfs>
+using interface = interface_x<std::unique_ptr, Itfs...>;
+
+template <typename... Itfs>
+using interface_sp = interface_x<std::shared_ptr, Itfs...>;
+
+
+// at (type3)
+
+template <int N,
+	  typename...>
 struct at;
 
-template <int N, typename... Itfs>
-struct at<N, interface<Itfs...>> {
+template <int N,
+	  template <typename...> class SmartPtr,
+	  typename... Itfs>
+struct at<N, interface_x<SmartPtr, Itfs...>> {
     using type = typename c7::typefunc::at_t<N, Itfs...>;
 };
 
@@ -261,34 +417,54 @@ template <int N, typename T>
 using at_t = typename at<N, T>::type;
 
 
-template <int N, typename FactoryItfs, typename... Items>
+// factory_impl (type3)
+
+template <template <typename...> class SmartPtr,
+	  int N, typename FactoryItfs, typename... Items>
 struct factory_impl;
 
-template <int N, typename FactoryItfs>
-struct factory_impl<N, FactoryItfs>:
+template <template <typename...> class SmartPtr,
+	  int N,
+	  typename FactoryItfs>
+struct factory_impl<SmartPtr, N, FactoryItfs>:
 	public FactoryItfs {
     void make() const {}
 };
 
-template <int N, typename FactoryItfs, typename Item, typename... Items>
-struct factory_impl<N, FactoryItfs, Item, Items...>:
-	public factory_impl<N+1, FactoryItfs, Items...> {
+template <template <typename...> class SmartPtr,
+	  int N,
+	  typename FactoryItfs,
+	  typename Item, typename... Items>
+struct factory_impl<SmartPtr, N, FactoryItfs, Item, Items...>:
+	public factory_impl<SmartPtr, N+1, FactoryItfs, Items...> {
 private:
     using Itf = at_t<N, FactoryItfs>;
 public:
-    using factory_impl<N+1, FactoryItfs, Items...>::make;
-    std::unique_ptr<Itf> make(const typename Itf::config_type& c) const {
-	return std::make_unique<Item>(c);
+    using factory_impl<SmartPtr, N+1, FactoryItfs, Items...>::make;
+    using pointer_type = typename smartptr_traits<SmartPtr>::type<Itf>;
+    pointer_type make(const typename Itf::config_type& c) const {
+	return smartptr_traits<SmartPtr>::template make<Item>(c);
     }
 };
 
-template <typename FactoryItfs, typename... Items>
-struct factory:
-	public factory_impl<0, FactoryItfs, Items...> {
-};
+template <template <typename...> class SmartPtr,
+	  typename FactoryItfs,
+	  typename... Items>
+using factory_x = factory_impl<SmartPtr, 0, FactoryItfs, Items...>;
+
+template <typename FactoryItfs,
+	  typename... Items>
+using factory = factory_x<std::unique_ptr, FactoryItfs, Items...>;
+
+template <typename FactoryItfs,
+	  typename... Items>
+using factory_sp = factory_x<std::shared_ptr, FactoryItfs, Items...>;
 
 
 } // namespace c7::factory_type3;
+
+
+//------------------------------------------------------------------------------
 
 
 #endif // c7factory.hpp

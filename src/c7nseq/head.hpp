@@ -80,6 +80,10 @@ public:
     decltype(auto) operator*() {
 	return *it_;
     }
+
+    decltype(auto) operator*() const {
+	return *it_;
+    }
 };
 
 
@@ -236,6 +240,10 @@ public:
     }
 
     decltype(auto) operator*() {
+	return *it_;
+    }
+
+    decltype(auto) operator*() const {
 	return *it_;
     }
 };

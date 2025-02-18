@@ -85,6 +85,14 @@ public:
 	    return *it2_;
 	}
     }
+
+    decltype(auto) operator*() const {
+	if (which_ == 0) {
+	    return *it1_;
+	} else {
+	    return *it2_;
+	}
+    }
 };
 
 

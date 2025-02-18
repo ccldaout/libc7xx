@@ -64,6 +64,10 @@ public:
 	return op_(*it_);
     }
 
+    decltype(auto) operator*() const {
+	return op_(*it_);
+    }
+
     // for random access
 
     auto& operator--() {

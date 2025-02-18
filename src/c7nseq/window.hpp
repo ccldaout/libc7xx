@@ -88,6 +88,10 @@ public:
     auto operator*() {
 	return range(wb_, it_);
     }
+
+    auto operator*() const {
+	return range(wb_, it_);
+    }
 };
 
 
@@ -156,6 +160,10 @@ public:
     }
 
     auto& operator*() {
+	return window_;
+    }
+
+    auto& operator*() const {
 	return window_;
     }
 };

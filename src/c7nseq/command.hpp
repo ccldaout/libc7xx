@@ -116,6 +116,10 @@ public:
     decltype(auto) operator*() {
 	return std::move(vec_[idx_]);
     }
+
+    decltype(auto) operator*() const {
+	return std::move(vec_[idx_]);
+    }
 };
 
 

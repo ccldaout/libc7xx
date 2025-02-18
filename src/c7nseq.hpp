@@ -45,6 +45,7 @@
 #include <c7nseq/unique.hpp>
 #include <c7nseq/urlencode.hpp>
 #include <c7nseq/vector.hpp>
+#include <c7nseq/vseq.hpp>
 #include <c7nseq/window.hpp>
 #include <c7nseq/while.hpp>
 #include <c7nseq/zip.hpp>
