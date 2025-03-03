@@ -20,6 +20,12 @@
 namespace c7 {
 
 
+using partition_t = partition7_t;
+using hdr_t	  = hdr7_t;
+using rec_t	  = rec5_t;
+using rbuffer	  = rbuffer7;
+
+
 struct rec_index_t {
     int part;
     raddr_t addr;
@@ -80,14 +86,14 @@ make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
 
     if (rec.sn_size > 0) {
 	info.size_b -= (rec.sn_size + 1);
-	info.source_name = data + info.size_b;
+	info.source_name = std::string_view{data + info.size_b, rec.sn_size};
     } else {
 	info.source_name = "";
     }
 
     if (rec.tn_size > 0) {
 	info.size_b -= (rec.tn_size + 1);
-	info.thread_name = data + info.size_b;
+	info.thread_name = std::string_view{data + info.size_b, rec.tn_size};
     } else {
 	info.thread_name = "";
     }
@@ -147,51 +153,40 @@ rec_reader::get(std::function<bool(const info_t&)>& choice,
 
 
 /*----------------------------------------------------------------------------
-                              mlog_reader::impl
+                                 mlog_reader7
 ----------------------------------------------------------------------------*/
 
-class mlog_reader::impl {
+class mlog_reader7: public mlog_reader::impl {
 public:
-    impl() {}
+    mlog_reader7() {}
 
-    ~impl() {
+    ~mlog_reader7() {
 	std::free(hdr_);
     }
 
-    result<> load(const std::string& path);
+    result<> load(const std::string& path) override;
 
     void scan(size_t maxcount,
 	      uint32_t order_min,
 	      c7::usec_t time_us_min,
 	      std::function<bool(const info_t&)> choice,
-	      std::function<bool(const info_t&, void*)> access);
+	      std::function<bool(const info_t&, void*)> access) override;
 
-    void *hdraddr(size_t *hdrsize_b_op) {
+    void *hdraddr(size_t *hdrsize_b_op) override {
 	if (hdrsize_b_op != nullptr) {
 	    *hdrsize_b_op = hdr_->hdrsize_b;
 	}
 	return (char *)hdr_ + _IHDRSIZE;
     }
 
-    int thread_name_size() {
-	return max_tn_size_;
-    }
-
-    int source_name_size() {
-	return max_sn_size_;
-    }
-
-    const char *hint() {
+    const char *hint() override {
 	return hdr_->hint;
     }
 
 private:
     hdr_t *hdr_ = nullptr;
     std::vector<rbuffer> rbufs_;
-
     std::vector<rec_index_t> recs_;
-    int max_tn_size_ = 0;
-    int max_sn_size_ = 0;
 
     void prescan(size_t maxcount,
 		 uint32_t order_min,
@@ -201,7 +196,7 @@ private:
 
 
 result<>
-mlog_reader::impl::load(const std::string& path)
+mlog_reader7::load(const std::string& path)
 {
     size_t size_b = 0;
     auto res = c7::file::read(path, size_b);
@@ -239,14 +234,13 @@ mlog_reader::impl::load(const std::string& path)
 
 
 void
-mlog_reader::impl::scan(size_t maxcount,
-			uint32_t order_min,
-			c7::usec_t time_us_min,
-			std::function<bool(const info_t&)> choice,
-			std::function<bool(const info_t&, void*)> access)
+mlog_reader7::scan(size_t maxcount,
+		   uint32_t order_min,
+		   c7::usec_t time_us_min,
+		   std::function<bool(const info_t&)> choice,
+		   std::function<bool(const info_t&, void*)> access)
 {
     maxcount = std::min<decltype(maxcount)>(hdr_->cnt, maxcount ? maxcount : (-1UL - 1));
-    maxcount++;
 
     prescan(maxcount, order_min, time_us_min, choice);
 
@@ -272,10 +266,10 @@ mlog_reader::impl::scan(size_t maxcount,
 
 
 void
-mlog_reader::impl::prescan(size_t maxcount,
-			   uint32_t order_min,
-			   c7::usec_t time_us_min,
-			   std::function<bool(const info_t&)>& choice)
+mlog_reader7::prescan(size_t maxcount,
+		      uint32_t order_min,
+		      c7::usec_t time_us_min,
+		      std::function<bool(const info_t&)>& choice)
 {
     std::vector<rec_reader> readers;
     std::priority_queue<rec_desc_t> prioq;
@@ -288,8 +282,6 @@ mlog_reader::impl::prescan(size_t maxcount,
 	}
     }
 
-    max_sn_size_ = 0;
-    max_tn_size_ = 0;
     recs_.clear();
 
     while (maxcount > 0 && !prioq.empty()) {
@@ -298,8 +290,6 @@ mlog_reader::impl::prescan(size_t maxcount,
 
 	recs_.push_back(desc.idx);
 	maxcount--;
-	max_sn_size_ = std::max(max_sn_size_, desc.sn_size);
-	max_tn_size_ = std::max(max_tn_size_, desc.tn_size);
 
 	auto& rd = readers[desc.idx.part];
 	if (auto desc = rd.get(choice, order_min, time_us_min, dbuf); desc) {
@@ -313,24 +303,18 @@ mlog_reader::impl::prescan(size_t maxcount,
                                  mlog_reader
 ----------------------------------------------------------------------------*/
 
-mlog_reader::mlog_reader(): pimpl(new mlog_reader::impl()) {}
+mlog_reader::mlog_reader(): pimpl(new mlog_reader7()) {}
 
-mlog_reader::~mlog_reader()
-{
-    delete pimpl;
-}
+mlog_reader::~mlog_reader() = default;
 
-mlog_reader::mlog_reader(mlog_reader&& o): pimpl(o.pimpl)
+mlog_reader::mlog_reader(mlog_reader&& o): pimpl(std::move(o.pimpl))
 {
-    o.pimpl = nullptr;
 }
 
 mlog_reader& mlog_reader::operator=(mlog_reader&& o)
 {
     if (this != &o) {
-	delete pimpl;
-	pimpl = o.pimpl;
-	o.pimpl = nullptr;
+	pimpl = std::move(o.pimpl);
     }
     return *this;
 }
@@ -339,6 +323,17 @@ result<>
 mlog_reader::load(const std::string& name)
 {
     auto path = c7::path::find_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+
+    uint32_t rev;
+    if (auto res = c7::file::read_into(path, rev); !res) {
+	return res.as_error();
+    } else if (res.value() != 0) {
+	return c7result_err(EINVAL, "Invalid mlog format");
+    }
+    if (rev < _REVISION) {
+	pimpl = make_mlog_reader6();
+    }
+
     return pimpl->load(path);
 }
 
@@ -350,16 +345,6 @@ mlog_reader::scan(size_t maxcount,
 		  std::function<bool(const info_t& info, void *data)> access)
 {
     pimpl->scan(maxcount, order_min, time_us_min, choice, access);
-}
-
-int mlog_reader::thread_name_size()
-{
-    return pimpl->thread_name_size();
-}
-
-int mlog_reader::source_name_size()
-{
-    return pimpl->source_name_size();
 }
 
 const char *mlog_reader::hint()

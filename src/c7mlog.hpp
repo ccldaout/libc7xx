@@ -14,13 +14,13 @@
 #include <c7common.hpp>
 
 
+#include <string>
 #include <c7format.hpp>
 #include <c7format/format_r2.hpp>
 #include <c7format/format_r3.hpp>
 #include <c7result.hpp>
 #include <c7strmbuf/hybrid.hpp>
 #include <c7utils.hpp>
-#include <string>
 
 
 // API support 
@@ -51,6 +51,9 @@
 
 
 namespace c7 {
+
+
+c7::result<> mlog_clear(const std::string& name);
 
 
 class mlog_writer {
@@ -359,9 +362,9 @@ public:
 class mlog_reader {
 public:
     struct info_t {
-	const char *thread_name;
 	uint64_t thread_id;
-	const char *source_name;
+	std::string_view thread_name;
+	std::string_view source_name;
 	int source_line;
 	uint32_t weak_order;	// record serial number (NOT STRICT)
 	int32_t size_b;		// record size
@@ -372,9 +375,22 @@ public:
 	pid_t pid;
     };
 
+    class impl {
+    public:
+	using info_t = mlog_reader::info_t;
+	virtual ~impl() {}
+	virtual result<> load(const std::string& path) = 0;
+	virtual void scan(size_t maxcount,
+			  uint32_t order_min,
+			  c7::usec_t time_us_min,
+			  std::function<bool(const info_t&)> choice,
+			  std::function<bool(const info_t&, void*)> access) = 0;
+	virtual void *hdraddr(size_t *hdrsize_b_op) = 0;
+	virtual const char *hint() = 0;
+    };
+
 private:
-    class impl;
-    impl *pimpl;
+    std::unique_ptr<impl> pimpl;
 
 public:
     mlog_reader(const mlog_reader&) = delete;
@@ -395,8 +411,6 @@ public:
 	      std::function<bool(const info_t& info, void *data)> access);
 
     void *hdraddr();
-    int thread_name_size();
-    int source_name_size();
     const char *hint();
 };
 

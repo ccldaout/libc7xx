@@ -19,6 +19,39 @@
 namespace c7 {
 
 
+using partition_t = partition7_t;
+using hdr_t = hdr7_t;
+using rec_t = rec5_t;
+using rbuffer = rbuffer7;
+
+
+/*----------------------------------------------------------------------------
+                                  mlog_clear
+----------------------------------------------------------------------------*/
+
+c7::result<> mlog_clear(const std::string& name)
+{
+    c7::file::unique_mmap<> top;
+    auto path = c7::path::find_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+    if (auto res = c7::file::mmap_rw(path); !res) {
+	return res.as_error();
+    } else {
+	top = std::move(res.value());
+    }
+
+    uint32_t rev = *static_cast<uint32_t*>(top.get());
+    if (rev >= 7) {
+	hdr7_t *h = static_cast<hdr7_t*>(top.get());
+	h->cnt = 0;
+    } else {
+	hdr6_t *h = static_cast<hdr6_t*>(top.get());
+	h->cnt = 0;
+    }
+
+    return c7result_ok();
+}
+
+
 /*----------------------------------------------------------------------------
                               mlog_writer::impl
 ----------------------------------------------------------------------------*/

@@ -13,7 +13,7 @@ C7_TARGET_BASE = tools
 include ../Makefile.common
 
 SRCS := $(wildcard *.cpp)
-PRGS := $(addprefix $(C7_OUT_BINDIR)/,$(patsubst %.c,%,$(SRCS)))
+PRGS := $(addprefix $(C7_OUT_BINDIR)/,$(patsubst %.cpp,%,$(SRCS)))
 PY3  := $(wildcard *.py)
 PY2  := cxx_token.py setup_dispatcher.py
 

@@ -35,29 +35,46 @@
 #define _TN_MAX			(63)	// tn_size:6
 #define _SN_MAX			(63)	// sn_size:6
 
-using raddr_t = uint32_t;
-
 #define _PART_CNT		(C7_LOG_MAX+1)
 #define _TOO_LARGE		(static_cast<raddr_t>(-1))
 
+// END
+
+
+namespace c7 {
+
+
+using raddr_t = uint32_t;
+
+
 // partition entry
-struct partition_t {
+struct partition7_t {
     volatile raddr_t nextaddr;
     uint32_t size_b;		// ring buffer size
 };
 
-// file header
-struct hdr_t {
+// file header (rev1..rev6)
+struct hdr6_t {
+    uint32_t rev;
+    volatile raddr_t nextaddr;
+    volatile uint32_t cnt;
+    raddr_t logsize_b;		// ring buffer size
+    uint32_t hdrsize_b;		// user header size
+    char hint[64];
+};
+
+// file header (rev7..)
+struct hdr7_t {
     uint32_t rev;
     volatile uint32_t cnt;
     uint32_t hdrsize_b;		// user header size
     uint32_t __pad;
     char hint[64];
-    partition_t part[_PART_CNT];
+    partition7_t part[_PART_CNT];
 };
 
-// record header
-struct rec_t {
+// record header (rev5..)
+struct rec5_t {
     raddr_t size;		// record size (rec_t + log data + names + raddr)
     uint32_t order;		// (weak) record order
     c7::usec_t time_us;		// time stamp in micro sec.
@@ -74,23 +91,18 @@ struct rec_t {
     uint32_t br_order;		// ~order
 };
 
-// END
 
-
-namespace c7 {
-
-
-class rbuffer {
+class rbuffer7 {
 private:
-    partition_t *part_ = nullptr;
+    partition7_t *part_ = nullptr;
     char *top_ = nullptr;
     char *end_ = nullptr;
     raddr_t size_ = 0;
 
 public:
-    rbuffer() {}
+    rbuffer7() {}
 
-    rbuffer(void *headaddr, uint64_t off, partition_t *part):
+    rbuffer7(void *headaddr, uint64_t off, partition7_t *part):
 	part_(part),
 	top_(static_cast<char*>(headaddr) + off),
 	end_(top_ + part->size_b),
@@ -166,6 +178,9 @@ public:
 	return ret_addr;
     }
 };
+
+
+std::unique_ptr<mlog_reader::impl> make_mlog_reader6();
 
 
 } // namespace c7

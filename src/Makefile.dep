@@ -4,6 +4,15 @@ $(C7_OUT_OBJDIR)/c7app.o: c7app.cpp c7app.hpp c7result.hpp c7common.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7path.hpp c7string.hpp \
  c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
  c7nseq/_iter_ops.hpp c7nseq/head.hpp
+$(C7_OUT_OBJDIR)/c7args.o: c7args.cpp c7app.hpp c7result.hpp c7common.hpp \
+ c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
+ c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
+ c7format/format_r2.hpp c7format/format_r3.hpp c7args.hpp c7string.hpp \
+ c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7nseq/_iter_ops.hpp c7nseq/head.hpp c7nseq/flat.hpp \
+ c7nseq/generator.hpp c7nseq/empty.hpp c7nseq/string.hpp c7nseq/group.hpp \
+ c7nseq/range.hpp c7nseq/reverse.hpp c7nseq/transform.hpp \
+ c7nseq/vector.hpp c7nseq/while.hpp c7nseq/filter.hpp
 $(C7_OUT_OBJDIR)/c7common.o: c7common.cpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
  c7common.hpp c7delegate.hpp c7typefunc.hpp
@@ -36,6 +45,15 @@ $(C7_OUT_OBJDIR)/c7mlog_r.o: c7mlog_r.cpp c7file.hpp c7common.hpp \
  c7utils.hpp c7nseq/reverse.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
  c7path.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
  c7nseq/head.hpp c7mlog_private.hpp c7mlog.hpp c7strmbuf/hybrid.hpp
+$(C7_OUT_OBJDIR)/c7mlog_r6.o: c7mlog_r6.cpp c7file.hpp c7common.hpp \
+ c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
+ c7utils.hpp c7mlog.hpp c7strmbuf/hybrid.hpp c7path.hpp c7string.hpp \
+ c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7nseq/_iter_ops.hpp c7nseq/head.hpp c7thread.hpp c7thread/spinlock.hpp \
+ c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp \
+ c7mlog_private.hpp
 $(C7_OUT_OBJDIR)/c7mlog_w.o: c7mlog_w.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
