@@ -179,7 +179,7 @@ public:
 	for (auto& s: prms) {
 	    opt_value v{d.type, s};
 	    if (auto res = check_regs(regs_, s, d, v.regmatch); !res) {
-		return res;
+		return res.as_error();
 	    } else {
 		v.key_index = res.value();
 	    }
@@ -278,7 +278,7 @@ public:
 	for (auto& s: prms) {
 	    opt_value v{d.type, s};
 	    if (auto res = check_regs(regs_, s, d, v.regmatch); !res) {
-		return res;
+		return res.as_error();
 	    } else {
 		v.key_index = res.value();
 	    }
@@ -308,7 +308,7 @@ public:
 	for (auto& s: prms) {
 	    opt_value v{d.type, s};
 	    if (auto res = check_regs(regs_, s, d, v.regmatch); !res) {
-		return res;
+		return res.as_error();
 	    } else {
 		v.key_index = res.value();
 		try {
