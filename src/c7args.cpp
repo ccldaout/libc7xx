@@ -114,7 +114,7 @@ check_regs(const std::vector<std::regex>& regs,
 	for (size_t i = 0; i < regs.size(); i++) {
 	    auto& reg = regs[i];
 	    if (std::regex_match(s, m, reg)) {
-		for (size_t i = 0; i <= m.size(); i++) {
+		for (size_t i = 0; i < m.size(); i++) {
 		    if (m[i].matched) {
 			match.push_back(m[i].str());
 		    } else {

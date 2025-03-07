@@ -154,7 +154,7 @@ inline int strmatch_impl(const char *s, int index, const char *c, Cands... cands
 template <typename... Cands>
 inline int strmatch_impl(const char *s, int index, const std::string& c, Cands... cands)
 {
-    return strmatch_impl(s, index+1, c.c_str(), cands...);
+    return strmatch_impl(s, index, c.c_str(), cands...);
 }
 
 template <typename... Cands>
@@ -206,7 +206,7 @@ inline int strmatch_head_impl(const char *s, int index, const char *c, Cands... 
 template <typename... Cands>
 inline int strmatch_head_impl(const char *s, int index, const std::string& c, Cands... cands)
 {
-    return strmatch_head_impl(s, index+1, c.c_str(), cands...);
+    return strmatch_head_impl(s, index, c.c_str(), cands...);
 }
 
 template <typename... Cands>
@@ -259,7 +259,7 @@ inline int strmatch_tail_impl(const char *e, int en, int index, const char *c, C
 template <typename... Cands>
 inline int strmatch_tail_impl(const char *e, int en, int index, const std::string& c, Cands... cands)
 {
-    return strmatch_tail_impl(e, en, index+1, c.c_str(), cands...);
+    return strmatch_tail_impl(e, en, index, c.c_str(), cands...);
 }
 
 template <typename... Cands>
