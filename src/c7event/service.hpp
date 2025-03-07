@@ -28,7 +28,65 @@ template <typename Msgbuf>
 int32_t get_event(const Msgbuf& msgbuf);
 
 
-using provider_hint = std::variant<void*, uint64_t>;
+class provider_hint: public std::variant<void*, uint64_t> {
+private:
+    using base_type = std::variant<void*, uint64_t>;
+
+public:
+    constexpr provider_hint() = default;
+    constexpr provider_hint(const provider_hint&) = default;
+    constexpr provider_hint(provider_hint&&) = default;
+    constexpr provider_hint& operator=(const provider_hint&) = default;
+    constexpr provider_hint& operator=(provider_hint&&) = default;
+
+    template <typename T,
+	      typename = std::enable_if_t<!std::is_pointer_v<c7::typefunc::remove_cref_t<T>>>>
+    constexpr provider_hint(T v): base_type(static_cast<uint64_t>(v)) {}
+
+    constexpr provider_hint(std::nullptr_t): base_type(nullptr) {}
+
+    constexpr provider_hint(const void *p): base_type(const_cast<void *>(p)) {}
+
+    template <typename T,
+	      typename = std::enable_if_t<std::disjunction_v<std::is_integral<T>,
+							     std::is_enum<T>>>>
+    constexpr bool operator==(const T& v) const {
+	return (std::get<1>(static_cast<const base_type&>(*this)) == static_cast<uint64_t>(v));
+    }
+
+    constexpr bool operator==(std::nullptr_t) const {
+	return (std::get<0>(static_cast<const base_type&>(*this)) == nullptr);
+    }
+
+    template <typename T>
+    constexpr bool operator==(const T *p) const {
+	return (std::get<0>(static_cast<const base_type&>(*this)) == static_cast<const void*>(p));
+    }
+
+    constexpr bool operator==(const provider_hint& o) const {
+	return (static_cast<const base_type&>(*this) == static_cast<const base_type&>(o));
+    }
+
+    template <typename T,
+	      typename = std::enable_if_t<std::disjunction_v<std::is_integral<T>,
+							     std::is_enum<T>>>>
+    constexpr bool operator!=(const T& v) const {
+	return !(*this == v);
+    }
+
+    constexpr bool operator!=(std::nullptr_t) const {
+	return !(*this == nullptr);
+    }
+
+    template <typename T>
+    constexpr bool operator!=(const T *p) const {
+	return !(*this == p);
+    }
+
+    constexpr bool operator!=(const provider_hint& o) const {
+	return !(*this == o);
+    }
+};
 
 
 class attach_id {
