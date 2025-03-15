@@ -27,7 +27,7 @@ namespace file {
                             file mode / owner /...
 ----------------------------------------------------------------------------*/
 
-result<> fchstat(int fd, const std::string& ref_path)
+c7::result<> fchstat(int fd, const std::string& ref_path)
 {
     struct ::stat st;
     if (::stat(ref_path.c_str(), &st) == C7_SYSERR) {
@@ -40,6 +40,16 @@ result<> fchstat(int fd, const std::string& ref_path)
 	return c7result_err(errno, "fchown(%{}, %{}) failed (on root)", st.st_uid, st.st_gid);
     }
     return c7result_ok();
+}
+
+c7::result<> chstat(const std::string& path, const std::string& ref_path)
+{
+    if (int fd = ::open(path.c_str(), O_RDONLY); fd != C7_SYSERR) {
+	auto res = fchstat(fd, ref_path);
+	::close(fd);
+	return res;
+    }
+    return c7result_err(errno, "open failed: %{}", path);
 }
 
 c7::result<> inherit_owner(const std::string& path)
@@ -183,7 +193,7 @@ static result<std::string> reservetmp(const std::string& ref_path)
 		  });
 }
 
-c7::result<> rewrite(const std::string& path, void *buf, size_t size)
+c7::result<> rewrite(const std::string& path, void *buf, size_t size, const std::string& bck_prefix)
 {
     auto res = reservetmp(path);
     if (!res) {
@@ -197,12 +207,17 @@ c7::result<> rewrite(const std::string& path, void *buf, size_t size)
     }
 
     auto unblock_defer = c7::signal::block();
-    auto lastret = c7result_ok();
+    if (!bck_prefix.empty()) {
+	auto bck_path = path + bck_prefix;
+	if (::rename(path.c_str(), bck_path.c_str()) == C7_SYSERR) {
+	    return c7result_err(errno, "rewrite failed: rename: %{} -> %{}", path, bck_path);
+	}
+    }
     if (::rename(tmppath.c_str(), path.c_str()) == C7_SYSERR) {
-	drop = c7result_seterr(lastret, "rewrite failed: rename: %{} -> %{}", tmppath, path);
+	return c7result_err(errno, "rewrite failed: rename: %{} -> %{}", tmppath, path);
     }
 
-    return lastret;
+    return c7result_ok();
 }
 
 /*----------------------------------------------------------------------------

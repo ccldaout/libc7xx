@@ -36,6 +36,12 @@ c7::result<> mkdir(const std::string& path,
 c7::result<> inherit_owner(const std::string& path);
 
 
+// set same mode & owner of reference path
+
+c7::result<> fchstat(int fd, const std::string& ref_path);
+c7::result<> chstat(const std::string& path, const std::string& ref_path);
+
+
 // file read/write operations
 
 c7::result<> write(const std::string& path, mode_t mode, const void *buf, size_t size);
@@ -46,12 +52,12 @@ c7::result<> write(const std::string& path, mode_t mode, const T& buf)
     return write(path, mode, &buf, sizeof(buf));
 }
 
-c7::result<> rewrite(const std::string& path, void *buf, size_t size);
+c7::result<> rewrite(const std::string& path, void *buf, size_t size, const std::string& bck_prefix = "");
 
 template <typename T>
-c7::result<> rewrite(const std::string& path, const T& buf)
+c7::result<> rewrite(const std::string& path, const T& buf, const std::string& bck_prefix = "")
 {
-    return rewrite(path, &buf, sizeof(buf));
+    return rewrite(path, &buf, sizeof(buf), bck_prefix);
 }
 
 c7::result<ssize_t> read_into(const std::string& path, void *buf, size_t size);

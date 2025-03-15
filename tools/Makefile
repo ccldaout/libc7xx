@@ -19,6 +19,15 @@ PY2  := cxx_token.py setup_dispatcher.py
 
 C7_CLEAN_REMOVED += $(PRGS)
 
+CFLAGS += -Wno-unused-value
+
+$(C7_OUT_BINDIR)/c7prompt: C7_NOLIBC7XX = y
+$(C7_OUT_BINDIR)/c7prompt: C7_NOTHREAD  = y
+$(C7_OUT_BINDIR)/c7gitbr:  C7_NOLIBC7XX = y
+$(C7_OUT_BINDIR)/c7gitbr:  C7_NOTHREAD  = y
+$(C7_OUT_BINDIR)/c7npipe:  C7_NOLIBC7XX = y
+$(C7_OUT_BINDIR)/c7npipe:  C7_NOTHREAD  = y
+
 .PHONY: build
 build: py3tools py2tools $(PRGS)
 
