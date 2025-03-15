@@ -24,6 +24,7 @@
 #define C7_DCONF_DIR_ENV		"C7_DCONF_DIR"
 #define C7_DCONF_USER_INDEX_BASE	(0)
 #define C7_DCONF_USER_INDEX_LIM		(90)	// not include 90
+#define C7_DCONF_MLOG_obsolete		(C7_DCONF_USER_INDEX_LIM + 1)
 #define C7_DCONF_MLOG_BASE		(100)
 #define C7_DCONF_INDEX_LIM		(150)	// C7_DCONF_USER_INDEX_LIM..149: libc7 area
 #define C7_DCONF_VERSION		(3)	// C7_INDEX_LIM:150

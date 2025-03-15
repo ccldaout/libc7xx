@@ -96,7 +96,11 @@ init_regs(const std::vector<std::string>& reg_strv,
     }
     regs.clear();
     for (auto& s: reg_strv) {
-	regs.emplace_back(s, flags);
+	try {
+	    regs.emplace_back(s, flags);
+	} catch (std::regex_error& e) {
+	    return c7result_err("invalid regex '%{}'\n%{}", s, e.what());
+	}
     }
     return c7result_ok();
 }

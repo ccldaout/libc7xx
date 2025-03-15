@@ -93,6 +93,12 @@ $(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp
+$(C7_OUT_OBJDIR)/c7regrep.o: c7regrep.cpp c7app.hpp c7result.hpp \
+ c7common.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
+ c7regrep.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7result.o: c7result.cpp c7path.hpp c7common.hpp \
  c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \

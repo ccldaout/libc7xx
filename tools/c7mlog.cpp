@@ -161,7 +161,7 @@ print_args::init()
 	res << add_opt(d, &print_args::opt_tm_format);
     }
     return res;
-};
+}
 
 c7::result<>
 print_args::opt_category(const opt_desc& desc, const std::vector<opt_value>& vals)
