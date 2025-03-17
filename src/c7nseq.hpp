@@ -25,6 +25,7 @@
 #include <c7nseq/generator.hpp>
 #include <c7nseq/group.hpp>
 #include <c7nseq/head.hpp>
+#include <c7nseq/infix.hpp>
 #include <c7nseq/insert.hpp>
 #include <c7nseq/io.hpp>
 #include <c7nseq/list.hpp>

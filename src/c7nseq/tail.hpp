@@ -21,6 +21,9 @@ namespace c7::nseq {
 
 class tail_seq_iterend {};
 
+
+// tail ------------------------------------------------------------
+
 template <typename Iter, typename Iterend>
 class tail_seq_iter {
 private:
@@ -181,6 +184,149 @@ private:
 };
 
 
+// dtop tail ------------------------------------------------------------
+
+template <typename Iter, typename Iterend>
+class drop_tail_seq_iter {
+public:
+    // for STL iterator
+    using iterator_category	= std::input_iterator_tag;
+    using difference_type	= ptrdiff_t;
+    using value_type		= c7::typefunc::remove_cref_t<decltype(*std::declval<Iter>())>;
+    using pointer		= value_type*;
+    using reference		= value_type&;
+
+    drop_tail_seq_iter() = default;
+    drop_tail_seq_iter(const drop_tail_seq_iter&) = default;
+    drop_tail_seq_iter(drop_tail_seq_iter&&) = default;
+    drop_tail_seq_iter& operator=(const drop_tail_seq_iter&) = default;
+    drop_tail_seq_iter& operator=(drop_tail_seq_iter&&) = default;
+
+    drop_tail_seq_iter(Iter it, Iterend itend, size_t n):
+	it_(it), itend_(itend), i_(0) {
+	for (size_t i = 0; i < n; i++) {
+	    if (it_ == itend_) {
+		break;
+	    }
+	    hold_.push_back(std::move(*it_));
+	    ++it_;
+	}
+    }
+
+    bool operator==(const drop_tail_seq_iter& o) const {
+	return (it_ == o.it_);
+    }
+
+    bool operator!=(const drop_tail_seq_iter& o) const {
+	return !(*this == o);
+    }
+
+    bool operator==(const tail_seq_iterend&) const {
+	return (it_ == itend_);
+    }
+
+    bool operator!=(const tail_seq_iterend&) const {
+	return (it_ != itend_);
+    }
+
+    auto& operator++() {
+	if (it_ != itend_) {
+	    hold_[i_] = std::move(*it_);
+	    ++it_;
+	    i_ = (i_ + 1) % hold_.size();
+	}
+	return *this;
+    }
+
+    value_type operator*() {		// DON'T use decltype(auto)
+	return hold_[i_];
+    }
+
+    value_type operator*() const {	// DON't use decltype(auto)
+	return hold_[i_];
+    }
+
+private:
+    Iter it_;
+    Iterend itend_;
+    size_t i_;
+    std::vector<value_type> hold_;
+};
+
+
+template <typename Seq>
+class drop_tail_seq {
+private:
+    using hold_type =
+	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
+			       std::remove_reference_t<Seq>,
+			       Seq>;
+    hold_type seq_;
+    size_t n_;
+
+public:
+    drop_tail_seq(Seq seq, size_t n):
+	seq_(std::forward<Seq>(seq)), n_(n) {
+    }
+
+    drop_tail_seq(const drop_tail_seq&) = delete;
+    drop_tail_seq& operator=(const drop_tail_seq&) = delete;
+    drop_tail_seq(drop_tail_seq&&) = default;
+    drop_tail_seq& operator=(drop_tail_seq&&) = delete;
+
+    auto size() const {
+	return (seq_.size() < n_) ? 0 : seq_.size() - n_;
+    }
+
+    auto begin() {
+	using std::begin;
+	auto it = begin(seq_);
+	using it_type = typename std::iterator_traits<decltype(it)>::iterator_category;
+	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
+	    return it;
+	} else {
+	    using std::end;
+	    auto itend = end(seq_);
+	    return drop_tail_seq_iter<decltype(it), decltype(itend)>(it, itend, n_);
+	}
+    }
+
+    auto end() {
+	using std::begin;
+	using it_type = typename std::iterator_traits<decltype(begin(seq_))>::iterator_category;
+	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
+	    auto it = begin(seq_);
+	    auto eoff = seq_.size() - (n_ < seq_.size() ? n_ : seq_.size());
+	    return it+eoff;
+	} else {
+	    return tail_seq_iterend();
+	}
+    }
+
+    auto begin() const {
+	return const_cast<drop_tail_seq<Seq>*>(this)->begin();
+    }
+
+    auto end() const {
+	return const_cast<drop_tail_seq<Seq>*>(this)->end();
+    }
+};
+
+
+class drop_tail {
+public:
+    explicit drop_tail(size_t n): n_(n) {}
+
+    template <typename Seq>
+    auto operator()(Seq&& seq) {
+	return drop_tail_seq<decltype(seq)>(std::forward<Seq>(seq), n_);
+    }
+
+private:
+    size_t n_;
+};
+
+
 } // namespace c7::nseq
 
 
@@ -189,6 +335,10 @@ namespace c7::format_helper {
 template <typename Seq>
 struct format_ident<c7::nseq::tail_seq<Seq>> {
     static constexpr const char *name = "tail";
+};
+template <typename Seq>
+struct format_ident<c7::nseq::drop_tail_seq<Seq>> {
+    static constexpr const char *name = "drop_tail";
 };
 } // namespace c7::format_helper
 #endif

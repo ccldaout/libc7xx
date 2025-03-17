@@ -25,7 +25,12 @@ namespace c7::nseq {
 
 template <int N, typename T>
 struct flat_item {
-    using sub_type = decltype(*std::begin(std::declval<T>()));
+    static auto call_begin(T s) {
+	using std::begin;
+	return begin(s);
+    }
+
+    using sub_type = decltype(*call_begin(std::declval<T>()));
     using type = typename flat_item<N-1, sub_type>::type;
 };
 
@@ -80,9 +85,14 @@ struct flat0_item_impl;
 
 template <typename T>
 struct flat0_item_impl<T, true> {
-    using item_type = decltype(*std::begin(std::declval<T>()));
+    static auto call_begin(T s) {
+	using std::begin;
+	return begin(s);
+    }
+
+    using item_type = decltype(*call_begin(std::declval<T>()));
     using type = typename flat0_item_impl<item_type,
-					 c7::typefunc::is_iterable_v<item_type>>::type;
+					  c7::typefunc::is_iterable_v<item_type>>::type;
 };
 
 template <typename T>
@@ -93,7 +103,7 @@ struct flat0_item_impl<T, false> {
 template <typename T>
 struct flat0_item {
     using type = typename flat0_item_impl<T,
-					 c7::typefunc::is_iterable_v<T>>::type;
+					  c7::typefunc::is_iterable_v<T>>::type;
 };
 
 template <typename T>

@@ -106,7 +106,7 @@ monitor::find(const std::string& key)
 {
     if constexpr (std::is_same_v<T, provider_interface>) {
 	return find_provider(key);
-    } else { 
+    } else {
 	if (auto res = find_provider(key); !res) {
 	    return res.as_error();
 	} else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {
@@ -123,7 +123,7 @@ monitor::find(int prvfd)
 {
     if constexpr (std::is_same_v<T, provider_interface>) {
 	return find_provider(prvfd);
-    } else { 
+    } else {
 	if (auto res = find_provider(prvfd); !res) {
 	    return res.as_error();
 	} else if (auto sp = std::dynamic_pointer_cast<T>(res.value()); !sp) {

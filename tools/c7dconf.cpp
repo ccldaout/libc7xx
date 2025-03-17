@@ -132,7 +132,7 @@ int main(int argc, char **argv)
     } else {
 	defs = std::move(res.value());
     }
-    
+
     argv++;
     if (std::strcmp(*argv, "show") == 0) {
 	if (argv[1] != nullptr) {

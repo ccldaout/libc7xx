@@ -117,7 +117,7 @@ struct factory_impl;
 
 template <template <typename...> class SmartPtr,
 	  typename TargetInterface,
-	  typename FactoryInterface>	  
+	  typename FactoryInterface>
 struct factory_impl<SmartPtr, TargetInterface, FactoryInterface>: public FactoryInterface {
     using FactoryInterface::make;
     void make() const override {}

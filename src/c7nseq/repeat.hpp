@@ -27,10 +27,22 @@ class repeat_iter_end {};
 template <typename Seq>
 class repeat_iter {
 private:
-    std::remove_reference_t<Seq> *seq_ = nullptr;
+    using seq_type = std::remove_reference_t<Seq>;
+
+    seq_type *seq_ = nullptr;
     size_t n_ = 0;
-    decltype(std::begin(*seq_)) it_;
-    decltype(std::end(*seq_))   itend_;
+
+    static auto call_begin(seq_type s) {
+	using std::begin;
+	return begin(s);
+    }
+    static auto call_end(seq_type s) {
+	using std::end;
+	return end(s);
+    }
+
+    decltype(call_begin(std::declval<seq_type>())) it_;
+    decltype(call_end(std::declval<seq_type>()))   itend_;
 
     void setup_iter() {
 	using std::begin;

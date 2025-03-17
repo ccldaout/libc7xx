@@ -16,6 +16,7 @@
 #include <cctype>
 #include <string>
 #include <c7nseq/_cmn.hpp>
+#include <c7nseq/accumulate.hpp>
 #include <c7nseq/group.hpp>
 #include <c7nseq/reverse.hpp>
 #include <c7nseq/transform.hpp>
@@ -35,6 +36,17 @@ public:
 	    s += c;
 	}
 	return s;
+    }
+};
+
+
+struct join_string {
+    template <typename Seq>
+    auto operator()(Seq&& seq) {
+	return std::forward<Seq>(seq)
+	    | c7::nseq::accumulate_i([](auto& a, auto &&b) {
+					 a += b;
+				     }, std::string{});
     }
 };
 

@@ -39,7 +39,7 @@ shared_port::shared_port(std::shared_ptr<impl>&& pimpl):
 
 
 shared_port::shared_port(c7::socket&& sock):
-    pimpl_(new impl(std::move(sock))) 
+    pimpl_(new impl(std::move(sock)))
 {
 }
 

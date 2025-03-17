@@ -15,7 +15,7 @@ c7_makecontext:
 	lsr x3, x3, #4
 	lsl x3, x3, #4
 	stp x1, x3, [x0, #16 * 10]
-	str x3,     [x0, #16 * 11]
+	stp x3, x2, [x0, #16 * 11]
 	ret
 
 	.global c7_swapcontext
@@ -33,7 +33,7 @@ c7_swapcontext:
 	stp x27, x28, [x0, #16 * 9]
 	mov x2,  sp
 	stp x30, x2,  [x0, #16 * 10]
-	str x29,      [x0, #16 * 11]
+	stp x29, x0,  [x0, #16 * 11]
 
 	ldp d8,  d9,  [x1, #16 * 1]
 	ldp d10, d11, [x1, #16 * 2]
@@ -45,8 +45,8 @@ c7_swapcontext:
 	ldp x25, x26, [x1, #16 * 8]
 	ldp x27, x28, [x1, #16 * 9]
 	ldp x30, x2,  [x1, #16 * 10]
-	ldr x29,      [x1, #16 * 11]
+	ldp x29, x0,  [x1, #16 * 11]
 	mov sp, x2
-	mov x0, 0
+	#mov x0, 0
 	
 	ret

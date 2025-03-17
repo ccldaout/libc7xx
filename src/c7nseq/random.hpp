@@ -38,7 +38,7 @@ public:
     random_generator(Eng engine, Args... args):
 	engine_(std::forward<Eng>(engine)),  dist_(std::forward<Args>(args)...) {
     }
-    
+
     T value() override {
 	return dist_(engine_);
     }

@@ -13,9 +13,10 @@
 #define C7_NSEQ_GENERATOR_HPP_LOADED_
 
 
-#include <c7coroutine.hpp>
+#include <c7generator_r2.hpp>
 #include <c7nseq/_cmn.hpp>
 #include <c7nseq/empty.hpp>
+#include <c7utils.hpp>
 
 
 namespace c7::nseq {
@@ -23,186 +24,74 @@ namespace c7::nseq {
 
 // generator
 
-struct co_iter_end {};
+static inline constexpr size_t C7_NSEQ_GEN_STACKSIZE = 8192;
 
 
-template <typename T>
-class co_output {
-private:
-    std::vector<T>& data_;
-    c7::coroutine& co_;
-
-public:
-    co_output(std::vector<T>& data, c7::coroutine& co):
-	data_(data), co_(co) {
-    }
-
-    auto& operator<<(const T& data) {
-	data_.push_back(data);
-	if (data_.size() == data_.capacity()) {
-	    co_.yield();
-	    data_.clear();
-	}
-	return *this;
-    }
-
-    auto& operator<<(T&& data) {
-	data_.push_back(std::move(data));
-	if (data_.size() == data_.capacity()) {
-	    co_.yield();
-	    data_.clear();
-	}
-	return *this;
-    }
-
-    template <typename Seq,
-	      typename = std::enable_if_t<c7::typefunc::is_sequence_of_v<Seq, T>>>
-    auto& operator<<(Seq&& seq) {
-	for (auto&& v: seq) {
-	    this->operator<<(std::forward<decltype(v)>(v));
-	}
-	return *this;
-    }
-
-    void flush() {
-	if (data_.size() != 0) {
-	    co_.yield();
-	    data_.clear();
-	}
-    }
-};
+template <typename Output, size_t StackSize = C7_NSEQ_GEN_STACKSIZE>
+using co_output = typename c7::r2::generator<Output, StackSize>::gen_output;
 
 
-template <typename Seq, typename Output, typename Generator>
-class co_iter {
-private:
-    struct context {
-	Seq& seq_;
-	Generator func_;
-	c7::coroutine co_;
-	std::vector<std::remove_reference_t<Output>> data_;
-	bool end_;
-
-	context(Seq& seq, Generator func, size_t buffer_size):
-	    seq_(seq), func_(func), co_(1024), end_(false) {
-	    data_.reserve(buffer_size);
-	    co_.target([this](){
-			   c7::coroutine& from = *(coroutine::self()->from());
-			   co_output<value_type> out(data_, from);
-			   if constexpr (std::is_invocable_v<Generator, Seq&, decltype(out)&>) {
-			       func_(seq_, out);
-			   } else {
-			       func_(out);
-			   }
-			   out.flush();
-			   end_ = true;
-			   for (;;) {
-			       from.yield();
-			   }
-		       });
-	    co_.yield();
-	}
-    };
-
-    std::shared_ptr<context> ctx_;	// for copyable
-    size_t idx_ = 0;
-
-public:
-    // for STL iterator
-    using iterator_category	= std::input_iterator_tag;
-    using difference_type	= ptrdiff_t;
-    using value_type		= std::remove_reference_t<Output>;
-    using pointer		= value_type*;
-    using reference		= value_type&;
-
-    co_iter() = default;
-    co_iter(const co_iter&) = default;
-    co_iter& operator=(const co_iter&) = default;
-    co_iter(co_iter&&) = default;
-    co_iter& operator=(co_iter&&) = default;
-
-    co_iter(Seq& seq, Generator func, size_t buffer_size):
-	ctx_(std::make_shared<context>(seq, func, buffer_size)) {
-    }
-
-    bool operator==(const co_iter& o) const {
-	return ctx_ == o.ctx_;
-    }
-
-    bool operator!=(const co_iter& o) const {
-	return !(*this == o);
-    }
-
-    bool operator==(const co_iter_end&) const {
-	return ctx_->end_;
-    }
-
-    bool operator!=(const co_iter_end& o) const {
-	return !(*this == o);
-    }
-
-    auto& operator++() {
-	if (idx_ == ctx_->data_.size() - 1) {
-	    if (!ctx_->end_) {
-		ctx_->co_.yield();
-		idx_ = 0;
-	    }
-	} else {
-	    idx_++;
-	}
-	return *this;
-    }
-
-    decltype(auto) operator*() {
-	return std::move(ctx_->data_[idx_]);
-    }
-
-    decltype(auto) operator*() const {
-	return std::move(ctx_->data_[idx_]);
-    }
-};
-
-
-template <typename Seq, typename Output, typename Generator>
+template <typename Output, size_t StackSize = C7_NSEQ_GEN_STACKSIZE>
 class co_seq {
 private:
-    using hold_type =
-	c7::typefunc::ifelse_t<std::is_rvalue_reference<Seq>,
-			       std::remove_reference_t<Seq>,
-			       Seq>;
-    hold_type seq_;
-    Generator func_;
-    size_t buffer_size_;
+
+    using gen_type = c7::r2::generator<Output, StackSize>;
+    std::shared_ptr<gen_type> gen_;
 
 public:
-    co_seq(Seq seq, Generator func, size_t buffer_size):
-	seq_(std::forward<Seq>(seq)), func_(func), buffer_size_(buffer_size) {
+    template <typename Seq, typename Generator>
+    co_seq(Seq&& seq, Generator&& func, size_t buffer_size):
+	gen_(std::make_shared<gen_type>(buffer_size)) {
+	if constexpr (std::is_lvalue_reference_v<Seq>) {
+	    gen_->start(
+		[&seq,
+		 func=std::forward<Generator>(func)] (auto& out) mutable {
+		    func(seq, out);
+		});
+	} else {
+	    gen_->start(
+		[seq=c7::movable_capture(seq),
+		 func=std::forward<Generator>(func)] (auto& out) mutable {
+		    auto s = seq.unwrap();
+		    func(s, out);
+		});
+	}
     }
 
-    co_seq(const co_seq&) = delete;
-    co_seq& operator=(const co_seq&) = delete;
+    template <typename Generator>
+    co_seq(Generator&& func, size_t buffer_size):
+	gen_(std::make_shared<gen_type>(buffer_size)) {
+	gen_->start(
+	    [func=std::forward<Generator>(func)] (auto& out) {
+		func(out);
+	    });
+    }
+
+    co_seq(const co_seq&) = default;
+    co_seq& operator=(const co_seq&) = default;
     co_seq(co_seq&&) = default;
     co_seq& operator=(co_seq&&) = delete;
 
     auto begin() {
-	return co_iter<hold_type, Output, Generator>(seq_, func_, buffer_size_);
+	return gen_->begin();
     }
 
     auto end() {
-	return co_iter_end{};
+	return gen_->end();
     }
 
     auto begin() const {
-	return const_cast<co_seq<Seq, Output, Generator>*>(this)->begin();
+	return gen_->begin();
     }
 
     auto end() const {
-	return co_iter_end{};
+	return gen_->end();
     }
 };
 
 
-template <typename Output, typename Generator>
+template <typename Output, typename Generator,
+	  size_t StackSize = C7_NSEQ_GEN_STACKSIZE>
 class co_builder {
 public:
     explicit co_builder(Generator func, size_t buffer_size):
@@ -210,14 +99,13 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	return co_seq<decltype(seq), Output, Generator>
+	return co_seq<Output, StackSize>
 	    (std::forward<Seq>(seq), func_, buffer_size_);
     }
 
     auto operator()() {
-	empty_seq<> seq;
-	return co_seq<decltype(seq), Output, Generator>
-	    (seq, func_, buffer_size_);
+	return co_seq<Output, StackSize>
+	    (func_, buffer_size_);
     }
 
 private:
@@ -226,6 +114,11 @@ private:
 };
 
 
+// Generator
+//
+//   void func(Sequence& source_seq, c7::nseq::co_output<Output>& out);
+//   void func(                      c7::nseq::co_output<Output>& out);  [head of pipeline]
+//
 template <typename Output, typename Generator>
 auto generator(Generator func, size_t buffer_size=1024)
 {
@@ -243,8 +136,8 @@ using generator_seq = co_builder<Output, Generator>;
 
 #if defined(C7_FORMAT_HELPER_HPP_LOADED_)
 namespace c7::format_helper {
-template <typename Seq, typename Output, typename Generator>
-struct format_ident<c7::nseq::co_seq<Seq, Output, Generator>> {
+template <typename Output, size_t StackSize>
+struct format_ident<c7::nseq::co_seq<Output, StackSize>> {
     static constexpr const char *name = "generator";
 };
 } // namespace c7::format_helper

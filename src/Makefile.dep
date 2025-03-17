@@ -2,26 +2,28 @@ $(C7_OUT_OBJDIR)/c7app.o: c7app.cpp c7app.hpp c7result.hpp c7common.hpp \
  c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7path.hpp c7string.hpp \
- c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
  c7nseq/_iter_ops.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7args.o: c7args.cpp c7app.hpp c7result.hpp c7common.hpp \
  c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7args.hpp c7string.hpp \
- c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
  c7nseq/_iter_ops.hpp c7nseq/head.hpp c7nseq/flat.hpp \
- c7nseq/generator.hpp c7nseq/empty.hpp c7nseq/string.hpp c7nseq/group.hpp \
+ c7nseq/generator.hpp c7generator_r2.hpp c7nseq/empty.hpp c7utils.hpp \
+ c7nseq/string.hpp c7nseq/accumulate.hpp c7nseq/group.hpp \
  c7nseq/range.hpp c7nseq/reverse.hpp c7nseq/transform.hpp \
  c7nseq/vector.hpp c7nseq/while.hpp c7nseq/filter.hpp
 $(C7_OUT_OBJDIR)/c7common.o: c7common.cpp c7common.hpp
+$(C7_OUT_OBJDIR)/c7context.o: c7context.cpp c7context.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
- c7common.hpp c7delegate.hpp c7typefunc.hpp
+ c7common.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7dconf.o: c7dconf.cpp c7dconf.hpp c7common.hpp \
  c7file.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
  c7utils.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7path.hpp c7string.hpp c7coroutine.hpp c7nseq/head.hpp
+ c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7delegate.o: c7delegate.cpp c7delegate.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7fd.o: c7fd.cpp c7fd.hpp c7common.hpp c7delegate.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
@@ -31,8 +33,9 @@ $(C7_OUT_OBJDIR)/c7file.o: c7file.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7signal.hpp
+ c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7signal.hpp
 $(C7_OUT_OBJDIR)/c7fsm.o: c7fsm.cpp c7fsm.hpp c7common.hpp c7result.hpp \
  c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
@@ -43,14 +46,15 @@ $(C7_OUT_OBJDIR)/c7mlog_r.o: c7mlog_r.cpp c7file.hpp c7common.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
  c7utils.hpp c7nseq/reverse.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7path.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
- c7nseq/head.hpp c7mlog_private.hpp c7mlog.hpp c7strmbuf/hybrid.hpp
+ c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7nseq/enumerate.hpp c7nseq/head.hpp c7mlog_private.hpp c7mlog.hpp \
+ c7strmbuf/hybrid.hpp
 $(C7_OUT_OBJDIR)/c7mlog_r6.o: c7mlog_r6.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
  c7utils.hpp c7mlog.hpp c7strmbuf/hybrid.hpp c7path.hpp c7string.hpp \
- c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
  c7nseq/_iter_ops.hpp c7nseq/head.hpp c7thread.hpp c7thread/spinlock.hpp \
  c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp \
  c7mlog_private.hpp
@@ -58,18 +62,19 @@ $(C7_OUT_OBJDIR)/c7mlog_w.o: c7mlog_w.cpp c7file.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7thread.hpp \
- c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
- c7thread/thread.hpp c7mlog_private.hpp c7mlog.hpp c7strmbuf/hybrid.hpp
+ c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7thread.hpp c7thread/spinlock.hpp c7thread/mutex.hpp \
+ c7thread/condvar.hpp c7thread/thread.hpp c7mlog_private.hpp c7mlog.hpp \
+ c7strmbuf/hybrid.hpp
 $(C7_OUT_OBJDIR)/c7mm.o: c7mm.cpp c7mm.hpp c7common.hpp c7fd.hpp \
  c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp c7path.hpp \
- c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7path.o: c7path.cpp c7path.hpp c7common.hpp \
- c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
  c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
@@ -80,15 +85,16 @@ $(C7_OUT_OBJDIR)/c7pipeline.o: c7pipeline.cpp c7pipeline.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp c7utils.hpp c7nseq/reverse.hpp
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7utils.hpp \
+ c7nseq/reverse.hpp
 $(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp \
  c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp c7signal.hpp c7thread/condvar.hpp \
- c7thread/mutex.hpp
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7signal.hpp \
+ c7thread/condvar.hpp c7thread/mutex.hpp
 $(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
  c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
@@ -97,10 +103,11 @@ $(C7_OUT_OBJDIR)/c7regrep.o: c7regrep.cpp c7app.hpp c7result.hpp \
  c7common.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
  c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7regrep.hpp c7string.hpp c7coroutine.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp
+ c7regrep.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7result.o: c7result.cpp c7path.hpp c7common.hpp \
- c7string.hpp c7coroutine.hpp c7delegate.hpp c7typefunc.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
  c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
@@ -116,10 +123,11 @@ $(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7socket.hpp c7common.hpp \
  c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp
 $(C7_OUT_OBJDIR)/c7string.o: c7string.cpp c7string.hpp c7common.hpp \
- c7coroutine.hpp c7delegate.hpp c7typefunc.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp
+ c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
+ c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
+ c7format/format_r2.hpp c7format/format_r3.hpp
 $(C7_OUT_OBJDIR)/c7utils.o: c7utils.cpp c7defer.hpp c7common.hpp \
  c7format.hpp c7format/format_r1.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \

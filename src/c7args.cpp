@@ -19,21 +19,6 @@
 #include <c7nseq/transform.hpp>
 
 
-namespace std {
-
-void print_type(std::ostream& o, const std::string& sep, const vector<string>& sv)
-{
-    if (sv.size() > 0) {
-	o << sv[0];
-	for (auto& s: sv | c7::nseq::skip_head(1)) {
-	    o << sep << s;
-	}
-    }
-}
-
-} // std
-
-
 namespace c7::args {
 
 
@@ -104,7 +89,7 @@ init_regs(const std::vector<std::string>& reg_strv,
     }
     return c7result_ok();
 }
-		   
+
 
 static c7::result<int>
 check_regs(const std::vector<std::regex>& regs,
@@ -654,7 +639,7 @@ append_descrip(c7::strvec& usage, const opt_desc& d, const std::string& pref, si
     //                     PRM_NAME: <prm_descrip>
     //                             : ..., ....  [KEY]
     std::string s;
-    
+
     // option names
 
     if (d.short_name.empty()) {
@@ -743,7 +728,7 @@ parser::impl::append_usage(c7::strvec& usage, size_t main_indent, size_t descrip
     for (auto& [_, h]: dic) {
 	append_descrip(usage, h->desc(), pref, off);
     }
-}    
+}
 
 
 /*----------------------------------------------------------------------------

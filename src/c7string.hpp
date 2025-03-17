@@ -21,7 +21,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
-#include <sstream>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -388,13 +388,13 @@ namespace str {
                                basic operations
 ----------------------------------------------------------------------------*/
 
-inline std::stringstream& operator+=(std::stringstream& out, const std::string& in)
+inline std::ostream& operator+=(std::ostream& out, const std::string& in)
 {
     out.write(in.c_str(), in.size());
     return out;
 }
 
-inline std::stringstream& operator+=(std::stringstream& out, const char in)
+inline std::ostream& operator+=(std::ostream& out, const char in)
 {
     out.put(in);
     return out;
@@ -625,23 +625,28 @@ split_trim(const std::string& in, char sep)
 // eval C escape sequece
 
 std::string& eval_C(std::string& out, const std::string& s);
-std::stringstream& eval_C(std::stringstream& out, const std::string& s);
+std::ostream& eval_C(std::ostream& out, const std::string& s);
 std::string eval_C(const std::string& s);
 
+std::string& escape_C(std::string& out, const std::string& s, char quote='"');
+std::ostream& escape_C(std::ostream& out, const std::string& s, char quote='"');
+std::string escape_C(const std::string& s, char quote='"');
 
-// eval
+
+// eval: mark:% -> %V %{VAR...}
+//       mark:$ -> $V ${VAR...}
 
 typedef std::function<c7::result<const char*>(std::string& out, const char *vn, bool enclosed)> evalvar;
 
 c7::result<> eval(std::string& out, const std::string& in, char mark, char escape, c7::str::evalvar);
-c7::result<> eval(std::stringstream& out, const std::string& in, char mark, char escape, c7::str::evalvar);
+c7::result<> eval(std::ostream& out, const std::string& in, char mark, char escape, c7::str::evalvar);
 c7::result<std::string> eval(const std::string& in, char mark, char escape, c7::str::evalvar evalvar);
 
 
-// eval C escape sequece
+// eval shell-syntax environment variable reference
 
 c7::result<> eval_env(std::string& out, const std::string& in);
-c7::result<> eval_env(std::stringstream& out, const std::string& in);
+c7::result<> eval_env(std::ostream& out, const std::string& in);
 c7::result<std::string> eval_env(const std::string& in);
 
 
@@ -651,6 +656,15 @@ c7::result<std::string> eval_env(const std::string& in);
 
 } // namespace str
 } // namespace c7
+
+
+namespace std {
+
+#if !defined(C7_STRING_DISABLE_PRINT_TYPE)
+void print_type(std::ostream& o, const std::string& fmt, const vector<string>& sv);
+#endif
+
+} // namespace std
 
 
 #endif // c7string.hpp
