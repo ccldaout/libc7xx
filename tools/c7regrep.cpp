@@ -391,7 +391,7 @@ parser::opt_help(const opt_desc& desc, const std::vector<opt_value>& vals)
 
 static void parse_args(char **argv, ctx_t& ctx)
 {
-    parser prs{ctx}; 
+    parser prs{ctx};
 
     ctx.replace = repl_checkonly;
 

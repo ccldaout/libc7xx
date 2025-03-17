@@ -478,7 +478,7 @@ static void show_usage(const c7::args::parser& scan,
     usage.push_back(" print option:\n");
     print.append_usage(usage, main_indent, desc_indent);
     usage += "";
-    
+
     auto s = usage
 	| c7::nseq::transform([](auto& s){ return s+"\n"; })
 	| c7::nseq::flat<1>()
@@ -510,7 +510,7 @@ static mlog_conf parse_args(char **argv)
     if (*argv == nullptr) {
 	c7error("LOGNAME is not specified.");
     }
-    
+
     conf.logname = *argv++;
 
     // print options ...

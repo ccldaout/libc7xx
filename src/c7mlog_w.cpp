@@ -75,7 +75,7 @@ private:
     void setup_context(const char *hint_op,
 		       size_t hdrsize_b,
 		       const std::vector<size_t>& size_b_v);
-		       
+
     void free_storage();
 
     rec_t make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, int src_line,

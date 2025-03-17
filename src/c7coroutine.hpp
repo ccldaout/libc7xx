@@ -14,23 +14,11 @@
 #include <c7common.hpp>
 
 
-#include <c7delegate.hpp>
-#include <c7typefunc.hpp>
 #include <memory>
 #include <type_traits>
-
-
-#if defined(__x86_64) || defined(__aarch64__)
-# define USE_C7_CONTEXT
-#endif
-
-#if defined(USE_C7_CONTEXT)
-struct c7_context_data_t;
-#else
-# include <ucontext.h>
-using c7_context_data_t = ucontext_t;
-#endif
-using c7_context_t = c7_context_data_t*;
+#include <c7context.hpp>
+#include <c7delegate.hpp>
+#include <c7typefunc.hpp>
 
 
 namespace c7 {
@@ -93,7 +81,7 @@ private:
     coroutine* from_ = nullptr;
 
     void setup_context();
-    static void entry_point();
+    static void entry_point(void*);
     void switch_to();
     static void exit_with(status_t);
 };

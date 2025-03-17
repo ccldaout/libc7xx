@@ -32,7 +32,7 @@ private:
     std::cmatch match_;			// match_result
     std::string rep_rule_;
     uint32_t regrep_flag_;
-    
+
     const char *replbeg_;
     const char *replend_;
     void (impl::*replacer_)(std::string& out);
@@ -203,7 +203,7 @@ regrep::impl::exec(const char *in, std::string& out)
 regrep::regrep(): pimpl_(new impl)
 {
 }
-    
+
 regrep::~regrep() = default;
 
 c7::result<>

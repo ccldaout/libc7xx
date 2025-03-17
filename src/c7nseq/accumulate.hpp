@@ -20,6 +20,42 @@
 namespace c7::nseq {
 
 
+template <typename InplaceBinaryOperation, typename T>
+class accumulate_inplace {
+private:
+    template <typename U>
+    struct is_mutable_lvalue_reference {
+	static inline constexpr bool value =
+	    std::conjunction_v<std::is_lvalue_reference<U>,
+			       std::negation<std::is_const<std::remove_reference_t<U>>>>;
+    };
+
+    using hold_type =
+	std::conditional_t<is_mutable_lvalue_reference<T>::value,
+			   T,
+			   c7::typefunc::remove_cref_t<T>>;
+
+    InplaceBinaryOperation op_;
+    hold_type val_;
+
+public:
+    accumulate_inplace(InplaceBinaryOperation op, T init):
+	op_(op), val_(std::forward<T>(init)) {}
+
+    template <typename Seq>
+    decltype(auto) operator()(Seq&& seq) {
+	using std::begin;
+	using std::end;
+	auto it = begin(seq);
+	auto itend = end(seq);
+	for (; it != itend; ++it) {
+	    op_(val_, *it);
+	}
+	return val_;
+    }
+};
+
+
 template <typename BinaryOperation, typename T>
 class accumulate_with_init {
 private:
@@ -27,17 +63,18 @@ private:
     T val_;
 
 public:
-    accumulate_with_init(BinaryOperation op, T init): op_(op), val_(init) {}
+    accumulate_with_init(BinaryOperation op, const T& init): op_(op), val_(init) {}
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	auto it = std::begin(seq);
-	auto end = std::end(seq);
-	auto a = val_;
-	for (; it != end; ++it) {
-	    a = op_(a, *it);
+	using std::begin;
+	using std::end;
+	auto it = begin(seq);
+	auto itend = end(seq);
+	for (; it != itend; ++it) {
+	    val_ = op_(val_, *it);
 	}
-	return a;
+	return val_;
     }
 };
 
@@ -52,10 +89,12 @@ public:
 
     template <typename Seq>
     auto operator()(Seq&& seq) {
-	auto it = std::begin(seq);
-	auto end = std::end(seq);
+	using std::begin;
+	using std::end;
+	auto it = begin(seq);
+	auto itend = end(seq);
 	auto a = *it;
-	for (++it; it != end; ++it) {
+	for (++it; it != itend; ++it) {
 	    a = op_(a, *it);
 	}
 	return a;
@@ -74,6 +113,13 @@ template <typename BinaryOperation, typename T>
 auto accumulate(BinaryOperation op, T&& init)
 {
     return accumulate_with_init(op, std::forward<T>(init));
+}
+
+
+template <typename InplaceBinaryOperation, typename T>
+decltype(auto) accumulate_i(InplaceBinaryOperation op, T&& init)
+{
+    return accumulate_inplace<InplaceBinaryOperation, T>(op, std::forward<T>(init));
 }
 
 

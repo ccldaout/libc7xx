@@ -97,7 +97,7 @@ std::string& eval_C(std::string& out, const std::string& s)
     return out;
 }
 
-std::stringstream& eval_C(std::stringstream& out, const std::string& s)
+std::ostream& eval_C(std::ostream& out, const std::string& s)
 {
     std::string tmp;
     (void)eval_C(tmp, s);
@@ -109,6 +109,47 @@ std::string eval_C(const std::string& s)
 {
     std::string out;
     (void)eval_C(out, s);
+    return out;
+}
+
+
+/*----------------------------------------------------------------------------
+                               C escape sequece
+----------------------------------------------------------------------------*/
+
+std::string& escape_C(std::string& out, const std::string& s, char quote)
+{
+    const char *in = s.c_str();
+    static const char cvlist[] = "\tt\aa\nn\ff\rr";
+
+    for (; *in != 0; in++) {
+	if (*in == quote || *in == '\\') {
+	    out += '\\';
+	    out += *in;
+	} else if (std::isgraph(*in) || *in == ' ') {
+	    out += *in;
+	} else if (auto p = std::strchr(cvlist, *in); p != nullptr) {
+	    out += '\\';
+	    out += p[1];
+	} else {
+	    c7::format(out, "\\x%{02x}", static_cast<unsigned char>(*in));
+	}
+    }
+    return out;
+}
+
+std::ostream& escape_C(std::ostream& out, const std::string& s, char quote)
+{
+    std::string tmp;
+    (void)escape_C(tmp, s, quote);
+    out.write(tmp.c_str(), tmp.size());
+    return out;
+}
+
+std::string escape_C(const std::string& s, char quote)
+{
+    std::string out;
+    (void)escape_C(out, s, quote);
     return out;
 }
 
@@ -126,21 +167,10 @@ struct evalprm {
     c7::str::evalvar evalvar;
 };
 
-template <typename S>
-static S& append(S&, const char *s, const char *e);
-
 static std::string& append(std::string& out, const char *s, const char *e)
 {
     return out.append(s, e-s);
 }
-
-#if 0
-static std::stringstream& append(std::stringstream& out, const char *s, const char *e)
-{
-    out.write(s, e-s);
-    return out;
-}
-#endif
 
 static result<const char*> evalvarref(std::string& out, const char *in, const evalprm& prm)
 {
@@ -222,7 +252,7 @@ c7::result<> eval(std::string& out, const std::string& in_, char mark, char esca
     return c7result_ok();
 }
 
-c7::result<> eval(std::stringstream& out, const std::string& in, char mark, char escape,
+c7::result<> eval(std::ostream& out, const std::string& in, char mark, char escape,
 		  c7::str::evalvar evalvar)
 {
     std::string tmp;
@@ -290,7 +320,7 @@ c7::result<> eval_env(std::string& out, const std::string& in)
     return eval(out, in, '$', '\\', evalenv);
 }
 
-c7::result<> eval_env(std::stringstream& out, const std::string& in)
+c7::result<> eval_env(std::ostream& out, const std::string& in)
 {
     return eval(out, in, '$', '\\', evalenv);
 }
@@ -307,3 +337,27 @@ c7::result<std::string> eval_env(const std::string& in)
 
 } // namespace str
 } // namespace c7
+
+
+/*----------------------------------------------------------------------------
+                   print_type for std::vector<std::string>
+----------------------------------------------------------------------------*/
+
+namespace std {
+
+void print_type(std::ostream& o, const std::string& fmt, const vector<string>& sv)
+{
+    if (fmt.empty()) {
+	o << "{ ";
+	for (auto& s: sv) {
+	    o << '"';
+	    c7::str::escape_C(o, s, '"');
+	    o << "\" ";
+	}
+	o << "}";
+    } else {
+	c7::str::concat(o, fmt, sv);
+    }
+}
+
+} // namespace std

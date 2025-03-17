@@ -288,11 +288,10 @@ public:
 
     auto end() {
 	using std::begin;
-	auto it = begin(seq_);
-	using it_type = typename std::iterator_traits<decltype(it)>::iterator_category;
+	using it_type = typename std::iterator_traits<decltype(begin(seq_))>::iterator_category;
 	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
 	    auto eoff = seq_.size();
-	    return it+eoff;
+	    return begin(seq_) + eoff;
 	} else {
 	    return head_iterend();
 	}

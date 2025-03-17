@@ -145,7 +145,7 @@ private:
 
 	for (;;) {
 	    c7::sleep_ms(interval_ms);
-	    
+
 	    if (mm_addr_->updated) {
 		not_updated_ = 0;
 	    } else {

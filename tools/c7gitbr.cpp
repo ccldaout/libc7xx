@@ -20,7 +20,7 @@ static char *readall(const char *path, ssize_t *size)
 {
     struct stat st;
     int fd;
-    
+
     if ((fd = ::open(path, O_RDONLY)) != -1) {
 	ssize_t sizealt;
 	if (size == 0)
@@ -56,7 +56,7 @@ static void print(int prompt, const char *s)
 static int cdgit(void)
 {
     struct stat st_cur;
-    
+
     ::stat(".", &st_cur);
 
     for (;;) {

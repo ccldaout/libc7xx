@@ -250,10 +250,10 @@ public:
 	auto beg     = off_;
 
 	using std::rbegin;
-	auto it = rbegin(seq_);
-	using it_type = typename std::iterator_traits<decltype(it)>::iterator_category;
+	using it_type = typename std::iterator_traits<decltype(rbegin(seq_))>::iterator_category;
 
 	if constexpr (std::is_same_v<it_type, std::random_access_iterator_tag>) {
+	    auto it = rbegin(seq_);
 	    auto rev_off = seq_n - 1 - beg + gap_;
 	    return slice_ra_iter<decltype(it)>(it+rev_off, gap_);
 	} else {

@@ -23,7 +23,7 @@
 #include <c7utils.hpp>
 
 
-// API support 
+// API support
 
 #define C7_MLOG_API_set_callback	(1U)		// set_callback, enable_stdout
 #define C7_MLOG_API_partition		(1U)		// init(..., logsize_b_v, ...)

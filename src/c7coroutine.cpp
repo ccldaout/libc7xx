@@ -8,75 +8,9 @@
  */
 
 
-#include <c7coroutine.hpp>
 #include <stdexcept>
 #include <signal.h>	// MINSIGSTKSZ
-
-
-#if defined(USE_C7_CONTEXT)
-
-struct c7_context_data_t {
-    void *stack_area;
-    size_t stack_size;
-# if defined(__x86_64)
-    uint64_t rbp;
-    uint64_t rsp;
-    uint64_t rbx;
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
-#elif defined(__aarch64__)
-    uint64_t d8;
-    uint64_t d9;
-    uint64_t d10;
-    uint64_t d11;
-    uint64_t d12;
-    uint64_t d13;
-    uint64_t d14;
-    uint64_t d15;
-    uint64_t x19;
-    uint64_t x20;
-    uint64_t x21;
-    uint64_t x22;
-    uint64_t x23;
-    uint64_t x24;
-    uint64_t x25;
-    uint64_t x26;
-    uint64_t x27;
-    uint64_t x28;
-    uint64_t x30;	// PC
-    uint64_t sp;
-    uint64_t x29;
-#else
-# error "Not implemented for this architecture"
-#endif
-};
-
-extern "C" {
-int c7_getcontext(c7_context_t ctx);
-void c7_makecontext(c7_context_t ctx, void (*func)(), int);
-int c7_swapcontext(c7_context_t c_ctx, const c7_context_t t_ctx);
-}
-
-#else
-
-static int c7_getcontext(c7_context_t ctx)
-{
-    return ::getcontext(ctx);
-}
-
-static void c7_makecontext(c7_context_t ctx, void (*func)(), int)
-{
-    ::makecontext(ctx, func, 0);
-}
-
-int c7_swapcontext(c7_context_t c_ctx, const c7_context_t t_ctx)
-{
-    return ::swapcontext(c_ctx, t_ctx);
-}
-
-#endif
+#include <c7coroutine.hpp>
 
 
 namespace c7 {
@@ -133,10 +67,10 @@ coroutine::~coroutine()
 
 void coroutine::setup_context()
 {
-    c7_makecontext(c7context_, coroutine::entry_point, 0);
+    c7_makecontext(c7context_, coroutine::entry_point, this);
 }
 
-void coroutine::entry_point()		// static member
+void coroutine::entry_point(void *)	// static member
 {
     current->target_();
     coroutine::exit();

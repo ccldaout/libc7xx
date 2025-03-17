@@ -31,7 +31,7 @@ static ssize_t write_x(int fd, const void *p, ssize_t z)
     while ((w = write(fd, p, z)) > 0 && w != z) {
 	p = (char *)p + w;
 	z -= w;
-    } 
+    }
     return (w > 0) ? oz : -1;
 }
 
