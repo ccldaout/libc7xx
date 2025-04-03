@@ -18,7 +18,7 @@
 #include <cstring>
 #include <c7fd.hpp>
 #include <c7format.hpp>
-#include <c7utils.hpp>
+#include <c7utils/c_array.hpp>
 
 
 #define C7_RAWBUF_API_EXT_	(1)

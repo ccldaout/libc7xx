@@ -39,6 +39,7 @@ C7_DIRS += $(C7_OUT_OBJDIR)/c7format
 C7_DIRS += $(C7_OUT_OBJDIR)/c7nseq
 C7_DIRS += $(C7_OUT_OBJDIR)/c7strmbuf
 C7_DIRS += $(C7_OUT_OBJDIR)/c7thread
+C7_DIRS += $(C7_OUT_OBJDIR)/c7utils
 
 
 $(C7_OUT_OBJDIR)/c7event/%.o: %.cpp
@@ -48,6 +49,9 @@ $(C7_OUT_OBJDIR)/c7event/ext/%.o: %.cpp
 	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
 
 $(C7_OUT_OBJDIR)/c7thread/%.o: %.cpp
+	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
+
+$(C7_OUT_OBJDIR)/c7utils/%.o: %.cpp
 	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
 
 

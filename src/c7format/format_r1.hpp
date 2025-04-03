@@ -11,7 +11,6 @@
 #include <c7common.hpp>
 
 
-#include <c7defer.hpp>
 #include <c7format/format_cmn.hpp>
 #include <c7strmbuf/strref.hpp>
 #include <iomanip>
