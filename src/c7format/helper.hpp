@@ -11,6 +11,7 @@
 #include <c7common.hpp>
 
 
+#include <iomanip>
 #include <c7format/format_cmn.hpp>
 #include <c7nseq/tuple.hpp>
 

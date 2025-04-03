@@ -14,10 +14,10 @@
 #include <c7common.hpp>
 
 
-#include <c7fd.hpp>
-#include <c7utils.hpp>
 #include <unistd.h>
 #include <iterator>
+#include <c7fd.hpp>
+#include <c7utils/c_array.hpp>
 
 
 namespace c7 {

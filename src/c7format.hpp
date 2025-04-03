@@ -14,27 +14,36 @@
 #include <c7common.hpp>
 
 
+#include <c7defer.hpp>	// for compile compatibility
+
+
 #if !defined(C7_FORMAT_REV)
 # define C7_FORMAT_REV 2
 #endif
 
 
-#include <c7format/format_r1.hpp>
-#include <c7format/format_r2.hpp>
-#include <c7format/format_r3.hpp>
-
-
 #if C7_FORMAT_REV == 1
+#include <c7format/format_r1.hpp>
 namespace c7 {
 using namespace c7::format_r1;
 }
 #elif C7_FORMAT_REV == 2
+#include <c7format/format_r2.hpp>
 namespace c7 {
 using namespace c7::format_r2;
 }
 #elif C7_FORMAT_REV == 3
+#include <c7format/format_r3.hpp>
 namespace c7 {
 using namespace c7::format_r3;
+}
+#elif C7_FORMAT_REV == 4
+#include <c7format/format_r4.hpp>
+namespace c7 {
+using namespace c7::format_r4;
+}
+#else
+# error "Invalid C7_FORMAT_REV is specified"
 }
 #endif
 

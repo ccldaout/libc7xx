@@ -19,6 +19,11 @@
 #include <c7typefunc.hpp>
 
 
+#if !defined(C7_FORMAT_LIMVEC_N)
+# define C7_FORMAT_LIMVEC_N	(64)
+#endif
+
+
 namespace c7 {
 
 
@@ -218,6 +223,193 @@ void print_type(std::ostream& out, const std::string& format, com_status arg);
 
 
 namespace c7::format_cmn {
+
+
+/*----------------------------------------------------------------------------
+                                  formatter
+----------------------------------------------------------------------------*/
+
+struct format_item {
+    enum class format_type {
+	arg, arg_ext, width, prec, prefonly,
+    };
+
+    format_type type;
+    std::ios_base::fmtflags flags;
+    const char *pref_beg;
+    const char *ext_beg;
+    int pref_len;
+    int ext_len;
+    int width;			// -1: setout outside
+    int prec;			// -1: setout outside
+    char padding;
+    char single_fmt;		// !=0: single basic format is specified
+
+    void set_adjust(std::ios_base::fmtflags adj) {
+	flags &= ~(std::ios_base::left|std::ios_base::internal|std::ios_base::right);
+	flags |= adj;
+    }
+};
+
+
+template <typename T, size_t N = C7_FORMAT_LIMVEC_N>
+class limited_vector {
+public:
+    constexpr limited_vector(): n_(0) {}
+
+    constexpr void push_back(const T& item) {
+	if (n_ < N) {
+	    vec_[n_] = item;
+	    n_++;
+	}
+    }
+
+    constexpr T& operator[](int index) {
+	return vec_[index];
+    }
+
+    constexpr const T& operator[](int index) const {
+	return vec_[index];
+    }
+
+    constexpr size_t size() const {
+	return n_;
+    }
+
+    constexpr size_t capacity() const {
+	return N;
+    }
+
+private:
+    size_t n_;
+    T vec_[N];
+};
+
+
+template <typename FormatItemVec>
+void analyze_format(const char *s, FormatItemVec& fmtv);
+
+
+class formatter {
+private:
+    std::ostream& out_;
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_charseq_tag) noexcept {
+	for (auto c: arg) {
+	    out_ << c;
+	}
+    }
+
+    template <typename T>
+    inline void handle_arg(const format_item& fmt, const T& arg, formatter_enum_tag) noexcept {
+	handle_arg<ssize_t>(fmt, static_cast<ssize_t>(arg), formatter_int_tag());
+    }
+
+    inline std::string ext(const format_item& fmt) noexcept {
+	return std::string(fmt.ext_beg, fmt.ext_len);
+    }
+
+    template <typename T>
+    void handle_inttype_ext(const format_item& fmt, T arg) noexcept;
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, T arg, formatter_int_tag) noexcept {
+	if (fmt.type == format_item::format_type::arg) {
+	    out_ << arg;
+	} else {
+	    handle_inttype_ext(fmt, arg);
+	}
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, T arg, formatter_int8_tag) noexcept {
+	if (fmt.type == format_item::format_type::arg) {
+	    if (fmt.single_fmt) {
+		out_ << static_cast<int>(arg);
+	    } else {
+		out_ << arg;
+	    }
+	} else {
+	    handle_inttype_ext(fmt, static_cast<int>(arg));
+	}
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, T arg, formatter_uint8_tag) noexcept {
+	if (fmt.type == format_item::format_type::arg) {
+	    if (fmt.single_fmt) {
+		out_ << static_cast<unsigned int>(arg);
+	    } else {
+		out_ << arg;
+	    }
+	} else {
+	    handle_inttype_ext(fmt, static_cast<unsigned int>(arg));
+	}
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, T arg, formatter_float_tag) noexcept {
+	out_ << arg;
+    }
+
+    template <typename T>
+    inline void handle_arg(const format_item& fmt, T arg, formatter_pointer_tag) noexcept {
+	out_ << arg;
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_traits_tag) noexcept {
+	format_traits<T>::convert(out_, ext(fmt), arg);
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_function_tag) noexcept {
+	print_type(out_, ext(fmt), arg);
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_member_tag) noexcept {
+	arg.print(out_, ext(fmt));
+    }
+
+    template <typename T>
+    void handle_arg(const format_item& fmt, const T& arg, formatter_printas_tag) noexcept {
+	const auto& as_value = arg.print_as();
+	using U = std::remove_reference_t<std::remove_cv_t<decltype(as_value)>>;
+	handle_arg<U>(fmt, as_value, formatter_tag<U>::value);
+    }
+
+    template <typename T>
+    inline void handle_arg(const format_item& fmt, const T& arg, formatter_operator_tag) noexcept {
+	out_ << arg;
+    }
+
+    template <typename T>
+    inline void handle_arg(const format_item& fmt, const T& arg, formatter_error_tag) noexcept {
+	static_assert(c7::typefunc::false_v<T>, "Specified type is not formattable.");
+    }
+
+    const format_item& apply_item(const format_item * const fmts, size_t nfmt, size_t& index) noexcept;
+
+    void apply_item_last(const format_item * const fmts, size_t nfmt, size_t& index) noexcept;
+
+public:
+    explicit formatter(std::ostream& out): out_(out) {}
+
+    template <typename AnalyzedFormat>
+    void apply(const AnalyzedFormat& fmts, size_t index) noexcept {
+	apply_item_last(&fmts[0], fmts.size(), index);
+    }
+
+    template <typename AnalyzedFormat, typename Arg, typename... Args>
+    void apply(const AnalyzedFormat& fmts, size_t index, Arg& arg, Args&... args) noexcept {
+	using U = std::remove_reference_t<std::remove_cv_t<Arg>>;
+	auto& fmt = apply_item(&fmts[0], fmts.size(), index);
+	handle_arg<U>(fmt, arg, formatter_tag<U>::value);
+	apply(fmts, index+1, args...);
+    }
+};
 
 
 /*----------------------------------------------------------------------------

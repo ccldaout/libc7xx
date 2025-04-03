@@ -1,256 +1,321 @@
 $(C7_OUT_OBJDIR)/c7app.o: c7app.cpp c7app.hpp c7result.hpp c7common.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7path.hpp c7string.hpp \
- c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp
+ c7format/format_api.hpp c7path.hpp c7string.hpp c7coroutine.hpp \
+ c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7args.o: c7args.cpp c7app.hpp c7result.hpp c7common.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7args.hpp c7string.hpp \
- c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp c7nseq/flat.hpp \
- c7nseq/generator.hpp c7generator_r2.hpp c7nseq/empty.hpp c7utils.hpp \
- c7nseq/string.hpp c7nseq/accumulate.hpp c7nseq/group.hpp \
- c7nseq/range.hpp c7nseq/reverse.hpp c7nseq/transform.hpp \
- c7nseq/vector.hpp c7nseq/while.hpp c7nseq/filter.hpp
+ c7format/format_api.hpp c7args.hpp c7string.hpp c7coroutine.hpp \
+ c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7nseq/flat.hpp c7nseq/generator.hpp c7generator_r2.hpp \
+ c7nseq/empty.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp c7nseq/string.hpp c7nseq/accumulate.hpp \
+ c7nseq/group.hpp c7nseq/range.hpp c7nseq/reverse.hpp \
+ c7nseq/transform.hpp c7nseq/vector.hpp c7nseq/while.hpp \
+ c7nseq/filter.hpp
 $(C7_OUT_OBJDIR)/c7common.o: c7common.cpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7context.o: c7context.cpp c7context.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7coroutine.o: c7coroutine.cpp c7coroutine.hpp \
  c7common.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp
 $(C7_OUT_OBJDIR)/c7dconf.o: c7dconf.cpp c7dconf.hpp c7common.hpp \
- c7file.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7file.hpp c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/head.hpp
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7delegate.o: c7delegate.cpp c7delegate.hpp c7common.hpp
-$(C7_OUT_OBJDIR)/c7fd.o: c7fd.cpp c7fd.hpp c7common.hpp c7delegate.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+$(C7_OUT_OBJDIR)/c7fd.o: c7fd.cpp c7defer.hpp c7common.hpp c7fd.hpp \
+ c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp
+ c7format/format_api.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7file.o: c7file.cpp c7file.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
- c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7nseq/head.hpp c7signal.hpp
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7signal.hpp
 $(C7_OUT_OBJDIR)/c7fsm.o: c7fsm.cpp c7fsm.hpp c7common.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7thread/condvar.hpp \
- c7thread/mutex.hpp
+ c7format/format_api.hpp c7thread/condvar.hpp c7thread/mutex.hpp
 $(C7_OUT_OBJDIR)/c7mlog_r.o: c7mlog_r.cpp c7file.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7nseq/reverse.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
- c7nseq/enumerate.hpp c7nseq/head.hpp c7mlog_private.hpp c7mlog.hpp \
- c7strmbuf/hybrid.hpp
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp \
+ c7nseq/reverse.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/head.hpp c7mlog_private.hpp c7mlog.hpp c7strmbuf/hybrid.hpp
 $(C7_OUT_OBJDIR)/c7mlog_r6.o: c7mlog_r6.cpp c7file.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7mlog.hpp c7strmbuf/hybrid.hpp c7path.hpp c7string.hpp \
- c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
- c7nseq/_iter_ops.hpp c7nseq/head.hpp c7thread.hpp c7thread/spinlock.hpp \
- c7thread/mutex.hpp c7thread/condvar.hpp c7thread/thread.hpp \
- c7mlog_private.hpp
-$(C7_OUT_OBJDIR)/c7mlog_w.o: c7mlog_w.cpp c7file.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7utils.hpp c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
- c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp c7mlog.hpp \
+ c7strmbuf/hybrid.hpp c7path.hpp c7string.hpp c7coroutine.hpp \
+ c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
  c7nseq/head.hpp c7thread.hpp c7thread/spinlock.hpp c7thread/mutex.hpp \
- c7thread/condvar.hpp c7thread/thread.hpp c7mlog_private.hpp c7mlog.hpp \
- c7strmbuf/hybrid.hpp
+ c7thread/condvar.hpp c7thread/thread.hpp c7mlog_private.hpp
+$(C7_OUT_OBJDIR)/c7mlog_w.o: c7mlog_w.cpp c7file.hpp c7common.hpp \
+ c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
+ c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7thread.hpp \
+ c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
+ c7thread/thread.hpp c7mlog_private.hpp c7mlog.hpp c7strmbuf/hybrid.hpp
 $(C7_OUT_OBJDIR)/c7mm.o: c7mm.cpp c7mm.hpp c7common.hpp c7fd.hpp \
- c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp c7path.hpp \
- c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp
-$(C7_OUT_OBJDIR)/c7path.o: c7path.cpp c7path.hpp c7common.hpp \
- c7string.hpp c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
- c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7seq.hpp c7utils.hpp \
- c7nseq/c_array.hpp c7nseq/filter.hpp c7nseq/range.hpp c7nseq/reverse.hpp \
- c7nseq/tail.hpp c7nseq/transform.hpp
-$(C7_OUT_OBJDIR)/c7pipeline.o: c7pipeline.cpp c7pipeline.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7utils.hpp \
- c7nseq/reverse.hpp
-$(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7string.hpp c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp \
- c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp c7nseq/head.hpp c7signal.hpp \
- c7thread/condvar.hpp c7thread/mutex.hpp
-$(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
- c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp
-$(C7_OUT_OBJDIR)/c7regrep.o: c7regrep.cpp c7app.hpp c7result.hpp \
- c7common.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7regrep.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/c_array.hpp \
+ c7path.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
  c7nseq/head.hpp
+$(C7_OUT_OBJDIR)/c7path.o: c7path.cpp c7defer.hpp c7common.hpp c7path.hpp \
+ c7string.hpp c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7seq.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp c7nseq/c_array.hpp c7nseq/filter.hpp c7nseq/range.hpp \
+ c7nseq/reverse.hpp c7nseq/tail.hpp c7nseq/transform.hpp
+$(C7_OUT_OBJDIR)/c7pipeline.o: c7pipeline.cpp c7defer.hpp c7common.hpp \
+ c7pipeline.hpp c7result.hpp c7format.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7string.hpp \
+ c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7nseq/_iter_ops.hpp c7nseq/head.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp c7nseq/reverse.hpp
+$(C7_OUT_OBJDIR)/c7proc.o: c7proc.cpp c7proc.hpp c7common.hpp c7defer.hpp \
+ c7result.hpp c7format.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
+ c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp c7string.hpp c7coroutine.hpp c7context.hpp \
+ c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
+ c7nseq/head.hpp c7signal.hpp c7thread/condvar.hpp c7thread/mutex.hpp
+$(C7_OUT_OBJDIR)/c7rawbuf.o: c7rawbuf.cpp c7rawbuf.hpp c7common.hpp \
+ c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/c_array.hpp
+$(C7_OUT_OBJDIR)/c7regrep.o: c7regrep.cpp c7app.hpp c7result.hpp \
+ c7common.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7regrep.hpp c7string.hpp \
+ c7coroutine.hpp c7context.hpp c7nseq/enumerate.hpp c7nseq/_cmn.hpp \
+ c7nseq/_iter_ops.hpp c7nseq/head.hpp
 $(C7_OUT_OBJDIR)/c7result.o: c7result.cpp c7path.hpp c7common.hpp \
  c7string.hpp c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp
+ c7nseq/head.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7signal.o: c7signal.cpp c7app.hpp c7result.hpp \
- c7common.hpp c7format.hpp c7format/format_r1.hpp c7defer.hpp \
+ c7common.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
  c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7signal.hpp c7thread.hpp c7thread/spinlock.hpp c7thread/mutex.hpp \
- c7thread/condvar.hpp c7thread/thread.hpp c7utils.hpp
-$(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7socket.hpp c7common.hpp \
- c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7signal.hpp c7thread.hpp \
+ c7thread/spinlock.hpp c7thread/mutex.hpp c7thread/condvar.hpp \
+ c7thread/thread.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp
+$(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7defer.hpp c7common.hpp \
+ c7socket.hpp c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7string.o: c7string.cpp c7string.hpp c7common.hpp \
  c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \
- c7nseq/head.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp
-$(C7_OUT_OBJDIR)/c7utils.o: c7utils.cpp c7defer.hpp c7common.hpp \
- c7format.hpp c7format/format_r1.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7utils.hpp c7result.hpp
+ c7nseq/head.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7thread/condvar.o: c7thread/condvar.cpp \
  c7thread/condvar.hpp c7common.hpp c7defer.hpp c7thread/_private.hpp \
  c7thread/mutex.hpp
 $(C7_OUT_OBJDIR)/c7thread/counter.o: c7thread/counter.cpp \
  c7thread/counter.hpp c7common.hpp c7thread/condvar.hpp c7defer.hpp \
- c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp \
- c7format/format_r1.hpp c7format/format_cmn.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp
+ c7delegate.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7thread/event.o: c7thread/event.cpp c7thread/event.hpp \
  c7common.hpp c7thread/condvar.hpp c7defer.hpp c7delegate.hpp c7utils.hpp \
- c7result.hpp c7format.hpp c7format/format_r1.hpp c7format/format_cmn.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7result.hpp c7format.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/ext/flagsync.o: c7event/ext/flagsync.cpp \
  c7event/ext/flagsync.hpp c7common.hpp c7event/monitor.hpp \
- c7thread/mutex.hpp c7defer.hpp c7utils.hpp c7result.hpp c7format.hpp \
- c7format/format_r1.hpp c7format/format_cmn.hpp c7delegate.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp c7event/service.hpp c7event/port.hpp c7socket.hpp \
- c7fd.hpp
+ c7thread/mutex.hpp c7defer.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7result.hpp c7format.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
+ c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp \
+ c7event/service.hpp c7event/port.hpp c7socket.hpp c7fd.hpp
 $(C7_OUT_OBJDIR)/c7format/format_cmn.o: c7format/format_cmn.cpp \
  c7format/format_cmn.hpp c7common.hpp c7delegate.hpp c7typefunc.hpp
-$(C7_OUT_OBJDIR)/c7format/format_r1.o: c7format/format_r1.cpp \
- c7format/format_r1.hpp c7common.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp
-$(C7_OUT_OBJDIR)/c7format/format_r2.o: c7format/format_r2.cpp \
- c7format/format_r2.hpp c7common.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp
 $(C7_OUT_OBJDIR)/c7format/format_r3.o: c7format/format_r3.cpp \
  c7format/format_r3.hpp c7common.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7format/format_r2.hpp \
- c7strmbuf/strref.hpp
+ c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
+ c7format/format_api.hpp
+$(C7_OUT_OBJDIR)/c7format/format_r4.o: c7format/format_r4.cpp \
+ c7format/format_r4.hpp c7common.hpp c7format/format_cmn.hpp \
+ c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp c7utils/spinlock.hpp \
+ c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7event/ext/fsm.o: c7event/ext/fsm.cpp \
  c7event/ext/fsm.hpp c7common.hpp c7fd.hpp c7delegate.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp c7fsm.hpp c7thread/condvar.hpp \
- c7event/monitor.hpp c7thread/mutex.hpp c7utils.hpp c7event/service.hpp \
- c7event/port.hpp c7socket.hpp
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp c7fsm.hpp \
+ c7thread/condvar.hpp c7event/monitor.hpp c7thread/mutex.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
+ c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp \
+ c7event/service.hpp c7event/port.hpp c7socket.hpp
 $(C7_OUT_OBJDIR)/c7thread/group.o: c7thread/group.cpp c7thread/group.hpp \
- c7common.hpp c7thread/thread.hpp c7delegate.hpp c7utils.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp c7thread/condvar.hpp
+ c7common.hpp c7thread/thread.hpp c7delegate.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp c7thread/condvar.hpp
 $(C7_OUT_OBJDIR)/c7strmbuf/hybrid.o: c7strmbuf/hybrid.cpp \
- c7strmbuf/hybrid.hpp c7common.hpp c7utils.hpp c7result.hpp c7format.hpp \
- c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp
+ c7strmbuf/hybrid.hpp c7common.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7result.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/inotify.o: c7event/inotify.cpp c7fd.hpp \
- c7common.hpp c7delegate.hpp c7result.hpp c7format.hpp \
- c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp c7event/inotify.hpp c7event/monitor.hpp \
- c7thread/mutex.hpp c7utils.hpp
+ c7common.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7event/inotify.hpp \
+ c7event/monitor.hpp c7thread/mutex.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/iovec_proxy.o: c7event/iovec_proxy.cpp \
  c7event/iovec_proxy.hpp c7common.hpp c7slice.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp
+ c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7thread/mask.o: c7thread/mask.cpp c7thread/mask.hpp \
- c7common.hpp c7thread/condvar.hpp c7defer.hpp c7utils.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7format/format_cmn.hpp \
- c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp
+ c7common.hpp c7thread/condvar.hpp c7defer.hpp c7utils.hpp \
+ c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
+ c7utils/memory.hpp c7result.hpp c7format.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/monitor.o: c7event/monitor.cpp c7app.hpp \
- c7result.hpp c7common.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7event/monitor.hpp c7thread/mutex.hpp c7utils.hpp c7thread/thread.hpp \
- c7signal.hpp
+ c7result.hpp c7common.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7event/monitor.hpp c7thread/mutex.hpp c7utils.hpp c7utils/c_array.hpp \
+ c7utils/endian.hpp c7utils/loop_assist.hpp c7utils/memory.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp c7thread/thread.hpp c7signal.hpp
 $(C7_OUT_OBJDIR)/c7thread/msgbox.o: c7thread/msgbox.cpp \
  c7thread/msgbox.hpp c7common.hpp c7hash.hpp c7thread/condvar.hpp \
- c7defer.hpp c7utils.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp
+ c7defer.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7thread/mutex.o: c7thread/mutex.cpp c7thread/mutex.hpp \
  c7common.hpp c7defer.hpp c7thread/_private.hpp
+$(C7_OUT_OBJDIR)/c7utils/passwd.o: c7utils/passwd.cpp c7utils/passwd.hpp \
+ c7common.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7utils/memory.hpp
 $(C7_OUT_OBJDIR)/c7event/port.o: c7event/port.cpp c7event/port.hpp \
  c7common.hpp c7socket.hpp c7fd.hpp c7delegate.hpp c7result.hpp \
- c7format.hpp c7format/format_r1.hpp c7defer.hpp c7format/format_cmn.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_r2.hpp \
- c7format/format_r3.hpp
+ c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7event/portgroup.o: c7event/portgroup.cpp \
  c7event/portgroup.hpp c7common.hpp c7event/port.hpp c7socket.hpp \
- c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7event/shared_port.hpp \
+ c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7event/shared_port.hpp \
  c7event/traits.hpp c7thread/mutex.hpp c7iters.hpp
 $(C7_OUT_OBJDIR)/c7thread/rendezvous.o: c7thread/rendezvous.cpp \
  c7thread/rendezvous.hpp c7common.hpp c7thread/condvar.hpp c7defer.hpp \
- c7utils.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp
+ c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/shared_port.o: c7event/shared_port.cpp \
  c7event/shared_port.hpp c7common.hpp c7event/port.hpp c7socket.hpp \
- c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7defer.hpp c7format/format_cmn.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
- c7format/format_r2.hpp c7format/format_r3.hpp c7event/traits.hpp \
+ c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7event/traits.hpp \
  c7thread/mutex.hpp
 $(C7_OUT_OBJDIR)/c7thread/spinlock.o: c7thread/spinlock.cpp \
  c7thread/spinlock.hpp c7common.hpp c7defer.hpp c7thread/_private.hpp \
  c7thread/mutex.hpp
+$(C7_OUT_OBJDIR)/c7utils/storage.o: c7utils/storage.cpp \
+ c7utils/storage.hpp c7common.hpp c7result.hpp c7format.hpp c7defer.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7strmbuf/strref.o: c7strmbuf/strref.cpp \
  c7strmbuf/strref.hpp c7common.hpp
 $(C7_OUT_OBJDIR)/c7event/submit.o: c7event/submit.cpp c7event/submit.hpp \
  c7common.hpp c7event/monitor.hpp c7thread/mutex.hpp c7defer.hpp \
- c7utils.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7fd.hpp c7thread/queue.hpp c7thread/_queue.hpp c7thread/condvar.hpp
+ c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp c7fd.hpp c7thread/queue.hpp \
+ c7thread/_queue.hpp c7thread/condvar.hpp
 $(C7_OUT_OBJDIR)/c7thread/thread.o: c7thread/thread.cpp \
  c7thread/condvar.hpp c7common.hpp c7defer.hpp c7thread/thread.hpp \
- c7delegate.hpp c7utils.hpp c7result.hpp c7format.hpp \
- c7format/format_r1.hpp c7format/format_cmn.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp \
- c7thread/_private.hpp c7thread/mutex.hpp
+ c7delegate.hpp c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/movable_capture.hpp \
+ c7utils/passwd.hpp c7utils/spinlock.hpp c7utils/storage.hpp \
+ c7utils/time.hpp c7thread/_private.hpp c7thread/mutex.hpp
+$(C7_OUT_OBJDIR)/c7utils/time.o: c7utils/time.cpp c7utils/time.hpp \
+ c7common.hpp
 $(C7_OUT_OBJDIR)/c7event/timer.o: c7event/timer.cpp c7event/timer.hpp \
  c7common.hpp c7event/monitor.hpp c7thread/mutex.hpp c7defer.hpp \
- c7utils.hpp c7result.hpp c7format.hpp c7format/format_r1.hpp \
- c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_r2.hpp c7format/format_r3.hpp
+ c7utils.hpp c7utils/c_array.hpp c7utils/endian.hpp \
+ c7utils/loop_assist.hpp c7utils/memory.hpp c7result.hpp c7format.hpp \
+ c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+ c7utils/movable_capture.hpp c7utils/passwd.hpp c7utils/spinlock.hpp \
+ c7utils/storage.hpp c7utils/time.hpp

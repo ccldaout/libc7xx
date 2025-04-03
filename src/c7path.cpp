@@ -8,6 +8,7 @@
  */
 
 
+#include <c7defer.hpp>
 #include <c7path.hpp>
 #include <c7seq.hpp>
 #include <c7utils.hpp>

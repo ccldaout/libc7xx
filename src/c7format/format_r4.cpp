@@ -1,5 +1,5 @@
 /*
- * format_r3.cpp
+ * format_r4.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -9,21 +9,22 @@
 
 
 #include <cstring>
-#include <c7format/format_r3.hpp>
+#include <c7format/format_r4.hpp>
 
 
-namespace c7::format_r3 {
+namespace c7::format_r4 {
 
 
 /*----------------------------------------------------------------------------
                                analyzed_format
 ----------------------------------------------------------------------------*/
 
-thread_local std::unordered_map<const void*, analyzed_format> analyzed_format::p_dic_;
+std::unordered_map<const void*, analyzed_format> analyzed_format::p_dic_;
+volatile int analyzed_format::dic_lock_;
 
 
 /*----------------------------------------------------------------------------
 ----------------------------------------------------------------------------*/
 
 
-} // namespace c7::format_r3
+} // namespace c7::format_r4
