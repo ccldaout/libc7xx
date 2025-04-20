@@ -100,7 +100,9 @@ public:
     mmap_deleter() = default;
     explicit mmap_deleter(size_t n): n_(n) {}
     void operator()(void *p) {
-	::munmap(p, n_);
+	if (n_ > 0) {
+	    ::munmap(p, n_);
+	}
     }
 private:
     size_t n_ = 0;

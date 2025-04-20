@@ -32,7 +32,8 @@ template <typename T>
 auto mmap_r(const std::string& path)
 {
     size_t z = 0;
-    auto p = std::move(c7::file::mmap_r<T>(path, z).value());
+    auto null = c7::file::unique_mmap<T>{nullptr, c7::file::mmap_deleter()};
+    auto p = std::move(c7::file::mmap_r<T>(path, z).value(std::move(null)));
     return c7::nseq::c_array(std::move(p), z);
 }
 
@@ -41,8 +42,9 @@ template <typename T>
 auto mmap_r(int dirfd, const std::string& path)
 {
     size_t z = 0;
+    auto null = c7::file::unique_mmap<T>{nullptr, c7::file::mmap_deleter()};
     auto fd = std::move(c7::open(dirfd, path).value());
-    auto p = std::move(c7::file::mmap_r<T>(fd, z).value());
+    auto p = std::move(c7::file::mmap_r<T>(fd, z).value(std::move(null)));
     return c7::nseq::c_array(std::move(p), z);
 }
 
