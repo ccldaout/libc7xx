@@ -143,10 +143,7 @@ $(C7_OUT_OBJDIR)/c7signal.o: c7signal.cpp c7app.hpp c7result.hpp \
 $(C7_OUT_OBJDIR)/c7socket.o: c7socket.cpp c7defer.hpp c7common.hpp \
  c7socket.hpp c7fd.hpp c7delegate.hpp c7result.hpp c7format.hpp \
  c7format/format_r2.hpp c7format/format_cmn.hpp c7typefunc.hpp \
- c7strmbuf/strref.hpp c7format/format_api.hpp c7utils.hpp \
- c7utils/c_array.hpp c7utils/endian.hpp c7utils/loop_assist.hpp \
- c7utils/memory.hpp c7utils/movable_capture.hpp c7utils/passwd.hpp \
- c7utils/spinlock.hpp c7utils/storage.hpp c7utils/time.hpp
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7string.o: c7string.cpp c7string.hpp c7common.hpp \
  c7coroutine.hpp c7context.hpp c7delegate.hpp c7typefunc.hpp \
  c7nseq/enumerate.hpp c7nseq/_cmn.hpp c7nseq/_iter_ops.hpp \

@@ -8,15 +8,16 @@
  */
 
 
-#include <c7defer.hpp>
-#include <c7socket.hpp>
-#include <c7utils.hpp>
 #include <unistd.h>
-#include <cstring>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <sys/socket.h>
+#include <cstring>
+#include <random>
+#include <c7defer.hpp>
+#include <c7socket.hpp>
+#include <c7utils/time.hpp>
 
 
 static const char *inaddr_name(const ::sockaddr_in& inaddr)
@@ -607,8 +608,9 @@ result<socket> unix_dg_binded(const std::string& path)
 
 result<socket> unix_dg_binded()
 {
+    static const uint64_t seed{std::random_device{}()};
     static std::atomic<uint64_t> counter;
-    auto path = c7::format(" .%{}.%{}.%{}", c7::time_us(), getpid(), counter++);
+    auto path = c7::format(" .%{}.%{}@ccldaout", seed, counter++);
     path[0] = 0;
     return unix_dg_binded(path);
 }
