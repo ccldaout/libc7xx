@@ -404,6 +404,69 @@ io_result socket::sendto(const void *buf, size_t bufsize, const sockaddr_gen& ad
     }
 }
 
+c7::result<> socket::send_filedesc(int fd)
+{
+    msghdr msg{};
+    alignas(cmsghdr) char cmsgbuf[CMSG_SPACE(sizeof(fd))];
+
+    char dummy = 0;
+    iovec iov{&dummy, sizeof(dummy)};;
+
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
+
+    cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+    std::memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
+
+    msg.msg_controllen = cmsg->cmsg_len;
+
+    if (::sendmsg(fdnum_, &msg, 0) == C7_SYSERR) {
+	return c7result_err(errno, "sendmsg(%{}) failed", *this);
+    }
+    return c7result_ok();
+}
+
+c7::result<int> socket::recv_filedesc()
+{
+    msghdr msg{};
+    alignas(cmsghdr) char cmsgbuf[CMSG_SPACE(sizeof(int))];
+
+    char dummy;
+    iovec iov{&dummy, sizeof(dummy)};;
+
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
+
+    if (int ret = ::recvmsg(fdnum_, &msg, 0); ret != 1) {
+	if (ret == 0 && errno == 0) {
+	    errno = ENODATA;
+	}
+	return c7result_err(errno, "recvmsg(%{}) failed", *this);
+    }
+
+    int fd;
+    cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    if (cmsg->cmsg_type != SCM_RIGHTS) {
+	return c7result_err(EINVAL, "recvmsg(%{}) unexpected cmsg_type: expcet:%{}, received:%{}",
+			    *this, SCM_RIGHTS, cmsg->cmsg_type);
+    }
+    if (cmsg->cmsg_len != CMSG_LEN(sizeof(fd))) {
+	return c7result_err(EINVAL, "recvmsg(%{}) unexpected cmsg_lene: expcet:%{}, received:%{}",
+			    *this, CMSG_LEN(sizeof(fd)), cmsg->cmsg_len);
+    }
+    std::memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
+    return c7result_ok(fd);
+}
+
 std::string socket::to_string(const std::string&) const
 {
     if (name_.empty()) {

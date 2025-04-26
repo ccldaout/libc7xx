@@ -20,6 +20,9 @@
 #include <utility>
 
 
+#define C7_SOCKET_DESCPASS	(1U)
+
+
 namespace c7 {
 
 
@@ -122,6 +125,10 @@ public:
     io_result sendto(const T *buf, const sockaddr_gen& addr, int flags = 0) {
 	return sendto(buf, sizeof(*buf), addr, flags);
     }
+
+    // C7_SOCKET_DESCPASS
+    c7::result<> send_filedesc(int fd);
+    c7::result<int> recv_filedesc();
 
     std::string to_string(const std::string& spec) const override;
     void print(std::ostream& out, const std::string& spec) const override;
