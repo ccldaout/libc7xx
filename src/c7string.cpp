@@ -53,6 +53,23 @@ std::string trim_right(const std::string& in, const std::string& removed_chars)
     return std::string(beg, end - beg);
 }
 
+std::string replace(const std::string& s, const std::string& o, const std::string& n)
+{
+    std::string out;
+    auto p= s.c_str();
+    auto op = o.c_str();
+    for (;;) {
+        auto q = std::strstr(p, op);
+        if (q == nullptr) {
+            out += p;
+            return out;
+        }
+        out.append(p, q);
+        out += n;
+        p = q + o.size();
+    }
+}
+
 
 /*----------------------------------------------------------------------------
                             eval C escape sequece

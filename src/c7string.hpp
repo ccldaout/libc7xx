@@ -26,6 +26,9 @@
 #include <vector>
 
 
+#define C7_STRING_REPLACE	(1U)
+
+
 namespace c7 {
 
 
@@ -519,6 +522,11 @@ inline std::string trim_right(const std::string& in)
 {
     return trim_right(in, " \t\n\r");
 }
+
+
+// replace: C7_STRING_REPLACE
+
+std::string replace(const std::string& s, const std::string& o, const std::string& n);
 
 
 // transpose
