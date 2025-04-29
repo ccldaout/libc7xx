@@ -27,6 +27,7 @@
 
 
 #define C7_STRING_REPLACE	(1U)
+#define C7_STRVEC_CHARPP	(1U)
 
 
 namespace c7 {
@@ -320,6 +321,11 @@ public:
     strvec(const std::vector<std::string>& sv): base_t(sv) {}
 
     strvec(std::vector<std::string>&& sv): base_t(std::move(sv)) {}
+
+    // C7_STRVEC_CHARPP
+    explicit strvec(const char **pv) {
+	*this += pv;
+    }
 
     strvec& operator=(const std::string& s) {
 	clear();

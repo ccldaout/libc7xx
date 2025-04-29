@@ -62,6 +62,17 @@ public:
 	return (old_h == sig_default) ? SIG_DFL : old_h;
     }
 
+    sig_handler handler(int sig, sig_handler new_h) {
+	auto old_h = handler(sig, sig_extention);
+	auto old_ext = sig_handlers_[sig];
+	sig_handlers_[sig] = new_h;
+	if (old_h == sig_extention) {
+	    return old_ext;
+	} else {
+	    return sig_handler{old_h};
+	}
+    }
+
     ::sigset_t block(const ::sigset_t& mask) {
 	auto unlock = lock_->lock();
 	auto old_mask = user_mask_;
@@ -89,6 +100,7 @@ private:
     ::sigset_t blocked_mask_;
     ::sigset_t user_mask_;
     void (*handlers_[NSIG])(int);
+    static sig_handler sig_handlers_[NSIG];
     std::unique_ptr<c7::thread::mutex> lock_;
 
 
@@ -121,6 +133,10 @@ private:
 	(void)::sigaddset(&mask, sig);
 	(void)pthread_sigmask(SIG_UNBLOCK, &mask, nullptr);
 	(void)::kill(::getpid(), sig);
+    }
+
+    static void sig_extention(int sig) {
+	sig_handlers_[sig](sig);
     }
 
     static void sig_noop(int) {}
@@ -171,6 +187,7 @@ private:
 };
 
 
+sig_handler sigmanager::sig_handlers_[NSIG];
 static sigmanager signal_manager;
 static volatile int once_flag;
 
@@ -203,6 +220,14 @@ void enable_SIGCHLD(void (*sigchld)(int))
 
 c7::result<void(*)(int)>
 handle(int sig, void (*handler)(int), const ::sigset_t&)
+{
+    call_init_once();
+    return c7result_ok(signal_manager.handler(sig, handler));
+}
+
+
+c7::result<sig_handler>
+handle(int sig, sig_handler handler, const ::sigset_t&)
 {
     call_init_once();
     return c7result_ok(signal_manager.handler(sig, handler));
