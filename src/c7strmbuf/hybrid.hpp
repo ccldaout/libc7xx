@@ -17,7 +17,7 @@
 #include <cstring>
 #include <memory>
 #include <streambuf>
-#include <c7utils.hpp>
+#include <c7utils/storage.hpp>
 
 
 namespace c7::strmbuf {

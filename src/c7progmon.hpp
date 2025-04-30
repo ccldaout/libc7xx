@@ -18,7 +18,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <c7signal.hpp>
-#include <c7utils.hpp>
+#include <c7utils/time.hpp>
 
 
 namespace c7 {

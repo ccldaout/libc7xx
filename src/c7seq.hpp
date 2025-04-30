@@ -16,11 +16,11 @@
 
 #include <cstdio>
 #include <functional>
-#include <iterator>	// std::iterator_traits
+#include <iterator>		// std::iterator_traits
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
-#include <c7utils.hpp>	// c_array_iterator
+#include <c7utils/c_array.hpp>	// c_array_iterator
 
 
 #include <c7nseq/c_array.hpp>

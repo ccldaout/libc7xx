@@ -14,11 +14,12 @@
 #include <c7common.hpp>
 
 
-#include <c7delegate.hpp>
-#include <c7utils.hpp>
 #include <functional>
-#include <system_error>
 #include <string>
+#include <memory>
+#include <system_error>
+#include <c7delegate.hpp>
+#include <c7result.hpp>
 
 
 namespace c7::thread {

@@ -14,10 +14,11 @@
 #include <c7common.hpp>
 
 
+#include <cstring>
 #include <c7app.hpp>
 #include <c7event/msgbuf.hpp>
 #include <c7event/traits.hpp>
-#include <cstring>
+#include <c7utils/endian.hpp>
 
 
 namespace c7::event {

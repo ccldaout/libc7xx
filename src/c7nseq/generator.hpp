@@ -16,7 +16,7 @@
 #include <c7generator_r2.hpp>
 #include <c7nseq/_cmn.hpp>
 #include <c7nseq/empty.hpp>
-#include <c7utils.hpp>
+#include <c7utils/movable_capture.hpp>
 
 
 namespace c7::nseq {

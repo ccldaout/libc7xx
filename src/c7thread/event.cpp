@@ -9,7 +9,7 @@
 
 
 #include <c7thread/event.hpp>
-#include <c7utils.hpp>
+#include <c7utils/time.hpp>
 
 
 namespace c7::thread {

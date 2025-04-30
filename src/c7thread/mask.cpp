@@ -9,7 +9,7 @@
 
 
 #include <c7thread/mask.hpp>
-#include <c7utils.hpp>
+#include <c7utils/time.hpp>
 
 
 namespace c7::thread {

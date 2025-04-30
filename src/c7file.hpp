@@ -14,12 +14,12 @@
 #include <c7common.hpp>
 
 
-#include <c7result.hpp>
-#include <c7utils.hpp>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <memory>
 #include <string>
+#include <c7result.hpp>
+#include <c7utils/memory.hpp>
 
 
 namespace c7 {

@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <signal.h>	// pthread_kill
+#include <c7utils/time.hpp>
 #include "condvar.hpp"
 #include "thread.hpp"
 #include "_private.hpp"

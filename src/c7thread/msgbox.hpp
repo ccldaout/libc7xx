@@ -17,10 +17,12 @@
 #include <unistd.h>
 #include <atomic>
 #include <list>
+#include <memory>
 #include <unordered_map>
 #include <c7hash.hpp>
+#include <c7result.hpp>
 #include <c7thread/condvar.hpp>
-#include <c7utils.hpp>
+#include <c7utils/time.hpp>
 
 
 namespace c7::thread {

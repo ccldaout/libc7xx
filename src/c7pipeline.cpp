@@ -14,9 +14,9 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <c7defer.hpp>
-#include <c7pipeline.hpp>
-#include <c7utils.hpp>
 #include <c7nseq/reverse.hpp>
+#include <c7pipeline.hpp>
+#include <c7utils/time.hpp>
 
 
 namespace c7 {

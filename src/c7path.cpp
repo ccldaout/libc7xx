@@ -9,9 +9,9 @@
 
 
 #include <c7defer.hpp>
+#include <c7nseq/c_array.hpp>
 #include <c7path.hpp>
-#include <c7seq.hpp>
-#include <c7utils.hpp>
+#include <c7utils/passwd.hpp>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -73,10 +73,6 @@ bool has_dir(const std::string& path)
 {
     return (path.find('/') != std::string::npos);
 }
-
-
-
-
 
 
 // is_xxx
@@ -253,7 +249,7 @@ result<std::string> search(const std::string& name,
 			   const char *pathlist[],	// nullptr terminated
 			   const std::string& default_suffix)
 {
-    return search_impl(name, c7::seq::charp_array(pathlist), default_suffix);
+    return search_impl(name, c7::nseq::c_array(pathlist, nullptr), default_suffix);
 }
 
 

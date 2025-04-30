@@ -16,7 +16,7 @@
 
 #include <c7event/iovec_proxy.hpp>
 #include <c7event/portgroup.hpp>
-#include <c7utils.hpp>			// c7::storage
+#include <c7utils/storage.hpp>
 
 
 // message buffer (default implementation)

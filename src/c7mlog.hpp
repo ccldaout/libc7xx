@@ -18,7 +18,7 @@
 #include <c7format.hpp>
 #include <c7result.hpp>
 #include <c7strmbuf/hybrid.hpp>
-#include <c7utils.hpp>
+#include <c7utils/time.hpp>
 
 
 // API support

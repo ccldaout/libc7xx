@@ -14,10 +14,10 @@
 #include <c7common.hpp>
 
 
-#include <c7thread/mutex.hpp>
-#include <c7utils.hpp>
 #include <sys/epoll.h>
 #include <memory>
+#include <c7result.hpp>
+#include <c7thread/mutex.hpp>
 
 
 namespace c7::event {
