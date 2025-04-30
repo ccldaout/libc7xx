@@ -51,4 +51,3 @@ private:
 
 
 #endif // c7event/submit.hpp
-

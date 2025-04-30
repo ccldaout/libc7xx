@@ -63,7 +63,7 @@ ifeq "$(shell uname -m)" "x86_64"
 endif
 
 LDFLAGS = $(addprefix -L,$(C7_LD_LPATH)) $(addprefix $(C7_LD_RPATH_OPT),$(C7_LD_RPATH))
-LDLIBS  = $(if $(C7_NOLIBC7XX),,-lc7++) $(if $(C7_NOTHREAD),,-lpthread)
+LDLIBS  = $(if $(C7_NOLIBC7XX),,-lc7++) $(if $(C7_NOTHREAD),,-lpthread) -lutil
 
 ifeq "$(wildcard DEBUG)" ""
   C7_ECHO_BEG="\x1b[32m"

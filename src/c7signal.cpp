@@ -34,7 +34,7 @@ public:
     result<> init() {
 	init_mutex();
 
-	for (auto& h: handlers_) {
+	for (auto& h: sys_handlers_) {
 	    h = sig_default;
 	}
 	(void)::sigemptyset(&user_mask_);
@@ -50,26 +50,51 @@ public:
 	start_sigwait_loop();
     }
 
-    void (*handler(int sig, void (*new_h)(int)))(int) {
-	if (new_h == SIG_DFL || new_h == SIG_IGN) {
+    void (*set_handler(int sig, void (*new_h)(int)))(int) {
+	if (new_h == SIG_DFL) {
 	    ::signal(sig, new_h);
+	    new_h = sig_default;
+	} else if (new_h == SIG_IGN) {
+	    ::signal(sig, new_h);
+	    new_h = sig_ignore;
 	} else {
 	    ::signal(sig, sig_noop);
 	}
-	auto old_h = handlers_[sig];
-	handlers_[sig] = (new_h == SIG_DFL) ? sig_default : new_h;
 
-	return (old_h == sig_default) ? SIG_DFL : old_h;
+	auto old_h = sys_handlers_[sig];
+	sys_handlers_[sig] = new_h;
+
+	if (old_h == sig_default) {
+	    old_h = SIG_DFL;
+	} else if (old_h == sig_ignore) {
+	    old_h = SIG_IGN;
+	}
+
+	return old_h;
     }
 
-    sig_handler handler(int sig, sig_handler new_h) {
-	auto old_h = handler(sig, sig_extention);
+    sig_handler set_handler(int sig, sig_handler new_h) {
+	void (*old_h)(int);
+	if (is_same(new_h, sig_default)) {
+	    old_h = set_handler(sig, SIG_DFL);
+	} else if (is_same(new_h, sig_ignore)) {
+	    old_h = set_handler(sig, SIG_IGN);
+	} else {
+	    old_h = set_handler(sig, sig_extention);
+	}
+
 	auto old_ext = sig_handlers_[sig];
 	sig_handlers_[sig] = new_h;
+
 	if (old_h == sig_extention) {
 	    return old_ext;
 	} else {
-	    return sig_handler{old_h};
+	    if (old_h == SIG_DFL) {
+		old_h = sig_default;
+	    } else if (old_h == SIG_IGN) {
+		old_h = sig_ignore;
+	    }
+	    return sys_handler{old_h};
 	}
     }
 
@@ -99,10 +124,15 @@ public:
 private:
     ::sigset_t blocked_mask_;
     ::sigset_t user_mask_;
-    void (*handlers_[NSIG])(int);
+    static sys_handler sys_handlers_[NSIG];
     static sig_handler sig_handlers_[NSIG];
     std::unique_ptr<c7::thread::mutex> lock_;
 
+
+    static bool is_same(const sig_handler& h, void (*f)(int)) {
+	auto p = h.target<void(*)(int)>();
+	return (p != nullptr && *p == f);
+    }
 
     static void sigset_on(::sigset_t& mask, const ::sigset_t& on) {
 	for (int i = 0; i < NSIG; i++) {
@@ -135,6 +165,9 @@ private:
 	(void)::kill(::getpid(), sig);
     }
 
+    static void sig_ignore(int sig) {
+    }
+
     static void sig_extention(int sig) {
 	sig_handlers_[sig](sig);
     }
@@ -156,7 +189,6 @@ private:
     }
 
     result<> start_sigwait_loop() {
-
 	::sigset_t wait_mask;
 	(void)::sigfillset(&wait_mask);
 	sigset_em(wait_mask);
@@ -177,7 +209,7 @@ private:
 		    ::sigaddset(&blocked_mask_, sig);
 		} else {
 		    unlock();
-		    handlers_[sig](sig);
+		    sys_handlers_[sig](sig);
 		}
 	    } else {
 		c7error(c7result_err(errno, "sigwait() failed"));
@@ -187,6 +219,7 @@ private:
 };
 
 
+sys_handler sigmanager::sys_handlers_[NSIG];
 sig_handler sigmanager::sig_handlers_[NSIG];
 static sigmanager signal_manager;
 static volatile int once_flag;
@@ -214,7 +247,28 @@ static void call_init_once()
 void enable_SIGCHLD(void (*sigchld)(int))
 {
     call_init_once();
-    signal_manager.handler(SIGCHLD, sigchld);
+    signal_manager.set_handler(SIGCHLD, sigchld);
+}
+
+
+void enable_SIGCHLD(sig_handler sigchld)
+{
+    call_init_once();
+    signal_manager.set_handler(SIGCHLD, sigchld);
+}
+
+
+sys_handler signal(int sig, sys_handler handler)
+{
+    call_init_once();
+    return signal_manager.set_handler(sig, handler);
+}
+
+
+sig_handler signal(int sig, sig_handler handler)
+{
+    call_init_once();
+    return signal_manager.set_handler(sig, handler);
 }
 
 
@@ -222,7 +276,7 @@ c7::result<void(*)(int)>
 handle(int sig, void (*handler)(int), const ::sigset_t&)
 {
     call_init_once();
-    return c7result_ok(signal_manager.handler(sig, handler));
+    return c7result_ok(signal_manager.set_handler(sig, handler));
 }
 
 
@@ -230,7 +284,7 @@ c7::result<sig_handler>
 handle(int sig, sig_handler handler, const ::sigset_t&)
 {
     call_init_once();
-    return c7result_ok(signal_manager.handler(sig, handler));
+    return c7result_ok(signal_manager.set_handler(sig, handler));
 }
 
 

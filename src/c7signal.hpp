@@ -20,6 +20,7 @@
 
 
 #define C7_SIGNAL_SIG_HANDLER	(1U)
+#define C7_SIGNAL_SIGNAL	(1U)
 
 
 namespace c7 {
@@ -27,13 +28,20 @@ namespace signal {
 
 
 using sig_handler = std::function<void(int)>;
+using sys_handler = void(*)(int);
 
 
-c7::result<void(*)(int)>
-handle(int sig, void (*handler)(int), const ::sigset_t& sigmask_on_call);
+// C7_SIGNAL_SIGNAL
+sys_handler signal(int sig, sys_handler handler);
 
-inline c7::result<void(*)(int)>
-handle(int sig, void (*handler)(int))
+// C7_SIGNAL_SIGNAL
+sig_handler signal(int sig, sig_handler handler);
+
+c7::result<sys_handler>
+handle(int sig, sys_handler handler, const ::sigset_t& sigmask_on_call);
+
+inline c7::result<sys_handler>
+handle(int sig, sys_handler handler)
 {
     ::sigset_t sigs;
     (void)::sigemptyset(&sigs);
@@ -54,6 +62,7 @@ handle(int sig, sig_handler handler)
     (void)::sigaddset(&sigs, sig);
     return handle(sig, handler, sigs);
 }
+
 
 ::sigset_t mask(int how, const ::sigset_t& sigs);
 
