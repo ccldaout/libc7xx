@@ -10,6 +10,7 @@
 
 -include ../../config.mk
 -include ../config.mk
+-include config.mk
 
 MAKE_JOBS ?= 8
 

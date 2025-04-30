@@ -18,6 +18,9 @@
 #include <c7event/port.hpp>
 
 
+#define C7_EVENT_SERVICE_ON_SENDABLE	(1U)
+
+
 namespace c7::event {
 
 
@@ -140,6 +143,9 @@ public:
     //
     virtual attach_id on_attached(monitor&, port_type&, provider_hint) { return attach_id(); }
     virtual detach_id on_detached(monitor&, port_type&, provider_hint) { return detach_id(); }
+
+    // case: port is sendable
+    virtual void on_sendable(monitor&, port_type&) {}
 
     // case: Msgbuf::recv() return io_result::status::OK
     virtual void on_message(monitor&, port_type&, msgbuf_type&) {}

@@ -46,8 +46,15 @@ void receiver<Msgbuf, Port>::on_manage(monitor& mon, int prvfd)
 
 
 template <typename Msgbuf, typename Port>
-void receiver<Msgbuf, Port>::on_event(monitor& mon, int, uint32_t)
+void receiver<Msgbuf, Port>::on_event(monitor& mon, int, uint32_t events)
 {
+    if ((events & EPOLLOUT) != 0) {
+	svc_->on_sendable(mon, port_);
+    }
+
+    if ((events & EPOLLIN) == 0) {
+	return;
+    }
     auto io_res = msgbuf_.recv(port_);
     if (io_res.get_status() == io_result::status::OK) {
 	svc_->on_message(mon, port_, msgbuf_);
