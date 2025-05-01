@@ -491,7 +491,7 @@ result<fd> opentmp(const std::string& dir, ::mode_t mode)
 #endif
 }
 
-result<std::pair<fd, fd>> make_pipe()
+result<> make_pipe(fd (&fdvec)[2])
 {
     static std::atomic<size_t> id_counter;
     int fdv[2];
@@ -499,8 +499,19 @@ result<std::pair<fd, fd>> make_pipe()
 	return c7result_err(errno, "pipe() failed");
     }
     id_counter++;
-    return c7result_ok(std::make_pair(c7::fd(fdv[0], c7::format("R.%{}", id_counter)),
-				      c7::fd(fdv[1], c7::format("W.%{}", id_counter))));
+    fdvec[0] = std::move(c7::fd{fdv[0]});
+    fdvec[1] = std::move(c7::fd{fdv[1]});
+    return c7result_ok();
+}
+
+result<std::pair<fd, fd>> make_pipe()
+{
+    fd fdv[2];
+    auto res = make_pipe(fdv);
+    if (!res) {
+	return res.as_error();
+    }
+    return c7result_ok(std::make_pair(std::move(fdv[0]), std::move(fdv[1])));
 }
 
 

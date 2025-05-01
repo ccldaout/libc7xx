@@ -41,6 +41,9 @@ struct result_traits {
 };
 
 
+class result_err;
+
+
 // base class
 
 class result_base {
@@ -192,6 +195,14 @@ public:
 	return *this;
     }
 
+    result_err&& as_error() {
+	return reinterpret_cast<result_err&&>(*this);
+    }
+
+    const result_err& as_error() const {
+	return reinterpret_cast<const result_err&>(*this);
+    }
+
     void copy(result_base& target) const {
 	target.copy_from(*this);
     }
@@ -310,10 +321,6 @@ public:
     result(result_err&& o): result_base(std::move(o)), value_(init_()) {
     }
 
-    result_err&& as_error() {
-	return reinterpret_cast<result_err&&>(*this);
-    }
-
     template <typename... Args>
     result&& set_error(const Args&... args) {
 	result_base::set_error(args...);
@@ -392,10 +399,6 @@ public:
     result(result_err&& o): result_base(std::move(o)), value_() {
     }
 
-    result_err&& as_error() {
-	return reinterpret_cast<result_err&&>(*this);
-    }
-
     template <typename... Args>
     result& set_error(const Args&... args) {
 	result_base::set_error(args...);
@@ -445,10 +448,6 @@ public:
     result(result&& o): result_base(std::move(o)) {}
 
     result(result_base&& o): result_base(std::move(o)) {}
-
-    result_err&& as_error() {
-	return reinterpret_cast<result_err&&>(*this);
-    }
 
     void value() const {
 	if (errors_) {

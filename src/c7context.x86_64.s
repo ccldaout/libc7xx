@@ -3,6 +3,8 @@
 c7_getcontext:
 	xor %rax, %rax
 	ret
+	.type c7_getcontext, @function
+	.size c7_getcontext, .-c7_getcontext
 
 	.global c7_makecontext
 	.text
@@ -26,6 +28,8 @@ c7_makecontext:
 	movq %r8,  24(%rdi)	# top of ctx:stack to ctx->rsp
 	movq %rdx, 72(%rdi)	# rdi to ctx->rdi
 	ret
+	.type c7_makecontext, @function
+	.size c7_makecontext, .-c7_makecontext
 
 	.global c7_swapcontext
 	.text
@@ -50,3 +54,5 @@ c7_swapcontext:
 	xor %rax, %rax
 	pop %rbp
 	ret
+	.type c7_swapcontext, @function
+	.size c7_swapcontext, .-c7_swapcontext

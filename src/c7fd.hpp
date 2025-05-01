@@ -20,6 +20,9 @@
 #include <sys/uio.h>
 
 
+#define C7_IO_RESULT_AS_ERROR	(1U)
+
+
 namespace c7 {
 
 
@@ -120,6 +123,14 @@ public:
 	return result_;
     }
 
+    c7::result_err&& as_error() {
+	return result_.as_error();
+    }
+
+    const c7::result_err& as_error() const {
+	return result_.as_error();
+    }
+
     status get_status() const {
 	return status_;
     }
@@ -157,7 +168,7 @@ public:
 	WRITABLE = (1U << 1),
     };
 
-    typedef struct ::stat stat_t;
+    using stat_t = struct stat;
 
     c7::delegate<void, fd&> on_close;
 
@@ -281,8 +292,9 @@ result<fd> open(const std::string&, int oflag = 0, ::mode_t mode = 0600);
 result<fd> open(int dirfd, const std::string&, int oflag = 0, ::mode_t mode = 0600);
 result<fd> opentmp(const std::string& dir, ::mode_t mode = 0600);
 result<std::pair<fd, fd>> make_pipe();
+result<> make_pipe(fd (&fdv)[2]);
 
-typedef fd pipe;	// for source level compatibility
+using pipe = fd;	// for source level compatibility
 
 
 /*----------------------------------------------------------------------------

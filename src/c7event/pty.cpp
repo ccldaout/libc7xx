@@ -21,9 +21,18 @@ c7::result<>
 pty_provider::start_command(const pty_command& cmd,
 			    std::function<void()> preexec)
 {
+    c7::fd sync[2];
+    if (auto res = c7::make_pipe(sync); !res) {
+	return res;
+    }
+    sync[0].set_cloexec(true);
+    sync[1].set_cloexec(true);
+
     int fd;
     pid_ = forkpty(&fd, nullptr, &cmd.term, &cmd.winz);
     if (pid_ == 0) {
+	sync[0].close();
+
 	if (::chdir(cmd.wd) == C7_SYSERR) {
 	    svc_.pty_error(c7result_err(errno, "chdir('%{}') failed", cmd.wd));
 	    std::quick_exit(EXIT_FAILURE);
@@ -49,6 +58,10 @@ pty_provider::start_command(const pty_command& cmd,
     } else if (pid_ == C7_SYSERR) {
 	return c7result_err(errno, "forkpty() failed");
     }
+
+    sync[1].close();
+    sync[0].wait_readable();
+    sync[0].close();
 
     master_ = std::move(c7::fd{fd});
     master_.on_close += [this](auto& fd){

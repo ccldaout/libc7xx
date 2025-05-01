@@ -75,7 +75,7 @@ tty_provider::write(c7::slice<char> slice)
 	slice.copy_to(buf_);
 	return monitor_->change_event(tty_, EPOLLIN|EPOLLOUT);
     } else {
-	return std::move(tty_.write_n(slice.data(), slice.size()).get_result());
+	return tty_.write_n(slice.data(), slice.size()).as_error();
     }
 }
 
