@@ -20,7 +20,7 @@
 #include <vector>
 #include <c7pipeline.hpp>
 #include <c7socket.hpp>
-#include <c7string.hpp>
+#include <c7string/strvec.hpp>
 #include <c7thread.hpp>
 #include <c7nseq/_cmn.hpp>
 #include <c7nseq/empty.hpp>

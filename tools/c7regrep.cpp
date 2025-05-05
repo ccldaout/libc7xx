@@ -13,7 +13,6 @@
 #include <c7args.hpp>
 #include <c7file.hpp>
 #include <c7regrep.hpp>
-#include <c7string.hpp>
 
 
 using c7::p_;

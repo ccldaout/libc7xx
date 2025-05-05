@@ -14,11 +14,11 @@
 #include <c7common.hpp>
 
 
-#include <c7string.hpp>
+#include <c7result.hpp>
+#include <c7string/c_str.hpp>
 
 
-namespace c7 {
-namespace path {
+namespace c7::path {
 
 
 #define c7path_name(p)		c7::strrchr_next(p, '/', p)
@@ -71,8 +71,7 @@ std::string find_c7spec(const std::string& name,
 			const std::string& envname = "");
 
 
-} // namespace path
-} // namespace c7
+} // namespace c7::path
 
 
 #endif // c7path.hpp

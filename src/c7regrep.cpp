@@ -12,7 +12,8 @@
 #include <cstring>
 #include <c7app.hpp>
 #include <c7regrep.hpp>
-#include <c7string.hpp>
+#include <c7string/basic.hpp>
+#include <c7string/eval.hpp>
 
 
 namespace c7 {

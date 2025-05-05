@@ -10,7 +10,7 @@
 
 #include <c7app.hpp>
 #include <c7dconf.hpp>
-#include <c7string.hpp>
+#include <c7string/c_str.hpp>
 
 
 using c7::p_;

@@ -1,5 +1,5 @@
 /*
- * c7string.cpp
+ * c7string/eval.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -8,71 +8,16 @@
  */
 
 
-#include <c7string.hpp>
+#include <cstring>
+#include <c7string/c_str.hpp>
+#include <c7string/eval.hpp>
 
 
-namespace c7 {
-namespace str {
-
-
-std::string trim(const std::string& in, const std::string& removed_chars)
-{
-    const char *beg = in.c_str();
-    const char *end = beg + in.size();
-    const char *rmv = removed_chars.c_str();
-    beg = strskip(beg, rmv);
-    while (beg < end) {
-	if (std::strchr(rmv, *--end) == nullptr) {
-	    end++;
-	    break;
-	}
-    }
-    return std::string(beg, end - beg);
-}
-
-std::string trim_left(const std::string& in, const std::string& removed_chars)
-{
-    const char *beg = in.c_str();
-    const char *end = beg + in.size();
-    const char *rmv = removed_chars.c_str();
-    beg = strskip(beg, rmv);
-    return std::string(beg, end - beg);
-}
-
-std::string trim_right(const std::string& in, const std::string& removed_chars)
-{
-    const char *beg = in.c_str();
-    const char *end = beg + in.size();
-    const char *rmv = removed_chars.c_str();
-    while (beg < end) {
-	if (std::strchr(rmv, *--end) == nullptr) {
-	    end++;
-	    break;
-	}
-    }
-    return std::string(beg, end - beg);
-}
-
-std::string replace(const std::string& s, const std::string& o, const std::string& n)
-{
-    std::string out;
-    auto p= s.c_str();
-    auto op = o.c_str();
-    for (;;) {
-        auto q = std::strstr(p, op);
-        if (q == nullptr) {
-            out += p;
-            return out;
-        }
-        out.append(p, q);
-        out += n;
-        p = q + o.size();
-    }
-}
+namespace c7::str {
 
 
 /*----------------------------------------------------------------------------
-                            eval C escape sequece
+       eval C backslash sequece: convert C backslash sequence to a byte
 ----------------------------------------------------------------------------*/
 
 static inline bool isoctal(char ch)
@@ -131,7 +76,7 @@ std::string eval_C(const std::string& s)
 
 
 /*----------------------------------------------------------------------------
-                               C escape sequece
+               escape_C: convert a byte to C backslash sequence
 ----------------------------------------------------------------------------*/
 
 std::string& escape_C(std::string& out, const std::string& s, char quote)
@@ -202,7 +147,7 @@ static result<const char*> evalvarref(std::string& out, const char *in, const ev
 
     in++;
     const char *p;
-    while ((p = strpbrk(in, prm.brks)) != nullptr) {
+    while ((p = std::strpbrk(in, prm.brks)) != nullptr) {
 	var.append(in, p - in);
 	if (*p == prm.escape) {
 	    if (p[1] == 0) {
@@ -294,7 +239,7 @@ c7::result<std::string> eval(const std::string& in, char mark, char escape,
 
 
 /*----------------------------------------------------------------------------
-                            eval C escape sequece
+               eval shell-syntax environment variable reference
 ----------------------------------------------------------------------------*/
 
 static result<const char*> evalenv(std::string& out, const char *vn, bool enclosed)
@@ -352,29 +297,6 @@ c7::result<std::string> eval_env(const std::string& in)
 ----------------------------------------------------------------------------*/
 
 
-} // namespace str
-} // namespace c7
+} // namespace c7::str
 
 
-/*----------------------------------------------------------------------------
-                   print_type for std::vector<std::string>
-----------------------------------------------------------------------------*/
-
-namespace std {
-
-void print_type(std::ostream& o, const std::string& fmt, const vector<string>& sv)
-{
-    if (fmt.empty()) {
-	o << "{ ";
-	for (auto& s: sv) {
-	    o << '"';
-	    c7::str::escape_C(o, s, '"');
-	    o << "\" ";
-	}
-	o << "}";
-    } else {
-	c7::str::concat(o, fmt, sv);
-    }
-}
-
-} // namespace std

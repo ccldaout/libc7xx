@@ -13,10 +13,11 @@
 #include <unordered_map>
 #include <c7app.hpp>
 #include <c7args.hpp>
-#include <c7string.hpp>
 #include <c7nseq/flat.hpp>
 #include <c7nseq/string.hpp>
 #include <c7nseq/transform.hpp>
+#include <c7string/basic.hpp>
+#include <c7string/c_str.hpp>
 
 
 namespace c7::args {

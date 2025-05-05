@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <c7result.hpp>
-#include <c7string.hpp>
+#include <c7string/strvec.hpp>
 
 
 namespace c7 {

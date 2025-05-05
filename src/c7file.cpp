@@ -16,7 +16,7 @@
 #include <c7file.hpp>
 #include <c7path.hpp>
 #include <c7signal.hpp>
-#include <c7string.hpp>
+#include <c7string/basic.hpp>
 
 
 namespace c7 {

@@ -15,7 +15,7 @@
 
 
 #include <regex>
-#include <c7string.hpp>
+#include <c7string/strvec.hpp>
 
 
 namespace c7::args {
