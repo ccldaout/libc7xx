@@ -14,6 +14,7 @@
 #include <iomanip>	// std::put_time
 #include <time.h>	// ::localtime_r
 #include <c7format/format_cmn.hpp>
+#include <c7string/basic.hpp>
 
 
 namespace c7 {
@@ -50,25 +51,27 @@ void format_traits<ssize_t>::convert(std::ostream& out, const std::string& forma
 	}
     } else if (*p == 't' || *p == 'T') {
 	bool us_type = (*p == 't');
+	std::string fmt_us;
 	time_t tv;
-	ssize_t us;
+
+	if (*++p == 0) {
+	    p = "%H:%M:%S";
+	}
 
 	if (us_type) {
-	    us = arg % C7_TIME_S_us;
-	    tv = arg / C7_TIME_S_us;
-	} else
+	    ssize_t uv = arg % C7_TIME_S_us;
+	    tv         = arg / C7_TIME_S_us;
+	    std::ostringstream uss;
+	    uss << "." << std::setw(6) << std::setfill('0') << std::right << std::dec << uv;
+	    fmt_us = c7::str::replace(p, "%S", "%S" + uss.str());
+	    p = fmt_us.c_str();
+	} else {
 	    tv = arg;
-
-	if (*++p == 0)
-	    p = "%H:%M:%S";
+	}
 
 	::tm tmbuf;
 	(void)::localtime_r(&tv, &tmbuf);
 	out << std::put_time(&tmbuf, p);
-
-	if (us_type) {
-	    out << "." << std::setw(6) << std::setfill('0') << std::right << std::dec << us;
-	}
     }
 }
 

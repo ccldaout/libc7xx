@@ -14,11 +14,32 @@
 #include <c7common.hpp>
 
 
+#include <time.h>
 #include <sys/time.h>	// timespec
 
 
 namespace c7 {
 
+
+class make_usec {
+public:
+    make_usec();
+    make_usec& now();
+    make_usec& time_us(c7::usec_t);
+    make_usec& time_s(time_t);
+    make_usec& tmbuf(struct tm& tmbuf);
+    make_usec& year(int year);
+    make_usec& month(int mon_1);	// Jan:1, ..., Dec:12
+    make_usec& mday(int mday_1);
+    make_usec& hour(int hour);
+    make_usec& min(int min);
+    make_usec& sec(int sec);
+    c7::usec_t make();
+
+private:
+    struct tm tmbuf_;
+    c7::usec_t usec_;
+};
 
 c7::usec_t time_us();
 

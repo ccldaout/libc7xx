@@ -17,7 +17,90 @@ namespace c7 {
 
 
 /*----------------------------------------------------------------------------
-                                     time
+                                  make_usec
+----------------------------------------------------------------------------*/
+
+make_usec::make_usec(): tmbuf_(), usec_()
+{
+    tmbuf_.tm_mday = 1;
+}
+
+make_usec& make_usec::now()
+{
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    usec_ = tv.tv_usec;
+    tmbuf_ = *::localtime(&tv.tv_sec);
+    return *this;
+}
+
+make_usec& make_usec::time_us(c7::usec_t ustv)
+{
+    time_t tv_sec = ustv / C7_TIME_S_us;
+    usec_ =         ustv % C7_TIME_S_us;
+    tmbuf_ = *::localtime(&tv_sec);
+    return *this;
+}
+
+make_usec& make_usec::time_s(time_t stv)
+{
+    usec_ = 0;
+    tmbuf_ = *::localtime(&stv);
+    return *this;
+}
+
+make_usec& make_usec::tmbuf(struct tm& tmbuf)
+{
+    usec_ = 0;
+    tmbuf_ = tmbuf;
+    return *this;
+}
+
+make_usec& make_usec::year(int year)
+{
+    tmbuf_.tm_year = year - 1900;
+    return *this;
+}
+
+make_usec& make_usec::month(int mon_1)
+{
+    tmbuf_.tm_mon = mon_1 - 1;
+    return *this;
+}
+
+make_usec& make_usec::mday(int mday_1)
+{
+    tmbuf_.tm_mday = mday_1;
+    return *this;
+}
+
+make_usec& make_usec::hour(int hour)
+{
+    tmbuf_.tm_hour = hour;
+    return *this;
+}
+
+make_usec& make_usec::min(int min)
+{
+    tmbuf_.tm_min = min;
+    return *this;
+}
+
+make_usec& make_usec::sec(int sec)
+{
+    tmbuf_.tm_sec = sec;
+    return *this;
+}
+
+c7::usec_t make_usec::make()
+{
+    c7::usec_t stv = mktime(&tmbuf_);
+    return (stv * C7_TIME_S_us) + usec_;
+}
+
+
+/*----------------------------------------------------------------------------
+                               single functions
 ----------------------------------------------------------------------------*/
 
 c7::usec_t time_us()

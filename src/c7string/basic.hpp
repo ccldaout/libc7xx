@@ -18,7 +18,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include <c7coroutine.hpp>	// generator
+#include <c7generator_r2.hpp>
 #include <c7nseq/head.hpp>
 #include <c7result.hpp>
 
@@ -230,15 +230,17 @@ inline void split_for(const std::string& in, char sep, Func func)
     func(beg, std::strchr(beg, 0));
 }
 
-inline c7::generator<std::string>
+inline c7::r2::generator<std::string>
 split_gen(const std::string& in, char sep)
 {
-    auto lambda = [in,sep]() {
-	split_for(in, sep, [](std::string&& s) {
-		c7::generator<std::string>::yield(s);
-	    });
-    };
-    return c7::generator<std::string>(1024, lambda);
+    return c7::r2::generator<std::string>(
+	64,
+	[in,sep](auto& out) {
+	    split_for(in, sep,
+		      [&out](std::string&& s) {
+			  out << std::move(s);
+		      });
+	});
 }
 
 template <typename Conv>

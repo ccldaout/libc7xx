@@ -10,6 +10,7 @@
 
 C7_TARGET_BASE = tools
 
+include ../Makefile.version
 include ../Makefile.common
 
 SRCS := $(wildcard *.cpp)

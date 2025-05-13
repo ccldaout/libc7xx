@@ -90,7 +90,11 @@ shared_port::accept()
 void
 shared_port::print(std::ostream& out, const std::string&) const
 {
-    c7::format(out, "shared<%{}>", *(pimpl_->port.operator->()));
+    if (pimpl_) {
+	c7::format(out, "shared<%{}>", *(pimpl_->port.operator->()));
+    } else {
+	out << "shared<nullptr>";
+    }
 }
 
 

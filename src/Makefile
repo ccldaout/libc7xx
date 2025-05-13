@@ -33,30 +33,7 @@ HDRS := $(filter-out %_private.hpp,$(wildcard *.hpp */*.hpp */*/*.hpp))
 SRCS := $(wildcard *.$(ARCH).s *.cpp */*.cpp */*/*.cpp)
 OBJS := $(addprefix $(C7_OUT_OBJDIR)/,$(patsubst %.s,%.o,$(patsubst %.cpp,%.o,$(SRCS))))
 
-C7_DIRS += $(C7_OUT_OBJDIR)/c7event
-C7_DIRS += $(C7_OUT_OBJDIR)/c7event/ext
-C7_DIRS += $(C7_OUT_OBJDIR)/c7format
-C7_DIRS += $(C7_OUT_OBJDIR)/c7nseq
-C7_DIRS += $(C7_OUT_OBJDIR)/c7strmbuf
-C7_DIRS += $(C7_OUT_OBJDIR)/c7thread
-C7_DIRS += $(C7_OUT_OBJDIR)/c7string
-C7_DIRS += $(C7_OUT_OBJDIR)/c7utils
-
-
-$(C7_OUT_OBJDIR)/c7event/%.o: %.cpp
-	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
-
-$(C7_OUT_OBJDIR)/c7event/ext/%.o: %.cpp
-	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
-
-$(C7_OUT_OBJDIR)/c7thread/%.o: %.cpp
-	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
-
-$(C7_OUT_OBJDIR)/c7string/%.o: %.cpp
-	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
-
-$(C7_OUT_OBJDIR)/c7utils/%.o: %.cpp
-	$(call cmd_o,$(CXX) -c $(CXXFLAGS) -o $@ $<)
+C7_DIRS += $(sort $(dir $(OBJS)))
 
 
 .PHONY: build
