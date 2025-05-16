@@ -61,6 +61,7 @@ c7::result<> json_load(JsonProxy& proxy, std::istream& in)
     if (lxr.get(tkn) == c7::json::TKN_none) {
 	return c7result_err(ENODATA);
     }
+    proxy.clear();
     return proxy.load(lxr, tkn);
 }
 

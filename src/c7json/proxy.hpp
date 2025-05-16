@@ -339,7 +339,7 @@ protected:
     }
 
 private:
-    std::unordered_map<std::string, proxy_unconcern> unconcerns_;
+    std::unique_ptr<std::unordered_map<std::string, proxy_unconcern>> unconcerns_;
     std::vector<std::string> src_order_;
 };
 

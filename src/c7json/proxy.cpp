@@ -429,7 +429,10 @@ proxy_object::load(lexer& lxr, token& t)
 		if (auto res = unc.load(lxr, t); !res) {
 		    return res;
 		}
-		unconcerns_.insert_or_assign(key, std::move(unc));
+		if (!unconcerns_) {
+		    unconcerns_ = std::make_unique<decltype(unconcerns_)::element_type>();
+		}
+		unconcerns_->insert_or_assign(key, std::move(unc));
 	    } else {
 		auto& ops = (*it).second;
 		if (auto res = ops.load(this, lxr, t); !res) {
@@ -492,8 +495,10 @@ proxy_object::dump(std::ostream& o, dump_context& dc)
 	    if (!res.has_what(ENOENT)) {
 		return res;
 	    }
-	    if (auto res = call_dump(unconcerns_, k, o, dc); !res) {
-		return res;
+	    if (unconcerns_) {
+		if (auto res = call_dump(*unconcerns_, k, o, dc); !res) {
+		    return res;
+		}
 	    }
 	}
 	dumped.insert(k);
@@ -531,6 +536,11 @@ proxy_object::clear()
     for (auto& [k, ops]: ops) {
 	ops.clear(this);
     }
+
+    if (unconcerns_) {
+	unconcerns_->clear();
+    }
+    src_order_.clear();
 }
 
 
