@@ -119,10 +119,9 @@ class WeakTokenizer(object):
         self.__id_body.update(set("0123456789"))
         self.__digits = set("0123456789")
         self.__hexdigits = set("0123456789abcdefABCDEF")
-        self.__gdic = make_graphics_dic([
-            '/*',	# block comment
+        gs = [
+            '/*',	# block comment begin
             '//',	# line comment
-            '//[',	# line comment (but special treatment)
             '\\',
             '#',
             '{',
@@ -172,7 +171,15 @@ class WeakTokenizer(object):
             '&=',
             '^=',
             '|=',
-            ','])
+            ',']
+
+        if special_comment:
+            gs += [
+                '/*[',	# block comment bgein (special treatment)
+                '*/',	# block comment end   (special treatment)
+                '//[']	# line comment (but special treatment)
+
+        self.__gdic = make_graphics_dic(gs)
         self.next_c
 
     @property
@@ -300,7 +307,9 @@ class WeakTokenizer(object):
             if c is None:
                 return self.__eof()
             t = self.__graphics()
-            if t == '/*':
+            if t == '/*[' and not self.__special_comment:
+                self.__skip_block_comment()
+            elif t == '/*':
                 self.__skip_block_comment()
             elif t == '//':
                 self.__skip_line_comment()

@@ -33,6 +33,8 @@
 
 #define c7json_member(n)	member_attribute_(def_order, #n, &self_type::n)
 
+#define c7json_member2(jn, pn)	member_attribute_(def_order, #jn, &self_type::pn)
+
 
 namespace c7::json {
 
@@ -53,8 +55,8 @@ class proxy_basic {
 public:
     proxy_basic(): val_(), has_(false) {}
 
-    proxy_basic(const T& v): val_(v), has_(true) {}
-    proxy_basic(T&& v): val_(std::move(v)), has_(true) {}
+    template <typename U>
+    proxy_basic(U&& v): val_(std::forward<U>(v)), has_(true) {}
 
     proxy_basic(const proxy_basic&) = default;
     proxy_basic(proxy_basic&&) = default;
@@ -339,7 +341,7 @@ protected:
     }
 
 private:
-    std::unique_ptr<std::unordered_map<std::string, proxy_unconcern>> unconcerns_;
+    std::shared_ptr<std::unordered_map<std::string, proxy_unconcern>> unconcerns_;
     std::vector<std::string> src_order_;
 };
 
