@@ -34,9 +34,21 @@ proxy_basic<int64_t>::load(lexer&, token& tkn)
 
 
 template <> c7::result<>
-proxy_basic<int64_t>::dump(std::ostream& o, dump_context&)
+proxy_basic<int64_t>::dump(std::ostream& o, dump_context&) const
 {
     o << std::dec << val_;
+    return c7result_ok();
+}
+
+
+template <> c7::result<>
+proxy_basic<int64_t>::from_str(token& tkn)
+{
+    size_t n;
+    val_ = std::stol(tkn.str(), &n);
+    if (n != tkn.str().size()) {
+	return c7result_err(EINVAL, "'%{}' is not interger", tkn.str());
+    }
     return c7result_ok();
 }
 
@@ -54,9 +66,21 @@ proxy_basic<double>::load(lexer&, token& tkn)
 }
 
 template <> c7::result<>
-proxy_basic<double>::dump(std::ostream& o, dump_context&)
+proxy_basic<double>::dump(std::ostream& o, dump_context&) const
 {
     o << std::defaultfloat << val_;
+    return c7result_ok();
+}
+
+
+template <> c7::result<>
+proxy_basic<double>::from_str(token& tkn)
+{
+    size_t n;
+    val_ = std::stod(tkn.str(), &n);
+    if (n != tkn.str().size()) {
+	return c7result_err(EINVAL, "'%{}' is not floating-point number", tkn.str());
+    }
     return c7result_ok();
 }
 
@@ -79,9 +103,23 @@ proxy_basic<bool>::load(lexer&, token& tkn)
 
 
 template <> c7::result<>
-proxy_basic<bool>::dump(std::ostream& o, dump_context&)
+proxy_basic<bool>::dump(std::ostream& o, dump_context&) const
 {
     o << std::boolalpha << val_;
+    return c7result_ok();
+}
+
+
+template <> c7::result<>
+proxy_basic<bool>::from_str(token& tkn)
+{
+    if (tkn.str() == "true") {
+	val_ = true;
+    } else if (tkn.str() == "false") {
+	val_ = false;
+    } else {
+	return c7result_err(EINVAL, "'%{}' is not boolean", tkn.str());
+    }
     return c7result_ok();
 }
 
@@ -124,9 +162,17 @@ static void jsonize_string(std::ostream& o, const std::string& s)
 }
 
 template <> c7::result<>
-proxy_basic<std::string>::dump(std::ostream& o, dump_context&)
+proxy_basic<std::string>::dump(std::ostream& o, dump_context&) const
 {
     jsonize_string(o, val_);
+    return c7result_ok();
+}
+
+
+template <> c7::result<>
+proxy_basic<std::string>::from_str(token& tkn)
+{
+    val_ = tkn.str();
     return c7result_ok();
 }
 
@@ -145,7 +191,7 @@ proxy_basic<time_us>::load(lexer&, token& tkn)
 
 
 template <> c7::result<>
-proxy_basic<time_us>::dump(std::ostream& o, dump_context& dc)
+proxy_basic<time_us>::dump(std::ostream& o, dump_context& dc) const
 {
     c7::usec_t  tv = val_;
     time_t   tv_s  = tv / C7_TIME_S_us;
@@ -175,6 +221,17 @@ proxy_basic<time_us>::dump(std::ostream& o, dump_context& dc)
 }
 
 
+template <> c7::result<>
+proxy_basic<time_us>::from_str(token& tkn)
+{
+    if (auto res = tkn.as_time(); res) {
+	val_ = res.value();
+	return c7result_ok();
+    }
+    return c7result_err(EINVAL, "ISO8601 Date and time string is expected: %{}", tkn);
+}
+
+
 // binary_t (std::vector<uint8_t>)
 
 template <> c7::result<>
@@ -191,12 +248,22 @@ proxy_basic<binary_t>::load(lexer&, token& tkn)
 
 
 template <> c7::result<>
-proxy_basic<binary_t>::dump(std::ostream& o, dump_context&)
+proxy_basic<binary_t>::dump(std::ostream& o, dump_context&) const
 {
     binary_t empty;
     std::string s;
     val_ | c7::nseq::base64enc() | c7::nseq::push_back(s);
     jsonize_string(o, s);
+    return c7result_ok();
+}
+
+
+template <> c7::result<>
+proxy_basic<binary_t>::from_str(token& tkn)
+{
+    binary_t ba;
+    tkn.str() | c7::nseq::base64dec() | c7::nseq::push_back(ba);
+    val_ = std::move(ba);
     return c7result_ok();
 }
 
@@ -230,7 +297,7 @@ proxy_array_base::load(lexer& lxr, token& t)
 
 
 c7::result<>
-proxy_array_base::dump_all(std::ostream& o, dump_context& dc, size_t n)
+proxy_array_base::dump_all(std::ostream& o, dump_context& dc, size_t n) const
 {
     std::string next_pref;
     std::string head_pref;
@@ -261,6 +328,81 @@ proxy_array_base::dump_all(std::ostream& o, dump_context& dc, size_t n)
 	o << head_pref;
     }
     o << ']';
+
+    return c7result_ok();
+}
+
+
+/*----------------------------------------------------------------------------
+                                  proxy_dict
+----------------------------------------------------------------------------*/
+
+c7::result<>
+proxy_dict_base::load(lexer& lxr, token& t)
+{
+    if (t.code != TKN_CURLY_L) {
+	return c7result_err(EINVAL, "'{' is expected: %{}", t);
+    }
+    if (lxr.get(t) != TKN_CURLY_R) {
+	for (;;) {
+	    if (t.code != TKN_STRING) {
+		return c7result_err(EINVAL, "keyword STRING is expceted: %{}", t);
+	    }
+	    auto key = t;
+	    if (lxr.get(t) != TKN_COLON) {
+		return c7result_err(EINVAL, "colon (:) is required: %{}", t);
+	    }
+	    lxr.get(t);
+	    if (auto res = load_element(lxr, t, key); !res) {
+		return res;
+	    }
+	    if (lxr.get(t) != TKN_COMMA) {
+		break;
+	    }
+	    lxr.get(t);
+	}
+	if (t.code != TKN_CURLY_R) {
+	    return c7result_err(EINVAL, "'}' is expected: %{}", t);
+	}
+    }
+    return c7result_ok();
+}
+
+
+c7::result<>
+proxy_dict_base::dump_all(std::ostream& o, dump_context& dc) const
+{
+    std::string next_pref;
+    std::string head_pref;
+
+    o << '{';
+    if (dc.indent) {
+	dc.cur_indent += dc.indent;
+	head_pref = "\n" + std::string(dc.cur_indent, ' ');
+	next_pref = "," + head_pref;
+    } else {
+	head_pref = "";
+	next_pref = ",";
+    }
+
+    const char *pref = head_pref.c_str();
+
+    if (dump_start()) {
+	do {
+	    o << pref;
+	    if (auto res = dump_element(o, dc); !res) {
+		return res;
+	    }
+	    pref = next_pref.c_str();
+	} while (dump_next());
+    }
+
+    if (dc.indent) {
+	dc.cur_indent -= dc.indent;
+	head_pref.resize(dc.cur_indent + 1);
+	o << head_pref;
+    }
+    o << '}';
 
     return c7result_ok();
 }
@@ -359,7 +501,7 @@ proxy_unconcern::load(lexer& lxr, token& t)
 
 
 c7::result<>
-proxy_unconcern::dump(std::ostream& o, dump_context& dc)
+proxy_unconcern::dump(std::ostream& o, dump_context& dc) const
 {
     std::string pref;
     if (dc.indent) {
@@ -467,7 +609,7 @@ call_dump(std::unordered_map<std::string, Object>& map,
 }
 
 c7::result<>
-proxy_object::dump(std::ostream& o, dump_context& dc)
+proxy_object::dump(std::ostream& o, dump_context& dc) const
 {
     auto [ops, def_order] = proxy_attribute_();
 

@@ -47,6 +47,9 @@ using json_bin	= c7::json::proxy_basic<std::vector<uint8_t>>;
 template <typename Proxy>
 using json_array = c7::json::proxy_array<Proxy>;
 
+template <typename KeyProxy, typename ValueProxy>
+using json_dict = c7::json::proxy_dict<KeyProxy, ValueProxy>;
+
 using json_object = c7::json::proxy_object;
 
 
