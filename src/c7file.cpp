@@ -209,7 +209,7 @@ c7::result<> rewrite(const std::string& path, void *buf, size_t size, const std:
     auto unblock_defer = c7::signal::block();
     if (!bck_prefix.empty()) {
 	auto bck_path = path + bck_prefix;
-	if (::rename(path.c_str(), bck_path.c_str()) == C7_SYSERR) {
+	if (::rename(path.c_str(), bck_path.c_str()) == C7_SYSERR && errno != ENOENT) {
 	    return c7result_err(errno, "rewrite failed: rename: %{} -> %{}", path, bck_path);
 	}
     }
