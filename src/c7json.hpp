@@ -44,6 +44,18 @@ using json_str	= c7::json::proxy_basic<std::string>;
 using json_usec	= c7::json::proxy_basic<c7::json::time_us>;	// c7::usec_t
 using json_bin	= c7::json::proxy_basic<std::vector<uint8_t>>;
 
+template <typename Tag>
+using json_tagged_int = c7::json::proxy_basic_strict<int64_t, Tag>;
+
+template <typename Tag>
+using json_tagged_str = c7::json::proxy_basic_strict<std::string, Tag>;
+
+template <typename Proxy1, typename Proxy2>
+using json_pair = c7::json::proxy_pair<Proxy1, Proxy2>;
+
+template <typename... Proxies>
+using json_tuple = c7::json::proxy_tuple<Proxies...>;
+
 template <typename Proxy>
 using json_array = c7::json::proxy_array<Proxy>;
 
@@ -51,6 +63,8 @@ template <typename KeyProxy, typename ValueProxy>
 using json_dict = c7::json::proxy_dict<KeyProxy, ValueProxy>;
 
 using json_object = c7::json::proxy_object;
+
+using json_struct = c7::json::proxy_struct;
 
 
 template <typename JsonProxy>

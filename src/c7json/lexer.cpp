@@ -10,6 +10,7 @@
 
 #include <time.h>
 #include <cctype>
+#include <c7app.hpp>
 #include <c7json/lexer.hpp>
 #include <c7string/regex.hpp>
 #include <c7string/utf8.hpp>
@@ -47,7 +48,7 @@ void print_type(std::ostream& out, const std::string&, token_code code)
 
 void print_type(std::ostream& out, const std::string&, token tkn)
 {
-    c7::format(out, "token<%{}, raw_str<%{}>", tkn.code, tkn.raw_str);
+    c7::format(out, "token<%{}, raw_str<%{}>, %{}:%{}", tkn.code, tkn.raw_str, tkn.n_line, tkn.n_ch);
     if (tkn.code == TKN_STRING) {
 	c7::format(out, ", value:<%{}>>", tkn.str());
     } else if (tkn.code == TKN_INT) {
@@ -118,6 +119,8 @@ private:
     std::istream& in_;
     std::string raw_;
     int c_;
+    int n_line = 1;
+    int n_ch = -1;
 
     bool eof() { return in_.eof(); }
     int get();
@@ -134,6 +137,12 @@ lexer::impl::get()
 {
     c_ = in_.get();
     if (!in_.eof()) {
+	if (c_ == '\n') {
+	    n_line++;
+	    n_ch = 0;
+	} else {
+	    n_ch++;
+	}
 	raw_ += c_;
     }
     return c_;
@@ -145,6 +154,7 @@ lexer::impl::unget()
 {
     raw_.pop_back();
     in_.unget();
+    n_ch--;
 }
 
 
@@ -173,6 +183,9 @@ lexer::impl::get(token& tkn)
     tkn.raw_str.clear();
 
     skip_spaces();
+    tkn.n_line = n_line;
+    tkn.n_ch   = n_ch;
+
     if (eof()) {
 	tkn.code = TKN_none;
 	return tkn.code;
@@ -203,11 +216,10 @@ lexer::impl::get(token& tkn)
 	return expect_string(tkn);
 
     default:
-	if (std::isdigit(c_) || c_ == '-') {
+	if (c_ != -1 && (std::isdigit(c_) || c_ == '-')) {
 	    return expect_number(tkn);
-	} else {
-	    return tkn.set(TKN_error, c_);
 	}
+	return tkn.set(TKN_error, c_);
     }
 }
 
@@ -305,7 +317,9 @@ lexer::impl::expect_number(token& tkn)
 	    return tkn.set(TKN_error, raw_);
 	}
     }
-    unget();
+    if (c_ != -1) {
+	unget();
+    }
 
     if (is_float) {
 	tkn.value = std::stod(raw_);

@@ -16,50 +16,88 @@ class ParseError(Exception):
 
 
 def is_basic_type(type_name):
-    basic_types = ('int', 'real', 'str', 'bool', 'bin', 'usec')
+    basic_types = ('int', 'real', 'str', 'bool', 'bin', 'usec', 'tagged_int', 'tagged_str')
     return type_name in basic_types
 
 
-class Json(object):
-    class Type(object):
-        def __init__(self):
-            self.__stack = []
+class Type(object):
+    def __init__(self):
+        self.__stack = []
 
-        def ident(self, type_name):
-            if is_basic_type(type_name):
-                type_name = 'c7::json_' + type_name
-            self.__stack.append(type_name)
+    def ident(self, type_name):
+        if is_basic_type(type_name):
+            type_name = 'c7::json_' + type_name
+        self.__stack.append(type_name)
 
-        def to_array(self):
-            tn = self.__stack.pop()
-            self.__stack.append('c7::json_array<%s>' % tn)
+    def to_array(self):
+        tn = self.__stack.pop()
+        self.__stack.append('c7::json_array<%s>' % tn)
 
-        def to_dict(self):
-            vn = self.__stack.pop()
-            kn = self.__stack.pop()
-            self.__stack.append('c7::json_dict<%s, %s>' % (kn, vn))
+    def to_dict(self):
+        vn = self.__stack.pop()
+        kn = self.__stack.pop()
+        self.__stack.append('c7::json_dict<%s, %s>' % (kn, vn))
 
-        @property
-        def name(self):
-            return self.__stack[0]
+    def to_tuple(self):
+        ts = []
+        while True:
+            t = self.__stack.pop()
+            if not t:
+                break
+            ts.append(t)
+        self.__stack.append('c7::json_tuple<%s>' % ', '.join(reversed(ts)))
 
-        def __repr__(self):
-            return repr(self.__stack)
+    def to_pair(self):
+        sn = self.__stack.pop()
+        fn = self.__stack.pop()
+        self.__stack.append('c7::json_pair<%s, %s>' % (fn, sn))
 
+    def to_templated(self):
+        ts = []
+        while True:
+            t = self.__stack.pop()
+            if not t:
+                break
+            ts.append(t)
+        tn = self.__stack.pop()
+        self.__stack.append('%s<%s>' % (tn, ', '.join(reversed(ts))))
+
+    @property
+    def name(self):
+        return self.__stack[0]
+
+    def __repr__(self):
+        return repr(self.__stack)
+
+
+class JsonAlias(object):
     def __init__(self, name):
         self.name = name
-        self.members = []	# (Type, member_name), ...
+        self.real_type = None
+
+    def put(self, out):
+        out.write('using %s = %s;\n\n' % (self.name, self.real_type.name))
+
+
+class JsonObject(object):
+    def __init__(self, name, obj_type):
+        self.name     = name
+        self.obj_type = obj_type
+        self.members  = []	# (Type, member_name), ...
 
     def put(self, out):
         def p_(fmt, *args):
-            out.write(fmt % args)
+            if args:
+                out.write(fmt % args)
+            else:
+                out.write(fmt)
 
-        p_('struct %s: public c7::json_object {\n', self.name)
+        p_('struct %s: public c7::json_%s {\n', self.name, self.obj_type)
         for t, mn in self.members:
             p_('    %s %s;\n', t.name, mn)
 
         # invoke constructor of base class
-        p_('\n    using c7::json_object::json_object;\n\n')
+        p_('\n    using c7::json_%s::json_%s;\n\n', self.obj_type, self.obj_type)
 
         # constructor
         mbrs = list(enumerate(self.members))
@@ -99,6 +137,13 @@ class Json(object):
                self.name,
                next_prefix.join(args(mbrs)),
                ',\n\t'.join('%s(a_%s)' % (mn, mn) for _, (_, mn) in mbrs))
+
+        # operator==, operator!=
+        p_('\n    bool operator==(const %s& o) const {\n', self.name)
+        p_('        return (')
+        p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for i, (t, mn) in mbrs))
+        p_(');\n    }\n')
+        p_('\n    bool operator!=(const %s& o) const { return !(*this == o); }\n', self.name)
 
         # c7json_init
         p_('\n    c7json_init(\n')
@@ -141,8 +186,11 @@ class Tokenizer(object):
 
 class Parser(object):
 
+    TYPE_HEAD = (Token.ident, '{', '[', '(', '<')
+
     def __init__(self, path):
         self.__tokenizer = Tokenizer(path)
+        self.json_defs_list = []
         self.json_defs = []
 
     def __get(self):
@@ -175,42 +223,94 @@ class Parser(object):
         return tk
 
     def __parse_json_type(self, json_type, tk):
-        # tkn is ident or '{' or '['
+        # tkn is one of ident, '{', '[', '(', '<'
         if tk.is_ident:
             json_type.ident(tk.s)
+            if self.__get() == '<':
+                json_type.ident('')
+                while True:
+                    self.__expect(*self.TYPE_HEAD)
+                    tk = self.__parse_json_type(json_type, self.tk)
+                    if tk != ',':
+                        if tk != '>':
+                            raise ParseError('> is expected:%s', tk)
+                        break
+                json_type.to_templated()
+                self.__get()
+            return self.tk
         elif tk == '{':
-            self.__expect(Token.ident)
-            if not is_basic_type(self.tk.s):
-                raise ParseError('Key of dictionary must be basic type:%s', tk)
-            json_type.ident(self.tk.s)
-            self.__expect('->')
-            self.__expect(Token.ident, '{', '[')
+            self.__expect(*self.TYPE_HEAD)
+            tk = self.__parse_json_type(json_type, self.tk)
+            if tk != '->':
+                raise ParseError('colon(:) is expected:%s', tk)
+            self.__expect(*self.TYPE_HEAD)
             tk = self.__parse_json_type(json_type, self.tk)
             if tk != '}':
                 raise ParseError(') is expected:%s', tk)
             json_type.to_dict()
         elif tk == '[':
-            self.__expect(Token.ident, '{', '[')
+            self.__expect(*self.TYPE_HEAD)
             tk = self.__parse_json_type(json_type, self.tk)
             if tk != ']':
                 raise ParseError('] is expected:%s', tk)
             json_type.to_array()
+        elif tk == '(':
+            json_type.ident('')
+            while True:
+                self.__expect(*self.TYPE_HEAD)
+                tk = self.__parse_json_type(json_type, self.tk)
+                if tk != ',':
+                    if tk != ')':
+                        raise ParseError(') is expected:%s', tk)
+                    break
+            json_type.to_tuple()
+        elif tk == '<':
+            self.__expect(*self.TYPE_HEAD)
+            tk = self.__parse_json_type(json_type, self.tk)
+            if tk != ',':
+                raise ParseError('comma(,) is expected:%s', tk)
+            self.__expect(*self.TYPE_HEAD)
+            tk = self.__parse_json_type(json_type, self.tk)
+            if tk != '>':
+                raise ParseError('> is expected:%s', tk)
+            json_type.to_pair()
+        return self.__get()
+
+    def __parse_json_alias(self, name):
+        alias = JsonAlias(name)
+        self.json_defs.append(alias)
+        self.__expect(*self.TYPE_HEAD)
+        json_type = Type()
+        self.__parse_json_type(json_type, self.tk)
+        alias.real_type = json_type
+        if self.tk != ';':
+            raise ParseError('semi colon(;) is expected:%s', self.tk)
         return self.__get()
 
     def __parse_json_obj(self, tk):
         # tkn is ident
-        jso = Json(tk.s)
+        name = tk.s
+
+        obj_type = 'object'
+        if self.__expect('!', '{', '=') == '=':
+            return self.__parse_json_alias(name)
+        if self.tk == '!':
+            obj_type = 'struct'
+            self.__expect('{')
+
+        # '{' 
+        jso = JsonObject(name, obj_type)
         self.json_defs.append(jso)
-        self.__expect('{')
-        tk = self.__expect(Token.ident, '{', '[', '}')
+
+        tk = self.__expect(*self.TYPE_HEAD, '}')
         while tk != '}':
-            json_type = Json.Type()
+            json_type = Type()
             tk = self.__parse_json_type(json_type, tk)
             if not tk.is_ident:
                 raise ParseError('Identifier is expected:%s', tk)
             jso.members.append((json_type, tk.s))
             self.__expect(';')
-            tk = self.__expect(Token.ident, '{', '[', '}')
+            tk = self.__expect(*self.TYPE_HEAD, '}')
         # tk is '}'
         return self.__expect(Token.ident, '*/')
 
@@ -222,34 +322,42 @@ class Parser(object):
         return self.__get()
 
     def parse(self):
-        if self.__skip_to_defbeg(self.__get()):
-            self.__parse_json_define(self.tk)
+        self.__get()
+        while self.tk:
+            if self.__skip_to_defbeg(self.tk):
+                self.__parse_json_define(self.tk)
+                self.json_defs_list.append(self.json_defs)
+                self.json_defs = []
 
 
 class Replacer(object):
 
-    def __init__(self, path, json_defs):
+    def __init__(self, path, json_defs_list):
         self.__path = path
         self.__tmppath = path + ".tmp"
         self.__rf = open(path)
         self.__wf = open(self.__tmppath, "w")
         self.__beg = '//[c7json:begin]'
         self.__end = '//[c7json:end]'
-        self.__json_defs = json_defs
+        self.__json_defs_list = json_defs_list
 
     def run(self):
-        replaced = False
         skip = False
+        replaced = False
 
         for s in self.__rf:
-            if s.startswith(self.__beg) and not replaced:
+            if s.startswith(self.__beg):
                 self.__wf.write(s)
-                replaced = True
                 skip = True
-                if self.__json_defs:
-                    self.__wf.write('\n')
-                for js in self.__json_defs:
-                    js.put(self.__wf)
+                if self.__json_defs_list:
+                    json_defs = self.__json_defs_list.pop(0)
+                    if json_defs:
+                        replaced = True
+                        self.__wf.write('\n')
+                        for js in json_defs:
+                            js.put(self.__wf)
+                else:
+                    pass
             elif s.startswith(self.__end):
                 self.__wf.write(s)
                 skip = False
@@ -273,6 +381,6 @@ if __name__ == '__main__':
     path = sys.argv[1]
     parser = Parser(path)
     parser.parse()
-    if parser.json_defs:
-        replacer = Replacer(path, parser.json_defs)
+    if parser.json_defs_list:
+        replacer = Replacer(path, parser.json_defs_list)
         replacer.run()

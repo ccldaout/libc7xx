@@ -46,6 +46,8 @@ struct token {
     token_code code;
     std::variant<int64_t, double, std::string> value;
     std::string raw_str;
+    int n_line;
+    int n_ch;
 
     token_code set(token_code tkc, int ch) {
 	code = tkc;
