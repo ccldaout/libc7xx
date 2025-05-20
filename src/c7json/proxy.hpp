@@ -22,17 +22,22 @@
 #include <c7json/lexer.hpp>
 
 
-#define c7json_init(...)						\
+#define c7json_init_proxy_attribute_declare(fn_)			\
     std::pair<std::unordered_map<std::string, c7::json::proxy_object::proxy_ops>&, \
 	      std::vector<std::string>&>				\
-    proxy_attribute_() const {						\
-	using self_type [[maybe_unused]] = c7::typefunc::remove_cref_t<decltype(*this)>; \
-	static std::vector<std::string> def_order;			\
-	static std::unordered_map<std::string, c7::json::proxy_object::proxy_ops> ops_map = { \
-	    __VA_ARGS__							\
-	};								\
-	return {ops_map, def_order};					\
-    }									\
+    fn_ () const
+
+
+#define c7json_init_proxy_attribute_body(...)				\
+    using self_type [[maybe_unused]] = c7::typefunc::remove_cref_t<decltype(*this)>; \
+    static std::vector<std::string> def_order;				\
+    static std::unordered_map<std::string, c7::json::proxy_object::proxy_ops> ops_map = { \
+	__VA_ARGS__							\
+    };									\
+    return {ops_map, def_order};
+
+
+#define c7json_init_proxy_attribute_ops()				\
     c7::result<> load(c7::json::lexer& lxr, c7::json::token& t) {	\
 	return load_impl(lxr, t, proxy_attribute_());			\
     }									\
@@ -41,6 +46,24 @@
     }									\
     void clear() {							\
 	return clear_impl(proxy_attribute_());				\
+    }
+
+
+#define c7json_init(...)						\
+    c7json_init_proxy_attribute_declare(proxy_attribute_) {		\
+	c7json_init_proxy_attribute_body(__VA_ARGS__)			\
+    }									\
+    c7json_init_proxy_attribute_ops()
+
+
+#define c7json_init_declare()						\
+    c7json_init_proxy_attribute_declare(proxy_attribute_);		\
+    c7json_init_proxy_attribute_ops()
+
+
+#define c7json_init_implement(sn_, ...)					\
+    c7json_init_proxy_attribute_declare(sn_::proxy_attribute_) {	\
+	c7json_init_proxy_attribute_body(__VA_ARGS__)			\
     }
 
 

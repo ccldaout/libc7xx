@@ -75,8 +75,13 @@ class JsonAlias(object):
         self.name = name
         self.real_type = None
 
-    def put(self, out):
+    def put_all(self, out):
         out.write('using %s = %s;\n\n' % (self.name, self.real_type.name))
+
+    put_declare = put_all
+
+    def put_implement(self, out):
+        pass
 
 
 class JsonObject(object):
@@ -85,7 +90,43 @@ class JsonObject(object):
         self.obj_type = obj_type
         self.members  = []	# (Type, member_name), ...
 
-    def put(self, out):
+    def _put_constructors(self, out):
+        def p_(fmt, *args):
+            if args:
+                out.write(fmt % args)
+            else:
+                out.write(fmt)
+
+        # invoke constructor of base class
+        p_('\n    using c7::json_%s::json_%s;\n\n', self.obj_type, self.obj_type)
+
+        # constructor
+        def tmpl_args(mbrs):
+            for i, (t, mn) in mbrs:
+                if i == 0:
+                    yield 'typename T%d' % i
+                else:
+                    yield 'typename T%d=%s' % (i, t.name)
+
+        def args(mbrs):
+            for i, (t, mn) in mbrs:
+                if i == 0:
+                    yield 'T%d&& a_%s' % (i, mn)
+                else:
+                    yield 'T%d&& a_%s=T%d()' % (i, mn, i)
+
+        mbrs = list(enumerate(self.members))
+        next_prefix = ',\n%*s' % (14, '')
+        p_('    template <%s>\n',
+           next_prefix.join(tmpl_args(mbrs)))
+
+        next_prefix = ',\n%*s' % (14 + len(self.name), '')
+        p_('    explicit %s(%s):\n\t%s {}\n',
+           self.name,
+           next_prefix.join(args(mbrs)),
+           ',\n\t'.join('%s(std::forward<T%d>(a_%s))' % (mn, i, mn) for i, (_, mn) in mbrs))
+
+    def put_all(self, out):
         def p_(fmt, *args):
             if args:
                 out.write(fmt % args)
@@ -96,61 +137,65 @@ class JsonObject(object):
         for t, mn in self.members:
             p_('    %s %s;\n', t.name, mn)
 
-        # invoke constructor of base class
-        p_('\n    using c7::json_%s::json_%s;\n\n', self.obj_type, self.obj_type)
-
-        # constructor
-        mbrs = list(enumerate(self.members))
-        if True:
-            def tmpl_args(mbrs):
-                for i, (t, mn) in mbrs:
-                    if i == 0:
-                        yield 'typename T%d' % i
-                    else:
-                        yield 'typename T%d=%s' % (i, t.name)
-
-            def args(mbrs):
-                for i, (t, mn) in mbrs:
-                    if i == 0:
-                        yield 'T%d&& a_%s' % (i, mn)
-                    else:
-                        yield 'T%d&& a_%s=T%d()' % (i, mn, i)
-
-            next_prefix = ',\n%*s' % (14, '')
-            p_('    template <%s>\n',
-               next_prefix.join(tmpl_args(mbrs)))
-
-            next_prefix = ',\n%*s' % (14 + len(self.name), '')
-            p_('    explicit %s(%s):\n\t%s {}\n',
-               self.name,
-               next_prefix.join(args(mbrs)),
-               ',\n\t'.join('%s(std::forward<T%d>(a_%s))' % (mn, i, mn) for i, (_, mn) in mbrs))
-        else:
-            def args(mbrs):
-                for i, (t, mn) in mbrs:
-                    if i == 0:
-                        yield 'const %s& a_%s' % (t.name, mn)
-                    else:
-                        yield 'const %s& a_%s=%s()' % (t.name, mn, t.name)
-            next_prefix = ',\n%*s' % (14 + len(self.name), '')
-            p_('    explicit %s(%s):\n\t%s {}\n',
-               self.name,
-               next_prefix.join(args(mbrs)),
-               ',\n\t'.join('%s(a_%s)' % (mn, mn) for _, (_, mn) in mbrs))
+        # constructors
+        self._put_constructors(out)
 
         # operator==, operator!=
         p_('\n    bool operator==(const %s& o) const {\n', self.name)
         p_('        return (')
-        p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for i, (t, mn) in mbrs))
+        p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for t, mn in self.members))
         p_(');\n    }\n')
         p_('\n    bool operator!=(const %s& o) const { return !(*this == o); }\n', self.name)
 
         # c7json_init
         p_('\n    c7json_init(\n')
-        for _, (_, mn) in mbrs:
+        for _, mn in self.members:
             p_('        c7json_member(%s),\n', mn)
         p_('        )\n')
         p_('};\n\n')
+
+    def put_declare(self, out):
+        def p_(fmt, *args):
+            if args:
+                out.write(fmt % args)
+            else:
+                out.write(fmt)
+
+        p_('struct %s: public c7::json_%s {\n', self.name, self.obj_type)
+        for t, mn in self.members:
+            p_('    %s %s;\n', t.name, mn)
+
+        # constructors
+        self._put_constructors(out)
+
+        # operator==, operator!=
+        p_('\n    bool operator==(const %s& o) const;\n', self.name)
+        p_('\n    bool operator!=(const %s& o) const { return !(*this == o); }\n', self.name)
+
+        # c7json_init(_declare)
+        p_('\n    c7json_init_declare();\n')
+        p_('};\n\n')
+
+    def put_implement(self, out):
+        def p_(fmt, *args):
+            if args:
+                out.write(fmt % args)
+            else:
+                out.write(fmt)
+
+        # operator==
+        p_('bool %s::operator==(const %s& o) const\n', self.name, self.name)
+        p_('{\n')
+        p_('    return (')
+        p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for t, mn in self.members))
+        p_(');\n}\n')
+
+        # c7json_init(_implement)
+        p_('\nc7json_init_implement(\n')
+        p_('    %s,\n', self.name)
+        for _, mn in self.members:
+            p_('    c7json_member(%s),\n', mn)
+        p_(')\n\n')
 
 
 def expect_list(*args):
@@ -339,9 +384,9 @@ class Replacer(object):
         self.__wf = open(self.__tmppath, "w")
         self.__beg = '//[c7json:begin]'
         self.__end = '//[c7json:end]'
-        self.__json_defs_list = json_defs_list
+        self.__json_defs_list = json_defs_list[:]
 
-    def run(self):
+    def run(self, writer):
         skip = False
         replaced = False
 
@@ -355,7 +400,7 @@ class Replacer(object):
                         replaced = True
                         self.__wf.write('\n')
                         for js in json_defs:
-                            js.put(self.__wf)
+                            writer(js, self.__wf)
                 else:
                     pass
             elif s.startswith(self.__end):
@@ -375,12 +420,18 @@ class Replacer(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print('''Usage: %s input [output]''' % sys.argv[0])
+        print('''Usage: %s source        (all-in-one mode)''' % sys.argv[0])
+        print('''     : %s header source (separate mode)''' % sys.argv[0])
         exit(1)
 
-    path = sys.argv[1]
-    parser = Parser(path)
+    parser = Parser(sys.argv[1])
     parser.parse()
     if parser.json_defs_list:
-        replacer = Replacer(path, parser.json_defs_list)
-        replacer.run()
+        if len(sys.argv) == 2:
+            replacer = Replacer(sys.argv[1], parser.json_defs_list)
+            replacer.run(lambda js,out: js.put_all(out))
+        else:
+            replacer = Replacer(sys.argv[1], parser.json_defs_list)
+            replacer.run(lambda js,out: js.put_declare(out))
+            replacer = Replacer(sys.argv[2], parser.json_defs_list)
+            replacer.run(lambda js,out: js.put_implement(out))
