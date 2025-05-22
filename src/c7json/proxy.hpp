@@ -23,7 +23,7 @@
 
 
 #define c7json_init_proxy_attribute_declare(fn_)			\
-    std::pair<std::unordered_map<std::string, c7::json::proxy_object::proxy_ops>&, \
+    std::pair<std::unordered_map<std::string, c7::json::proxy_ops>&, \
 	      std::vector<std::string>&>				\
     fn_ () const
 
@@ -31,7 +31,7 @@
 #define c7json_init_proxy_attribute_body(...)				\
     using self_type [[maybe_unused]] = c7::typefunc::remove_cref_t<decltype(*this)>; \
     static std::vector<std::string> def_order;				\
-    static std::unordered_map<std::string, c7::json::proxy_object::proxy_ops> ops_map = { \
+    static std::unordered_map<std::string, c7::json::proxy_ops> ops_map = { \
 	__VA_ARGS__							\
     };									\
     return {ops_map, def_order};
@@ -41,8 +41,8 @@
     c7::result<> load(c7::json::lexer& lxr, c7::json::token& t) {	\
 	return load_impl(lxr, t, proxy_attribute_());			\
     }									\
-    c7::result<> dump(std::ostream& o, c7::json::dump_context& dc) const { \
-	return dump_impl(o, dc, proxy_attribute_());			\
+    c7::result<> dump(std::ostream& o, c7::json::dump_helper& dh) const { \
+	return dump_impl(o, dh, proxy_attribute_());			\
     }									\
     void clear() {							\
 	return clear_impl(proxy_attribute_());				\
@@ -78,16 +78,33 @@ namespace c7::json {
 void jsonize_string(std::ostream& o, const std::string& s);
 
 
-/*----------------------------------------------------------------------------
-                                 proxy_basic
-----------------------------------------------------------------------------*/
-
 struct dump_context {
     int indent = 0;
     int cur_indent = 0;
     int time_prec = 6;		// 0:sec, 3:milli sec, 6:micro sec
 };
 
+
+class dump_helper {
+public:
+    dump_context context;
+
+    dump_helper();
+    explicit dump_helper(dump_context dc);
+    void begin(std::ostream& o, char c);
+    const char *pref();
+    void end(std::ostream& o, char c);
+
+private:
+    std::string head_;
+    std::string next_;
+    const char *pref_;
+};
+
+
+/*----------------------------------------------------------------------------
+                                 proxy_basic
+----------------------------------------------------------------------------*/
 
 template <typename T, typename Tag = void>
 class proxy_basic_strict {
@@ -109,9 +126,9 @@ public:
 	return static_cast<proxy_basic_strict<T>*>(p)->load_impl(lxr, t);
     }
 
-    c7::result<> dump(std::ostream& o, dump_context& dc) const {
+    c7::result<> dump(std::ostream& o, dump_helper& dh) const {
 	auto p = static_cast<const void *>(this);
-	return static_cast<const proxy_basic_strict<T>*>(p)->dump_impl(o, dc);
+	return static_cast<const proxy_basic_strict<T>*>(p)->dump_impl(o, dh.context);
     }
 
     c7::result<> from_str(token&);
@@ -219,10 +236,10 @@ template <> c7::result<> proxy_basic_strict<binary_t   >::from_str(token&);
 class proxy_pair_base {
 protected:
     using load_func = std::function<c7::result<>(lexer&, token&)>;
-    using dump_func = std::function<c7::result<>(std::ostream&, dump_context&, const std::string&)>;
+    using dump_func = std::function<c7::result<>(std::ostream&, dump_helper&)>;
 
     c7::result<> load_impl(lexer&, token&, load_func);
-    c7::result<> dump_impl(std::ostream& o, dump_context& dc, dump_func) const;
+    c7::result<> dump_impl(std::ostream& o, dump_helper& dh, dump_func) const;
 };
 
 
@@ -246,10 +263,10 @@ public:
 			 });
     }
 
-    c7::result<> dump(std::ostream& o, dump_context& dc) const {
-	return dump_impl(o, dc,
-			 [this](auto& o, auto& dc, auto& pref) {
-			     return dump_elements(o, dc, pref);
+    c7::result<> dump(std::ostream& o, dump_helper& dh) const {
+	return dump_impl(o, dh,
+			 [this](auto& o, auto& dh) {
+			     return dump_elements(o, dh);
 			 });
     }
 
@@ -285,12 +302,12 @@ private:
     }
 
     c7::result<>
-    dump_elements(std::ostream& o, dump_context& dc, const std::string& pref) const {
-	if (auto res = pair_.first.dump(o, dc); !res) {
+    dump_elements(std::ostream& o, dump_helper& dh) const {
+	if (auto res = pair_.first.dump(o, dh); !res) {
 	    return res;
 	}
-	o << pref;
-	if (auto res = pair_.second.dump(o, dc); !res) {
+	o << dh.pref();
+	if (auto res = pair_.second.dump(o, dh); !res) {
 	    return res;
 	}
 	return c7result_ok();
@@ -321,11 +338,10 @@ class proxy_tuple_base {
 public:
 protected:
     using load_func = std::function<c7::result<>(lexer&, token&)>;
-    using dump_func = std::function<c7::result<>(std::ostream&, dump_context&,
-						 const char *, const char *)>;
+    using dump_func = std::function<c7::result<>(std::ostream&, dump_helper&)>;
 
     c7::result<> load_impl(lexer&, token&, load_func);
-    c7::result<> dump_impl(std::ostream& o, dump_context& dc, dump_func) const;
+    c7::result<> dump_impl(std::ostream& o, dump_helper& dh, dump_func) const;
 };
 
 
@@ -345,14 +361,14 @@ public:
     c7::result<> load(lexer& lxr, token& t) {
 	return load_impl(lxr, t,
 			 [this](auto& lxr, auto& t) {
-			     return load_elements(lxr, t);
+			     return load_elements<0>(lxr, t);
 			 });
     }
 
-    c7::result<> dump(std::ostream& o, dump_context& dc) const {
-	return dump_impl(o, dc,
-			 [this](auto& o, auto& dc, auto s1, auto s2) {
-			     return dump_elements(o, dc, s1, s2);
+    c7::result<> dump(std::ostream& o, dump_helper& dh) const {
+	return dump_impl(o, dh,
+			 [this](auto& o, auto& dh) {
+			     return dump_elements<0>(o, dh);
 			 });
     }
 
@@ -393,12 +409,8 @@ private:
 	}
     }
 
-    c7::result<> load_elements(lexer& lxr, token& t) {
-	return load_elements_impl<0>(lxr, t);
-    }
-
     template <size_t I>
-    c7::result<> load_elements_impl(lexer& lxr, token& t) {
+    c7::result<> load_elements(lexer& lxr, token& t) {
 	if constexpr (I == size()) {
 	    lxr.get(t);
 	    return c7result_ok();
@@ -412,30 +424,20 @@ private:
 	    if (auto res = get<I>().load(lxr, t); !res) {
 		return c7result_err(std::move(res), "Cannot load element of tuple");
 	    }
-	    return load_elements_impl<I+1>(lxr, t);
+	    return load_elements<I+1>(lxr, t);
 	}
     }
 
-    c7::result<> dump_elements(std::ostream& o, dump_context& dc,
-			       const char *head_pref, const char *next_pref) const {
-	return dump_elements_impl<0>(o, dc, head_pref, next_pref);
-    }
-
     template <size_t I>
-    c7::result<> dump_elements_impl(std::ostream& o, dump_context& dc,
-				    const char *head_pref, const char *next_pref) const {
+    c7::result<> dump_elements(std::ostream& o, dump_helper& dh) const {
 	if constexpr (I == size()) {
 	    return c7result_ok();
 	} else {
-	    if constexpr (I == 0) {
-		o << head_pref;
-	    } else {
-		o << next_pref;
-	    }
-	    if (auto res = get<I>().dump(o, dc); !res) {
+	    o << dh.pref();
+	    if (auto res = get<I>().dump(o, dh); !res) {
 		return res;
 	    }
-	    return dump_elements_impl<I+1>(o, dc, head_pref, next_pref);
+	    return dump_elements<I+1>(o, dh);
 	}
     }
 };
@@ -467,9 +469,9 @@ public:
     c7::result<> load(lexer&, token&);
 
 protected:
-    c7::result<> dump_all(std::ostream&, dump_context&, size_t) const;
+    c7::result<> dump_all(std::ostream&, dump_helper&, size_t) const;
     virtual c7::result<> load_element(lexer&, token&) = 0;
-    virtual c7::result<> dump_element(std::ostream&, dump_context&, size_t) const = 0;
+    virtual c7::result<> dump_element(std::ostream&, dump_helper&, size_t) const = 0;
 };
 
 
@@ -487,8 +489,8 @@ public:
 
     // inherit load()
 
-    c7::result<> dump(std::ostream& o, dump_context& dc) const {
-	return dump_all(o, dc, vec_.size());
+    c7::result<> dump(std::ostream& o, dump_helper& dh) const {
+	return dump_all(o, dh, vec_.size());
     }
 
     void clear() {
@@ -563,8 +565,8 @@ private:
 	return c7result_ok();
     }
 
-    c7::result<> dump_element(std::ostream& o, dump_context& dc, size_t i) const override {
-	return vec_[i].dump(o, dc);
+    c7::result<> dump_element(std::ostream& o, dump_helper& dh, size_t i) const override {
+	return vec_[i].dump(o, dh);
     }
 };
 
@@ -591,12 +593,12 @@ public:
     virtual ~proxy_dict_base() = default;
 
     c7::result<> load(lexer&, token&);
-    c7::result<> dump(std::ostream& o, dump_context& dc) const;
+    c7::result<> dump(std::ostream& o, dump_helper& dh) const;
 
 protected:
-    c7::result<> dump_all(std::ostream&, dump_context&) const;
+    c7::result<> dump_all(std::ostream&, dump_helper&) const;
     virtual c7::result<> load_element(lexer&, token&, token& key) = 0;
-    virtual c7::result<> dump_element(std::ostream&, dump_context&) const = 0;
+    virtual c7::result<> dump_element(std::ostream&, dump_helper&) const = 0;
     virtual bool dump_start() const = 0;
     virtual bool dump_next() const = 0;
 };
@@ -714,7 +716,7 @@ private:
 	return (it_ != dic_.cend());
     }
 
-    c7::result<> dump_element(std::ostream& o, dump_context& dc) const override {
+    c7::result<> dump_element(std::ostream& o, dump_helper& dh) const override {
 	auto& [k, v] = *it_;
 	if constexpr (std::is_same_v<KeyProxy, proxy_basic<std::string>> ||
 		      std::is_same_v<KeyProxy, proxy_basic<time_us>> ||
@@ -722,18 +724,18 @@ private:
 		      std::is_same_v<KeyProxy, proxy_basic_strict<std::string>> ||
 		      std::is_same_v<KeyProxy, proxy_basic_strict<time_us>> ||
 		      std::is_same_v<KeyProxy, proxy_basic_strict<binary_t>>) {
-	    if (auto res = k.dump(o, dc); !res) {
+	    if (auto res = k.dump(o, dh); !res) {
 		return res;
 	    }
 	} else {
 	    std::ostringstream so;
-	    dump_context tmp_dc{};
-	    tmp_dc.time_prec = dc.time_prec;
-	    k.dump(so, tmp_dc);
+	    dump_helper tmp_dh{};
+	    tmp_dh.context.time_prec = tmp_dh.context.time_prec;
+	    k.dump(so, tmp_dh);
 	    jsonize_string(o, so.str());
 	}
 	o << ':';
-	return v.dump(o, dc);
+	return v.dump(o, dh);
     }
 };
 
@@ -759,7 +761,8 @@ bool operator!=(const proxy_dict<KeyProxy, ValueProxy>& a,
 
 class proxy_unconcern {
 public:
-    proxy_unconcern() = default;
+    proxy_unconcern(): save_(true) {}
+    explicit proxy_unconcern(bool save): save_(save) {}
 
     proxy_unconcern(const proxy_unconcern&) = default;
     proxy_unconcern(proxy_unconcern&&) = default;
@@ -767,7 +770,7 @@ public:
     proxy_unconcern& operator=(proxy_unconcern&&) = default;
 
     c7::result<> load(lexer&, token&);
-    c7::result<> dump(std::ostream&, dump_context&) const;
+    c7::result<> dump(std::ostream&, dump_helper&) const;
     void clear();
 
 private:
@@ -777,6 +780,7 @@ private:
 	std::string raw_str;
     };
 
+    bool save_;
     std::vector<raw_token> tkns_;
 
     c7::result<> load_value(lexer&, token&);
@@ -787,104 +791,101 @@ private:
 
 
 /*----------------------------------------------------------------------------
-                                 proxy_object
+                  proxy_struct / proxy_strict / proxy_object
 ----------------------------------------------------------------------------*/
 
-class proxy_object {
-public:
-    struct proxy_ops {
-	std::function<c7::result<>(void *, lexer&, token&)> load;
-	std::function<c7::result<>(const void *, std::ostream&, dump_context&)> dump;
-	std::function<void(void *)> clear;
-    };
+struct proxy_ops {
+    std::function<c7::result<>(void *, lexer&, token&)> load;
+    std::function<c7::result<>(const void *, std::ostream&, dump_helper&)> dump;
+    std::function<void(void *)> clear;
+};
 
-    proxy_object() = default;
 
-    proxy_object(const proxy_object&) = default;
-    proxy_object(proxy_object&&) = default;
-    proxy_object& operator=(const proxy_object&) = default;
-    proxy_object& operator=(proxy_object&&) = default;
-
+template <typename Derived>
+class proxy_struct_base {
 protected:
-    using attr_t = std::pair<std::unordered_map<std::string, proxy_ops>&,
-			     std::vector<std::string>&>;
+    using ops_dict_t = std::unordered_map<std::string, proxy_ops>;
+    using attr_t     = std::pair<ops_dict_t&, std::vector<std::string>&>;
 
-    template <typename Derived, typename Proxy>
+    template <typename UserDerived, typename Proxy>
     std::pair<std::string, proxy_ops>
     member_attribute_(std::vector<std::string>& order,
 		     const std::string& name,
-		     Proxy Derived::*member) const {
+		     Proxy UserDerived::*member) const {
 	order.push_back(name);
 	return std::pair<std::string, proxy_ops>{
 	    name,
 	    proxy_ops{
 		[member](void *self, auto& lxr, auto &t) {
-		    return (static_cast<Derived*>(self)->*member).load(lxr, t);
+		    return (static_cast<UserDerived*>(self)->*member).load(lxr, t);
 		},
-		[member](const void *self, auto& out, auto &dc) {
-		    return (static_cast<const Derived*>(self)->*member).dump(out, dc);
+		[member](const void *self, auto& out, auto &dh) {
+		    return (static_cast<const UserDerived*>(self)->*member).dump(out, dh);
 		},
 		[member](void *self) {
-		    (static_cast<Derived*>(self)->*member).clear();
+		    (static_cast<UserDerived*>(self)->*member).clear();
 		},
 	    }
 	};
     }
 
     c7::result<> load_impl(lexer&, token&, attr_t);
-    c7::result<> dump_impl(std::ostream&, dump_context&, attr_t) const;
+    c7::result<> dump_impl(std::ostream&, dump_helper&, attr_t) const;
     void clear_impl(attr_t);
-
-private:
-    std::shared_ptr<std::unordered_map<std::string, proxy_unconcern>> unconcerns_;
-    std::vector<std::string> src_order_;
 };
 
 
-/*----------------------------------------------------------------------------
-                proxy_struct (strict version of proxy_object)
-----------------------------------------------------------------------------*/
-
-class proxy_struct {
+class proxy_struct: public proxy_struct_base<proxy_struct> {
 public:
-    using proxy_ops = proxy_object::proxy_ops;
-
     proxy_struct() = default;
-
     proxy_struct(const proxy_struct&) = default;
     proxy_struct(proxy_struct&&) = default;
     proxy_struct& operator=(const proxy_struct&) = default;
     proxy_struct& operator=(proxy_struct&&) = default;
 
 protected:
-    using attr_t = std::pair<std::unordered_map<std::string, proxy_ops>&,
-			     std::vector<std::string>&>;
+    friend class proxy_struct_base<proxy_struct>;
 
-    template <typename Derived, typename Proxy>
-    std::pair<std::string, proxy_ops>
-    member_attribute_(std::vector<std::string>& order,
-		     const std::string& name,
-		     Proxy Derived::*member) const {
-	order.push_back(name);
-	return std::pair<std::string, proxy_ops>{
-	    name,
-	    proxy_ops{
-		[member](void *self, auto& lxr, auto &t) {
-		    return (static_cast<Derived*>(self)->*member).load(lxr, t);
-		},
-		[member](const void *self, auto& out, auto &dc) {
-		    return (static_cast<const Derived*>(self)->*member).dump(out, dc);
-		},
-		[member](void *self) {
-		    (static_cast<Derived*>(self)->*member).clear();
-		},
-	    }
-	};
-    }
+    c7::result<> load_custom(lexer&, token&, const std::string& unknown_key);
+    c7::result<> dump_custom(std::ostream& o, dump_helper& dh) const { return c7result_ok(); }
+    void clear_custom() {}
+};
 
-    c7::result<> load_impl(lexer&, token&, attr_t);
-    c7::result<> dump_impl(std::ostream&, dump_context&, attr_t) const;
-    void clear_impl(attr_t);
+
+class proxy_strict: public proxy_struct_base<proxy_strict> {
+public:
+    proxy_strict() = default;
+    proxy_strict(const proxy_strict&) = default;
+    proxy_strict(proxy_strict&&) = default;
+    proxy_strict& operator=(const proxy_strict&) = default;
+    proxy_strict& operator=(proxy_strict&&) = default;
+
+protected:
+    friend class proxy_struct_base<proxy_strict>;
+
+    c7::result<> load_custom(lexer&, token&, const std::string& unknown_key);
+    c7::result<> dump_custom(std::ostream& o, dump_helper& dh) const { return c7result_ok(); }
+    void clear_custom() {}
+};
+
+
+class proxy_object: public proxy_struct_base<proxy_object> {
+public:
+    proxy_object() = default;
+    proxy_object(const proxy_object&) = default;
+    proxy_object(proxy_object&&) = default;
+    proxy_object& operator=(const proxy_object&) = default;
+    proxy_object& operator=(proxy_object&&) = default;
+
+protected:
+    friend class proxy_struct_base<proxy_object>;
+
+    c7::result<> load_custom(lexer&, token&, const std::string& unknown_key);
+    c7::result<> dump_custom(std::ostream& o, dump_helper& dh) const;
+    void clear_custom();
+
+private:
+    std::shared_ptr<std::unordered_map<std::string, proxy_unconcern>> unconcerns_;
 };
 
 

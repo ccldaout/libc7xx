@@ -340,8 +340,11 @@ class Parser(object):
         if self.__expect('!', '{', '=') == '=':
             return self.__parse_json_alias(name)
         if self.tk == '!':
-            obj_type = 'struct'
-            self.__expect('{')
+            if self.__expect('!', '{') == '{':
+                obj_type = 'struct'
+            else:
+                obj_type = 'strict'
+                self.__expect('{')
 
         # '{' 
         jso = JsonObject(name, obj_type)

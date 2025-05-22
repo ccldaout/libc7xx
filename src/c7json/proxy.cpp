@@ -17,6 +17,10 @@
 namespace c7::json {
 
 
+/*----------------------------------------------------------------------------
+                               helper functions
+----------------------------------------------------------------------------*/
+
 void jsonize_string(std::ostream& o, const std::string& s)
 {
     o << '"';
@@ -39,6 +43,51 @@ void jsonize_string(std::ostream& o, const std::string& s)
 	}
     }
     o << '"';
+}
+
+
+dump_helper::dump_helper(): head_("\n"), next_(",\n") {}
+
+
+dump_helper::dump_helper(dump_context dc): context(dc), head_("\n"), next_(",\n") {}
+
+
+void
+dump_helper::begin(std::ostream& o, char c)
+{
+    o << c;
+    if (context.indent) {
+	context.cur_indent += context.indent;
+	head_.resize(context.cur_indent + 1, ' ');
+	next_.resize(context.cur_indent + 2, ' ');
+    } else {
+	head_ = "";
+	next_ = ",";
+    }
+    pref_ = head_.c_str();
+}
+
+
+const char *
+dump_helper::pref()
+{
+    auto pref = pref_;
+    pref_ = next_.c_str();
+    return pref;
+}
+
+
+void
+dump_helper::end(std::ostream& o, char c)
+{
+    if (context.indent) {
+	context.cur_indent -= context.indent;
+	head_.resize(context.cur_indent + 1);
+	next_.resize(context.cur_indent + 2, ' ');
+	o << head_;
+    }
+    pref_ = next_.c_str();
+    o << c;
 }
 
 
@@ -253,33 +302,16 @@ proxy_pair_base::load_impl(lexer& lxr, token& t, load_func load_elements)
 
 
 c7::result<>
-proxy_pair_base::dump_impl(std::ostream& o, dump_context& dc, dump_func dump_elements) const
+proxy_pair_base::dump_impl(std::ostream& o, dump_helper& dh, dump_func dump_elements) const
 {
-    std::string next_pref;
-    std::string head_pref;
+    dh.begin(o, '[');
 
-    o << '[';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    o << head_pref;
-    if (auto res = dump_elements(o, dc, next_pref); !res) {
+    o << dh.pref();
+    if (auto res = dump_elements(o, dh); !res) {
 	return res;
     }
 
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
-    }
-    o << ']';
-
+    dh.end(o, ']');
     return c7result_ok();
 }
 
@@ -307,32 +339,15 @@ proxy_tuple_base::load_impl(lexer& lxr, token& t, load_func load_elements)
 
 
 c7::result<>
-proxy_tuple_base::dump_impl(std::ostream& o, dump_context& dc, dump_func dump_elements) const
+proxy_tuple_base::dump_impl(std::ostream& o, dump_helper& dh, dump_func dump_elements) const
 {
-    std::string next_pref;
-    std::string head_pref;
+    dh.begin(o, '[');
 
-    o << '[';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    if (auto res = dump_elements(o, dc, head_pref.c_str(), next_pref.c_str()); !res) {
+    if (auto res = dump_elements(o, dh); !res) {
 	return res;
     }
 
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
-    }
-    o << ']';
-
+    dh.end(o, ']');
     return c7result_ok();
 }
 
@@ -366,38 +381,18 @@ proxy_array_base::load(lexer& lxr, token& t)
 
 
 c7::result<>
-proxy_array_base::dump_all(std::ostream& o, dump_context& dc, size_t n) const
+proxy_array_base::dump_all(std::ostream& o, dump_helper& dh, size_t n) const
 {
-    std::string next_pref;
-    std::string head_pref;
-
-    o << '[';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    const char *pref = head_pref.c_str();
+    dh.begin(o, '[');
 
     for (size_t i = 0; i < n; i++) {
-	o << pref;
-	if (auto res = dump_element(o, dc, i); !res) {
+	o << dh.pref();
+	if (auto res = dump_element(o, dh, i); !res) {
 	    return res;
 	}
-	pref = next_pref.c_str();
     }
 
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
-    }
-    o << ']';
-
+    dh.end(o, ']');
     return c7result_ok();
 }
 
@@ -439,40 +434,20 @@ proxy_dict_base::load(lexer& lxr, token& t)
 
 
 c7::result<>
-proxy_dict_base::dump(std::ostream& o, dump_context& dc) const
+proxy_dict_base::dump(std::ostream& o, dump_helper& dh) const
 {
-    std::string next_pref;
-    std::string head_pref;
-
-    o << '{';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    const char *pref = head_pref.c_str();
+    dh.begin(o, '{');
 
     if (dump_start()) {
 	do {
-	    o << pref;
-	    if (auto res = dump_element(o, dc); !res) {
+	    o << dh.pref();
+	    if (auto res = dump_element(o, dh); !res) {
 		return res;
 	    }
-	    pref = next_pref.c_str();
 	} while (dump_next());
     }
 
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
-    }
-    o << '}';
-
+    dh.end(o, '}');
     return c7result_ok();
 }
 
@@ -555,7 +530,9 @@ proxy_unconcern::load_value(lexer& lxr, token& t)
 
 void proxy_unconcern::store(token& t)
 {
-    tkns_.emplace_back(t.code, t.raw_str);
+    if (save_) {
+	tkns_.emplace_back(t.code, t.raw_str);
+    }
 }
 
 c7::result<>
@@ -570,30 +547,16 @@ proxy_unconcern::load(lexer& lxr, token& t)
 
 
 c7::result<>
-proxy_unconcern::dump(std::ostream& o, dump_context& dc) const
+proxy_unconcern::dump(std::ostream& o, dump_helper& dh) const
 {
-    std::string pref;
-    if (dc.indent) {
-	pref = '\n' + std::string(dc.cur_indent, ' ');
-    }
-
     for (auto& t: tkns_) {
 	if (t.code == TKN_CURLY_L || t.code == TKN_SQUARE_L) {
-	    o << t.raw_str;
-	    if (dc.indent) {
-		dc.cur_indent += dc.indent;
-		pref.resize(dc.cur_indent + 1, ' ');
-		o << pref;
-	    }
+	    dh.begin(o, t.raw_str[0]);
+	    o << dh.pref();
 	} else if (t.code == TKN_CURLY_R || t.code == TKN_SQUARE_R) {
-	    if (dc.indent) {
-		dc.cur_indent -= dc.indent;
-		pref.resize(dc.cur_indent + 1);
-		o << pref;
-	    }
-	    o << t.raw_str;
+	    dh.end(o, t.raw_str[0]);
 	} else if (t.code == TKN_COMMA) {
-	    o << t.raw_str << pref;
+	    o << t.raw_str << dh.pref();
 	} else {
 	    o << t.raw_str;
 	}
@@ -608,55 +571,8 @@ void proxy_unconcern::clear()
 
 
 /*----------------------------------------------------------------------------
-                                 proxy_object
+                  proxy_struct / proxy_strict / proxy_object
 ----------------------------------------------------------------------------*/
-
-c7::result<>
-proxy_object::load_impl(lexer& lxr, token& t, attr_t attr)
-{
-    auto [ops, _] = attr;
-
-    if (t.code != TKN_CURLY_L) {
-	return c7result_err(EINVAL, "'{' is expected: %{}", t);
-    }
-    if (lxr.get(t) != TKN_CURLY_R) {
-	for (;;) {
-	    if (t.code != TKN_STRING) {
-		return c7result_err(EINVAL, "keyword STRING is expceted: %{}", t);
-	    }
-	    auto key = t.str();
-	    if (lxr.get(t) != TKN_COLON) {
-		return c7result_err(EINVAL, "colon (:) is required: %{}", t);
-	    }
-	    lxr.get(t);
-	    if (auto it = ops.find(key); it == ops.end()) {
-		proxy_unconcern unc;
-		if (auto res = unc.load(lxr, t); !res) {
-		    return res;
-		}
-		if (!unconcerns_) {
-		    unconcerns_ = std::make_unique<decltype(unconcerns_)::element_type>();
-		}
-		unconcerns_->insert_or_assign(key, std::move(unc));
-	    } else {
-		auto& ops = (*it).second;
-		if (auto res = ops.load(this, lxr, t); !res) {
-		    return res;
-		}
-	    }
-	    src_order_.push_back(key);
-	    if (lxr.get(t) != TKN_COMMA) {
-		break;
-	    }
-	    lxr.get(t);
-	}
-	if (t.code != TKN_CURLY_R) {
-	    return c7result_err(EINVAL, "'}' is expected: %{}", t);
-	}
-    }
-    return c7result_ok();
-}
-
 
 template <typename Object, typename... Args>
 static c7::result<>
@@ -671,92 +587,12 @@ call_dump(std::unordered_map<std::string, Object>& map,
     }
 }
 
+
+template <typename Derived>
 c7::result<>
-proxy_object::dump_impl(std::ostream& o, dump_context& dc, attr_t attr) const
+proxy_struct_base<Derived>::load_impl(lexer& lxr, token& t, attr_t attr)
 {
-    auto [ops, def_order] = attr;
-
-    std::string next_pref;
-    std::string head_pref;
-
-    o << '{';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    std::unordered_set<std::string> dumped;
-
-    const char *pref = head_pref.c_str();
-
-    for (auto& k: src_order_) {
-	o << pref;
-	o << '"' << k << "\":";
-	if (auto res = call_dump(ops, k, this, o, dc); !res) {
-	    if (!res.has_what(ENOENT)) {
-		return res;
-	    }
-	    if (unconcerns_) {
-		if (auto res = call_dump(*unconcerns_, k, o, dc); !res) {
-		    return res;
-		}
-	    }
-	}
-	dumped.insert(k);
-	pref = next_pref.c_str();
-    }
-
-    for (auto& k: def_order) {
-	if (dumped.find(k) != dumped.end()) {
-	    continue;
-	}
-	o << pref;
-	o << '"' << k << "\":";
-	if (auto res = call_dump(ops, k, this, o, dc); !res) {
-	    return res;
-	}
-	pref = next_pref.c_str();
-    }
-
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
-    }
-    o << '}';
-
-    return c7result_ok();
-}
-
-
-void
-proxy_object::clear_impl(attr_t attr)
-{
-    auto [ops, _] = attr;
-
-    for (auto& [k, ops]: ops) {
-	ops.clear(this);
-    }
-
-    if (unconcerns_) {
-	unconcerns_->clear();
-    }
-    src_order_.clear();
-}
-
-
-/*----------------------------------------------------------------------------
-                proxy_struct (strict version of proxy_object)
-----------------------------------------------------------------------------*/
-
-c7::result<>
-proxy_struct::load_impl(lexer& lxr, token& t, attr_t attr)
-{
-    auto [ops, _] = attr;
+    auto [ops_dic, _] = attr;
 
     if (t.code != TKN_CURLY_L) {
 	return c7result_err(EINVAL, "'{' is expected: %{}", t);
@@ -771,14 +607,19 @@ proxy_struct::load_impl(lexer& lxr, token& t, attr_t attr)
 		return c7result_err(EINVAL, "colon (:) is required: %{}", t);
 	    }
 	    lxr.get(t);
-	    if (auto it = ops.find(key); it == ops.end()) {
-		return c7result_err(EINVAL, "unknown member: %{}", t);
-	    } else {
+
+	    if (auto it = ops_dic.find(key); it != ops_dic.end()) {
 		auto& ops = (*it).second;
 		if (auto res = ops.load(this, lxr, t); !res) {
 		    return res;
 		}
+	    } else {
+		auto derived = static_cast<Derived*>(this);
+		if (auto res = derived->load_custom(lxr, t, key); !res) {
+		    return res;
+		}
 	    }
+
 	    if (lxr.get(t) != TKN_COMMA) {
 		break;
 	    }
@@ -792,55 +633,110 @@ proxy_struct::load_impl(lexer& lxr, token& t, attr_t attr)
 }
 
 
+template <typename Derived>
 c7::result<>
-proxy_struct::dump_impl(std::ostream& o, dump_context& dc, attr_t attr) const
+proxy_struct_base<Derived>::dump_impl(std::ostream& o, dump_helper& dh, attr_t attr) const
 {
-    auto [ops, def_order] = attr;
+    dh.begin(o, '{');
 
-    std::string next_pref;
-    std::string head_pref;
-
-    o << '{';
-    if (dc.indent) {
-	dc.cur_indent += dc.indent;
-	head_pref = "\n" + std::string(dc.cur_indent, ' ');
-	next_pref = "," + head_pref;
-    } else {
-	head_pref = "";
-	next_pref = ",";
-    }
-
-    const char *pref = head_pref.c_str();
+    auto [ops_dic, def_order] = attr;
 
     for (auto& k: def_order) {
-	o << pref;
+	o << dh.pref();
 	o << '"' << k << "\":";
-	if (auto res = call_dump(ops, k, this, o, dc); !res) {
+	if (auto res = call_dump(ops_dic, k, this, o, dh); !res) {
 	    return res;
 	}
-	pref = next_pref.c_str();
     }
 
-    if (dc.indent) {
-	dc.cur_indent -= dc.indent;
-	head_pref.resize(dc.cur_indent + 1);
-	o << head_pref;
+    auto derived = static_cast<const Derived*>(this);
+    if (auto res = derived->dump_custom(o, dh); !res) {
+	return res;
     }
-    o << '}';
 
+    dh.end(o, '}');
+    return c7result_ok();
+}
+
+
+template <typename Derived>
+void
+proxy_struct_base<Derived>::clear_impl(attr_t attr)
+{
+    auto [ops_dic, _] = attr;
+    for (auto& [k, ops]: ops_dic) {
+	ops.clear(this);
+    }
+    static_cast<Derived*>(this)->clear_custom();
+}
+
+
+// proxy_struct
+
+c7::result<>
+proxy_struct::load_custom(lexer& lxr, token& t, const std::string& unknown_key)
+{
+    proxy_unconcern unc{false};
+    return unc.load(lxr, t);
+}
+
+
+// proxy_strict
+
+c7::result<>
+proxy_strict::load_custom(lexer& lxr, token& t, const std::string& unknown_key)
+{
+    return c7result_err(EINVAL, "unknown member: \"%{}\", value:%{}", unknown_key, t);
+}
+
+
+// proxy_object
+
+c7::result<>
+proxy_object::load_custom(lexer& lxr, token& t, const std::string& unknown_key)
+{
+    proxy_unconcern unc;
+    if (auto res = unc.load(lxr, t); !res) {
+	return res;
+    }
+    if (!unconcerns_) {
+	unconcerns_ = std::make_unique<decltype(unconcerns_)::element_type>();
+    }
+    unconcerns_->insert_or_assign(unknown_key, std::move(unc));
+    return c7result_ok();
+}
+
+
+c7::result<>
+proxy_object::dump_custom(std::ostream& o, dump_helper& dh) const
+{
+    if (unconcerns_) {
+	for (auto& [k, unc]: *unconcerns_) {
+	    o << dh.pref();
+	    o << '"' << k << "\":";
+	    if (auto res = unc.dump(o, dh); !res) {
+		return res;
+	    }
+	}
+    }
     return c7result_ok();
 }
 
 
 void
-proxy_struct::clear_impl(attr_t attr)
+proxy_object::clear_custom()
 {
-    auto [ops, _] = attr;
-
-    for (auto& [k, ops]: ops) {
-	ops.clear(this);
+    if (unconcerns_) {
+	unconcerns_->clear();
     }
 }
+
+
+// explicit instantiation
+
+template class proxy_struct_base<proxy_struct>;
+template class proxy_struct_base<proxy_strict>;
+template class proxy_struct_base<proxy_object>;
 
 
 /*----------------------------------------------------------------------------

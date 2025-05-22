@@ -62,9 +62,11 @@ using json_array = c7::json::proxy_array<Proxy>;
 template <typename KeyProxy, typename ValueProxy>
 using json_dict = c7::json::proxy_dict<KeyProxy, ValueProxy>;
 
-using json_object = c7::json::proxy_object;
-
 using json_struct = c7::json::proxy_struct;
+
+using json_strict = c7::json::proxy_strict;
+
+using json_object = c7::json::proxy_object;
 
 
 template <typename JsonProxy>
@@ -101,8 +103,17 @@ c7::result<> json_load(JsonProxy& proxy, const std::string& path)
 template <typename JsonProxy>
 c7::result<> json_dump(JsonProxy& proxy, std::ostream& o, int indent = 0)
 {
-    c7::json::dump_context dc{indent, 0};
-    return proxy.dump(o, dc);
+    c7::json::dump_helper dh{};
+    dh.context.indent = indent;
+    return proxy.dump(o, dh);
+}
+
+
+template <typename JsonProxy>
+c7::result<> json_dump(JsonProxy& proxy, std::ostream& o, c7::json::dump_context& dc)
+{
+    c7::json::dump_helper dh{dc};
+    return proxy.dump(o, dh);
 }
 
 
@@ -114,6 +125,20 @@ c7::result<> json_dump(JsonProxy& proxy, const std::string& path, int indent = 0
 	return res;
     }
     if (indent) {
+	oss << '\n';
+    }
+    return c7::file::rewrite(path, oss.str().data(), oss.str().size(), ".old");
+}
+
+
+template <typename JsonProxy>
+c7::result<> json_dump(JsonProxy& proxy, const std::string& path, c7::json::dump_context& dc)
+{
+    std::ostringstream oss;
+    if (auto res = json_dump(proxy, oss, dc); !res) {
+	return res;
+    }
+    if (dc.indent) {
 	oss << '\n';
     }
     return c7::file::rewrite(path, oss.str().data(), oss.str().size(), ".old");
