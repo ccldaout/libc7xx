@@ -28,7 +28,8 @@ struct std::hash<std::tuple<Ts...>> {
 	    return v;
 	} else {
 	    using type = c7::typefunc::remove_cref_t<decltype(std::get<I>(k))>;
-	    return (31 * v) + std::hash<type>()(std::get<I>(k));
+	    v = (31 * v) + std::hash<type>()(std::get<I>(k));
+	    return calculate<I+1>(k, v);
 	}
     }
 };

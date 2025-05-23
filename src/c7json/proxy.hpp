@@ -933,7 +933,8 @@ struct hash<c7::json::proxy_tuple<Proxies...>> {
 	    return v;
 	} else {
 	    using type = c7::typefunc::remove_cref_t<decltype(k.template get<I>())>;
-	    return (31 * v) + std::hash<type>()(k.template get<I>());
+	    v = (31 * v) + std::hash<type>()(k.template get<I>());
+	    return calculate<I+1>(k, v);
 	}
     }
 };
