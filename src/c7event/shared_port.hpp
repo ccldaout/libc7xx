@@ -55,6 +55,13 @@ public:
     shared_port& operator=(const shared_port&) = default;
     shared_port& operator=(shared_port&&) = default;
 
+    bool operator==(const shared_port& o) const {
+	return pimpl_ == o.pimpl_;
+    }
+    bool operator!=(const shared_port& o) const {
+	return !(*this == o);
+    }
+
     operator bool() const {
 	return (pimpl_ != nullptr);
     }
@@ -207,14 +214,40 @@ public:
 	return *this;
     }
 
+    bool operator==(const weak_port& o) const {
+	return w_pimpl_.lock() == o.w_pimpl_.lock();
+    }
+    bool operator!=(const weak_port& o) const {
+	return !(*this == o);
+    }
+    bool operator==(const shared_port& o) const {
+	return w_pimpl_.lock() == o.pimpl_;
+    }
+    bool operator!=(const shared_port& o) const {
+	return !(*this == o);
+    }
+
     void reset() {
 	w_pimpl_.reset();
     }
+
+    void print(std::ostream& out, const std::string&) const;
 
     shared_port lock() {
 	return shared_port(std::move(w_pimpl_.lock()));
     }
 };
+
+
+inline bool operator==(const shared_port sp, const weak_port& wp)
+{
+    return wp == sp;
+}
+
+inline bool operator!=(const shared_port sp, const weak_port& wp)
+{
+    return wp != sp;
+}
 
 
 template <>

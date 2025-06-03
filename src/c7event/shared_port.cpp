@@ -98,4 +98,16 @@ shared_port::print(std::ostream& out, const std::string&) const
 }
 
 
+void
+weak_port::print(std::ostream& out, const std::string&) const
+{
+    auto spimpl = w_pimpl_.lock();
+    if (spimpl) {
+	c7::format(out, "weak<%{}>", *(spimpl->port.operator->()));
+    } else {
+	out << "weak<nullptr>";
+    }
+}
+
+
 } // namespace c7::event
