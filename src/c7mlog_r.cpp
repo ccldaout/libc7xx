@@ -284,9 +284,16 @@ mlog_reader7::prescan(size_t maxcount,
 
     recs_.clear();
 
+    uint32_t order_lim = maxcount;
+
     while (maxcount > 0 && !prioq.empty()) {
 	auto desc = prioq.top();
 	prioq.pop();
+
+	if (order_lim < desc.order) {
+	    continue;
+	}
+	order_lim = desc.order;
 
 	recs_.push_back(desc.idx);
 	maxcount--;
