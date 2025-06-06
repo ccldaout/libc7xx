@@ -20,7 +20,7 @@ iovec_proxy::size_error(size_t elm_size, size_t expect_min, size_t expect_max) c
     std::string s;
     if (expect_min > 0 && expect_min == expect_max) {
 	s = c7::format("size mismatch: iov_len:%{}, elm_size:%{}, expected #:%{}",
-		       iov_.iov_len, elm_size);
+		       iov_.iov_len, elm_size, expect_min);
     } else if (expect_max == -1UL) {
 	s = c7::format("size mismatch: iov_len:%{}, elm_size:%{}, expected min#:%{}",
 		       iov_.iov_len, elm_size, expect_min);
