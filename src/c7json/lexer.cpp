@@ -152,6 +152,9 @@ lexer::impl::get()
 void
 lexer::impl::unget()
 {
+    if (raw_.back() == '\n') {
+	n_line--;
+    }
     raw_.pop_back();
     in_.unget();
     n_ch--;
