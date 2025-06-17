@@ -63,8 +63,10 @@ bool sockaddr_gen::is_unix() const
 {
     if (is_ipv4()) {
 	return sizeof(ipv4);
+    } else if (unix.sun_path[0] != 0) {
+	return SUN_LEN(&unix);
     } else {
-	return (unix.sun_path[0] == 0) ? sizeof(unix) : SUN_LEN(&unix);
+	return SUN_LEN(&unix) + std::strlen(&unix.sun_path[1]) + 1;
     }
 }
 
@@ -81,8 +83,8 @@ void sockaddr_gen::print(std::ostream& out, const std::string&) const
 result<sockaddr_gen> sockaddr_unix(const std::string& path)
 {
     sockaddr_gen addr;
+    addr.clear();
     auto& unaddr = addr.unix;
-    (void)std::memset(&unaddr, 0, sizeof(unaddr));
     if (sizeof(unaddr.sun_path) < path.size() + 1) {
 	return c7result_err(EINVAL, "sockaddr_un: too long path: %{}", path);
     }
@@ -94,8 +96,8 @@ result<sockaddr_gen> sockaddr_unix(const std::string& path)
 sockaddr_gen sockaddr_ipv4(uint32_t ipaddr, int port)
 {
     sockaddr_gen addr;
+    addr.clear();
     auto& inaddr = addr.ipv4;
-    (void)std::memset(&inaddr, 0, sizeof(inaddr));
     inaddr.sin_addr.s_addr = ipaddr;
     inaddr.sin_family = AF_INET;
     inaddr.sin_port   = htons(port);
@@ -379,6 +381,7 @@ result<> socket::shutdown_rw()
 
 io_result socket::recvfrom(void *buf, size_t bufsize, sockaddr_gen& addr, int flags)
 {
+    addr.clear();
     socklen_t len = sizeof(addr);
     ssize_t n = ::recvfrom(fdnum_, buf, bufsize, flags, &addr.base, &len);
     if (n > 0) {

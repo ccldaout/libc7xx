@@ -137,13 +137,17 @@ class JsonObject(object):
         for t, mn in self.members:
             p_('    %s %s;\n', t.name, mn)
 
-        # constructors
-        self._put_constructors(out)
+        if self.members:
+            # constructors
+            self._put_constructors(out)
 
         # operator==, operator!=
         p_('\n    bool operator==(const %s& o) const {\n', self.name)
         p_('        return (')
-        p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for t, mn in self.members))
+        if self.members:
+            p_(' &&\n                '.join('%s == o.%s' % (mn, mn) for t, mn in self.members))
+        else:
+            p_('true')
         p_(');\n    }\n')
         p_('\n    bool operator!=(const %s& o) const { return !(*this == o); }\n', self.name)
 
@@ -165,8 +169,9 @@ class JsonObject(object):
         for t, mn in self.members:
             p_('    %s %s;\n', t.name, mn)
 
-        # constructors
-        self._put_constructors(out)
+        if self.members:
+            # constructors
+            self._put_constructors(out)
 
         # operator==, operator!=
         p_('\n    bool operator==(const %s& o) const;\n', self.name)
