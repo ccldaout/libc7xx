@@ -21,7 +21,7 @@
 #include <c7utils/c_array.hpp>
 
 
-#define C7_RAWBUF_API_EXT_	(1)
+#define C7_RAWBUF_API_EXT_	(2)
 
 
 namespace c7 {
@@ -77,6 +77,23 @@ public:
 	}
 	top_[n_cur_++] = d;
 	return c7result_ok();
+    }
+
+    // C7_RAWBUF_API_EXT_(2)
+    c7::result<> push_back(T&& d) {
+	if (n_rsv_ == n_cur_) {
+	    if (auto res = extend(); !res) {
+		return res;
+	    }
+	}
+	top_[n_cur_++] = std::move(d);
+	return c7result_ok();
+    }
+
+    // C7_RAWBUF_API_EXT_(2)
+    template <typename... Args>
+    c7::result<> emplace_back(Args&&... args) {
+	return push_back(T(std::forward<Args>(args)...));
     }
 
     // C7_RAWBUF_API_EXT_(1)

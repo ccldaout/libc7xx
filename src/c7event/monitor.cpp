@@ -9,9 +9,12 @@
 
 
 #include <c7app.hpp>
+#include <c7dconf.hpp>
 #include <c7event/monitor.hpp>
-#include <c7thread/thread.hpp>
+#include <c7event/submit.hpp>
+#include <c7mlog.hpp>
 #include <c7signal.hpp>
+#include <c7thread/thread.hpp>
 #include <unistd.h>
 #include <mutex>		// once_flag
 
@@ -23,7 +26,16 @@ namespace c7::event {
                                     monitor
 ----------------------------------------------------------------------------*/
 
-monitor::monitor(monitor&& o): epfd_(o.epfd_), prvdic_(std::move(o.prvdic_))
+monitor::monitor():
+    lock_(true)				// true: RECURSIVE mutex
+{
+}
+
+monitor::monitor(monitor&& o):
+    epfd_(o.epfd_),
+    prvdic_(std::move(o.prvdic_)),
+    keyprvdic_(std::move(o.keyprvdic_)),
+    lock_(true)				// true: RECURSIVE mutex
 {
     o.epfd_ = C7_SYSERR;
 }
@@ -34,7 +46,8 @@ monitor::~monitor()
     ::close(epfd_);
 }
 
-result<> monitor::init()
+result<>
+monitor::init()
 {
     c7::signal::handle(SIGPIPE, SIG_IGN);
     epfd_ = ::epoll_create1(EPOLL_CLOEXEC);
@@ -44,7 +57,8 @@ result<> monitor::init()
     return c7result_ok();
 }
 
-void monitor::loop()
+void
+monitor::loop()
 {
     for (;;) {
 	::epoll_event evts[8];
@@ -75,16 +89,17 @@ void monitor::loop()
     }
 }
 
-result<> monitor::manage(std::shared_ptr<provider_interface> provider, uint32_t events)
+result<>
+monitor::manage(std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     return manage("", std::move(provider), events);
 }
 
-result<> monitor::manage(const std::string& key,
-			    std::shared_ptr<provider_interface> provider, uint32_t events)
+result<>
+monitor::manage(const std::string& key,
+		std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     auto unlock = lock_.lock();
-    int prvfd = provider->fd();
 
     if (!key.empty()) {
 	if (auto it = keyprvdic_.find(key); it != keyprvdic_.end()) {
@@ -93,6 +108,8 @@ result<> monitor::manage(const std::string& key,
 	    }
 	}
     }
+
+    int prvfd = provider->fd();
 
     if (events == 0) {
 	events = provider->default_epoll_events();
@@ -123,7 +140,8 @@ result<> monitor::manage(const std::string& key,
     return c7result_ok();
 }
 
-result<> monitor::change_fd(int prvfd, int new_prvfd)
+result<>
+monitor::change_fd(int prvfd, int new_prvfd)
 {
     if (prvfd == new_prvfd) {
 	return c7result_err(EINVAL, "change_fd: same fd is specified");
@@ -152,7 +170,8 @@ result<> monitor::change_fd(int prvfd, int new_prvfd)
     return c7result_ok();
 }
 
-result<> monitor::change_event(int prvfd, uint32_t events)
+result<>
+monitor::change_event(int prvfd, uint32_t events)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
@@ -174,7 +193,8 @@ result<> monitor::change_event(int prvfd, uint32_t events)
     return c7result_ok();
 }
 
-result<> monitor::change_provider(int prvfd, std::shared_ptr<provider_interface> provider)
+result<>
+monitor::change_provider(int prvfd, std::shared_ptr<provider_interface> provider)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
@@ -189,7 +209,8 @@ result<> monitor::change_provider(int prvfd, std::shared_ptr<provider_interface>
     return c7result_ok();
 }
 
-result<> monitor::suspend(int prvfd)
+result<>
+monitor::suspend(int prvfd)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
@@ -205,7 +226,8 @@ result<> monitor::suspend(int prvfd)
     return c7result_ok();
 }
 
-result<> monitor::resume(int prvfd)
+result<>
+monitor::resume(int prvfd)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
@@ -225,7 +247,8 @@ result<> monitor::resume(int prvfd)
     return c7result_ok();
 }
 
-result<> monitor::unmanage(int prvfd)
+result<>
+monitor::unmanage(int prvfd)
 {
     auto unlock = lock_.lock();
     auto it = prvdic_.find(prvfd);
@@ -245,7 +268,8 @@ result<> monitor::unmanage(int prvfd)
     return c7result_ok();
 }
 
-void monitor::unmanage_all()
+void
+monitor::unmanage_all()
 {
     // 1s step: notify unmanage by external to all provider.
     for (auto& [prvfd, pinfo]: prvdic_) {
@@ -301,62 +325,100 @@ static monitor default_monitor;
 static c7::thread::thread default_thread;
 static std::once_flag once_init;
 
-static void init()
+static void
+init()
 {
     if (auto res = default_monitor.init(); !res) {
 	c7error(res);
     }
 }
 
-monitor& default_event_monitor()
+monitor&
+default_event_monitor()
 {
     std::call_once(once_init, init);
     return default_monitor;
 }
 
-result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events)
+result<>
+manage(std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     return manage("", std::move(provider), events);
 }
 
-result<> manage(const std::string& key,
-		   std::shared_ptr<provider_interface> provider, uint32_t events)
+result<>
+manage(const std::string& key,
+       std::shared_ptr<provider_interface> provider, uint32_t events)
 {
     std::call_once(once_init, init);
     return default_monitor.manage(key, std::move(provider), events);
 }
 
-result<> change_fd(int prvfd, uint new_prvfd)
+result<>
+change_fd(int prvfd, uint new_prvfd)
 {
     return default_monitor.change_fd(prvfd, new_prvfd);
 }
 
-result<> change_event(int prvfd, uint32_t events)
+result<>
+change_event(int prvfd, uint32_t events)
 {
     return default_monitor.change_event(prvfd, events);
 }
 
-result<> suspend(int prvfd)
+result<>
+suspend(int prvfd)
 {
     return default_monitor.suspend(prvfd);
 }
 
-result<> resume(int prvfd)
+result<>
+resume(int prvfd)
 {
     return default_monitor.resume(prvfd);
 }
 
-result<> unmanage(int prvfd)
+result<>
+unmanage(int prvfd)
 {
     return default_monitor.unmanage(prvfd);
 }
 
-std::shared_ptr<provider_interface> try_hold_provider(int prvfd)
+std::shared_ptr<provider_interface>
+try_hold_provider(int prvfd)
 {
     return default_event_monitor().try_hold_provider(prvfd);
 }
 
-result<> start_thread()
+result<>
+submit(std::function<void()>&& f)
+{
+    struct submitter {
+	std::shared_ptr<submit_provider> sp;
+	submitter() {
+	    c7mlog_(DBG, "submitter::submitter()");
+	    auto unlock = lock();
+	    if (auto res = find<submit_provider>(submit_provider::manage_key); res) {
+		sp = std::move(res.value());
+	    } else if (auto res = submit_provider::make_and_manage(); res) {
+		sp = std::move(res.value());
+	    }
+	}
+    };
+    static submitter submit;
+    if (submit.sp) {
+	return submit.sp->submit(std::move(f));
+    }
+    return c7result_err(EFAULT, "Failed to install submit_provider");
+}
+
+c7::defer lock()
+{
+    return default_event_monitor().lock();
+}
+
+result<>
+start_thread()
 {
     std::call_once(once_init, init);
     default_thread.target([]() { default_monitor.loop(); });
@@ -364,7 +426,8 @@ result<> start_thread()
     return default_thread.start();
 }
 
-result<> wait_thread()
+result<>
+wait_thread()
 {
     default_thread.join();
     if (default_thread.status() != c7::thread::thread::EXIT) {
@@ -373,8 +436,10 @@ result<> wait_thread()
     return c7result_ok();
 }
 
-void forever()
+void
+forever()
 {
+    std::call_once(once_init, init);
     default_monitor.loop();
 }
 

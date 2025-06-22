@@ -28,7 +28,6 @@ public:
 
     c7::delegate<void, c7::result_base&> on_error;
 
-    static c7::result<std::shared_ptr<submit_provider>> make();
     static c7::result<std::shared_ptr<submit_provider>> make_and_manage();
     static c7::result<std::shared_ptr<submit_provider>> make_and_manage(c7::event::monitor&);
 
@@ -41,6 +40,8 @@ public:
 private:
     c7::fd evfd_;
     c7::thread::queue<std::function<void()>> callbacks_;
+
+    static c7::result<std::shared_ptr<submit_provider>> make();
 
     submit_provider() = default;
     c7::result<> init();

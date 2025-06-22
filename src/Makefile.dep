@@ -179,18 +179,21 @@ $(C7_OUT_OBJDIR)/c7event/iovec_proxy.o: c7event/iovec_proxy.cpp \
  c7format.hpp c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
  c7delegate.hpp c7typefunc.hpp c7strmbuf/strref.hpp \
  c7format/format_api.hpp
-$(C7_OUT_OBJDIR)/c7json/lexer.o: c7json/lexer.cpp c7json/lexer.hpp \
- c7common.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
+$(C7_OUT_OBJDIR)/c7json/lexer.o: c7json/lexer.cpp c7app.hpp c7result.hpp \
+ c7common.hpp c7format.hpp c7defer.hpp c7format/format_r2.hpp \
+ c7format/format_cmn.hpp c7delegate.hpp c7typefunc.hpp \
+ c7strmbuf/strref.hpp c7format/format_api.hpp c7json/lexer.hpp \
  c7string/regex.hpp c7string/strvec.hpp c7string/utf8.hpp
 $(C7_OUT_OBJDIR)/c7thread/mask.o: c7thread/mask.cpp c7thread/mask.hpp \
  c7common.hpp c7thread/condvar.hpp c7defer.hpp c7utils/time.hpp
 $(C7_OUT_OBJDIR)/c7event/monitor.o: c7event/monitor.cpp c7app.hpp \
  c7result.hpp c7common.hpp c7format.hpp c7defer.hpp \
  c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
- c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp \
- c7event/monitor.hpp c7thread/mutex.hpp c7thread/thread.hpp c7signal.hpp
+ c7typefunc.hpp c7strmbuf/strref.hpp c7format/format_api.hpp c7dconf.hpp \
+ c7file.hpp c7utils/memory.hpp c7event/monitor.hpp c7thread/mutex.hpp \
+ c7event/submit.hpp c7fd.hpp c7thread/queue.hpp c7thread/_queue.hpp \
+ c7utils/time.hpp c7thread/condvar.hpp c7mlog.hpp c7strmbuf/hybrid.hpp \
+ c7utils/storage.hpp c7signal.hpp c7thread/thread.hpp
 $(C7_OUT_OBJDIR)/c7thread/msgbox.o: c7thread/msgbox.cpp \
  c7thread/msgbox.hpp c7common.hpp c7hash.hpp c7result.hpp c7format.hpp \
  c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
@@ -215,9 +218,9 @@ $(C7_OUT_OBJDIR)/c7event/portgroup.o: c7event/portgroup.cpp \
  c7event/traits.hpp c7thread/mutex.hpp c7iters.hpp
 $(C7_OUT_OBJDIR)/c7json/proxy.o: c7json/proxy.cpp c7nseq/base64.hpp \
  c7nseq/_cmn.hpp c7typefunc.hpp c7common.hpp c7nseq/push.hpp \
- c7json/proxy.hpp c7json/lexer.hpp c7result.hpp c7format.hpp c7defer.hpp \
- c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \
- c7strmbuf/strref.hpp c7format/format_api.hpp
+ c7json/proxy.hpp c7hash.hpp c7json/lexer.hpp c7result.hpp c7format.hpp \
+ c7defer.hpp c7format/format_r2.hpp c7format/format_cmn.hpp \
+ c7delegate.hpp c7strmbuf/strref.hpp c7format/format_api.hpp
 $(C7_OUT_OBJDIR)/c7event/pty.o: c7event/pty.cpp c7event/pty.hpp \
  c7common.hpp c7event/monitor.hpp c7result.hpp c7format.hpp c7defer.hpp \
  c7format/format_r2.hpp c7format/format_cmn.hpp c7delegate.hpp \

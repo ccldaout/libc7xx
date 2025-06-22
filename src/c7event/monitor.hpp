@@ -20,6 +20,10 @@
 #include <c7thread/mutex.hpp>
 
 
+#define C7_EVENT_MONITOR_API_SUBMIT	(1)
+#define C7_EVENT_MONITOR_API_LOCK	(1)
+
+
 namespace c7::event {
 
 
@@ -54,7 +58,7 @@ public:
     monitor(const monitor&) = delete;
     monitor& operator=(const monitor&) = delete;
 
-    monitor() = default;
+    monitor();
     monitor(monitor&&);
     ~monitor();
 
@@ -77,6 +81,9 @@ public:
     result<std::shared_ptr<T>> find(int prvfd);
 
     std::shared_ptr<provider_interface> try_hold_provider(int prvfd);
+
+    // C7_EVENT_MONITOR_API_LOCK
+    [[nodiscard]] c7::defer lock() { return lock_.lock(); }
 
 private:
     struct provider_info {
@@ -138,25 +145,47 @@ monitor::find(int prvfd)
 // default monitor interfaces
 
 monitor& default_event_monitor();
+
 result<> manage(std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+
 result<> manage(const std::string& key, std::shared_ptr<provider_interface> provider, uint32_t events = 0);
+
 result<> change_fd(int prvfd, int new_prvfd);
+
 result<> change_event(int prvfd, uint32_t events);
+
 result<> change_provider(int prvfd, std::shared_ptr<provider_interface> provider);
+
 result<> suspend(int prvfd);
+
 result<> resume(int prvfd);
+
 result<> unmanage(int prvfd);
+
 template <typename T = provider_interface> result<std::shared_ptr<T>>
-find(const std::string& key) {
+find(const std::string& key)
+{
     return default_event_monitor().find<T>(key);
 }
+
 template <typename T = provider_interface> result<std::shared_ptr<T>>
-find(int prvfd) {
+find(int prvfd)
+{
     return default_event_monitor().find<T>(prvfd);
 }
+
 std::shared_ptr<provider_interface> try_hold_provider(int prvfd);
+
+// C7_EVENT_MONITOR_API_SUBMIT
+result<> submit(std::function<void()>&& f);
+
+// C7_EVENT_MONITOR_API_LOCK
+[[nodiscard]] c7::defer lock();
+
 result<> start_thread();
+
 result<> wait_thread();
+
 [[noreturn]] void forever();
 
 

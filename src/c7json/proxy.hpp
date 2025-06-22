@@ -386,7 +386,7 @@ public:
 	return std::get<N>(tuple_);
     }
 
-    constexpr size_t size() const {
+    static constexpr size_t size() {
 	return sizeof...(Proxies);
     }
 

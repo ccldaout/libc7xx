@@ -60,13 +60,13 @@ static void dsort(Iterator left, Iterator right, Lessthan lessthan)
     do {
 	for (p++; p <= right; p++) {
 	    if (lessthan(p[0], p[-1])) {
-		auto tmp = *p;
-		q = p;
+		auto tmp = std::move(*p);
+		q = std::move(p);
 		do {
-		    *q = *(q - 1);
+		    *q = std::move(*(q - 1));
 		    q--;
 		} while (q > left && lessthan(tmp, q[-1]));
-		*q = tmp;
+		*q = std::move(tmp);
 	    }
 	}
     } while (0);
@@ -103,28 +103,24 @@ static inline ptrdiff_t heap_parent(ptrdiff_t i)
 template <typename Iterator, typename Lessthan>
 static void heap_up(Iterator& array, ptrdiff_t c, Lessthan lessthan)
 {
-    ptrdiff_t c_save = c;
-    auto target = array[c];
+    auto target = std::move(array[c]);
 
     while (c > 0) {
 	ptrdiff_t p = heap_parent(c);
 	if (lessthan(array[p], target)) {
-	    array[c] = array[p];
+	    array[c] = std::move(array[p]);
+	    c = p;
 	} else {
 	    break;
 	}
-	c = p;
     }
-    if (c != c_save) {
-	array[c] = target;
-    }
+    array[c] = std::move(target);
 }
 
 template <typename Iterator, typename Lessthan>
-static void heap_down(Iterator& array, ptrdiff_t n, Lessthan lessthan,
-		      decltype(*array)& target)
+static void heap_down(Iterator& array, ptrdiff_t n, ptrdiff_t p, Lessthan lessthan)
 {
-    ptrdiff_t p = 0;
+    auto target = std::move(array[p]);
 
     for (;;) {
 	ptrdiff_t c = heap_left_child(p);
@@ -134,13 +130,13 @@ static void heap_down(Iterator& array, ptrdiff_t n, Lessthan lessthan,
 	if (((c + 1) < n) && lessthan(array[c], array[c+1])) {
 	    c = c + 1;
 	}
-	if (!lessthan(target, array[c])) {
+	if (lessthan(array[c], target)) {
 	    break;
 	}
-	array[p] = array[c];
+	array[p] = std::move(array[c]);
 	p = c;
     }
-    array[p] = target;
+    array[p] = std::move(target);
 }
 
 template <typename Iterator, typename Lessthan>
@@ -153,9 +149,9 @@ void hsort_st(Iterator left, ptrdiff_t n, Lessthan lessthan)
     }
 
     while (--i > 0) {
-	auto tmp = left[i];
-	left[i] = left[0];
-	heap_down(left, i, lessthan, tmp);
+	using std::swap;
+	swap(left[0], left[i]);
+	heap_down(left, i, 0, lessthan);
     }
 }
 
@@ -178,21 +174,21 @@ static void msort_merge(Iterator o, Iterator p, Iterator q, Iterator eq, Lesstha
     Iterator ep = q;
     for (;;) {
 	if (lessthan(*p, *q)) {
-	    *o++ = *p++;
+	    *o++ = std::move(*p++);
 	    if (p == ep) {
 		p = q;
 		ep = eq;
 		break;
 	    }
 	} else {
-	    *o++ = *q++;
+	    *o++ = std::move(*q++);
 	    if (q == eq) {
 		break;
 	    }
 	}
     }
     while (p < ep) {
-	*o++ = *p++;
+	*o++ = std::move(*p++);
     }
 }
 
@@ -244,7 +240,8 @@ static void msort_st_main(int parity, Iterator out, Iterator in, ptrdiff_t n,
 
 		/* continue sort left half */
 		parity = !parity;
-		std::swap(in, out);
+		using std::swap;
+		swap(in, out);
 		n = h;
 	    }
 	} else {	// OP_MERGE
@@ -337,7 +334,7 @@ static void msort_merge_dsc(const msort_param_t<Iterator>* const ms, Lessthan le
     }
 }
 
-template <typename Iterator, typename Lessthan>
+template <bool ParallelMerge, typename Iterator, typename Lessthan>
 static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan lessthan)
 {
     msort_param_t<Iterator> ms1, ms2;
@@ -365,14 +362,18 @@ static void msort_mt_main(const msort_param_t<Iterator>* const ms, Lessthan less
     ms2.parity = !ms->parity;
     ms2.level = ms->level - 1;
 
-    std::thread th1(msort_mt_main<Iterator, Lessthan>, &ms1, lessthan);
-    msort_mt_main(&ms2, lessthan);
+    std::thread th1(msort_mt_main<ParallelMerge, Iterator, Lessthan>, &ms1, lessthan);
+    msort_mt_main<ParallelMerge>(&ms2, lessthan);
     th1.join();
 
-    ms1 = *ms;		// ms1 is reused for msort_merge_xxx
-    std::thread th2(msort_merge_asc<Iterator, Lessthan>, &ms1, lessthan);
-    msort_merge_dsc(&ms1, lessthan);
-    th2.join();
+    if constexpr (ParallelMerge) {
+	ms1 = *ms;		// ms1 is reused for msort_merge_xxx
+	std::thread th2(msort_merge_asc<Iterator, Lessthan>, &ms1, lessthan);
+	msort_merge_dsc(&ms1, lessthan);
+	th2.join();
+    } else {
+	msort_merge(ms->out, ms->in, ms->in+ms->h, ms->in+ms->n, lessthan);
+    }
 }
 
 template <typename Iterator, typename Lessthan>
@@ -390,7 +391,7 @@ void msort_mt(Iterator work, Iterator left, ptrdiff_t n, Lessthan lessthan,
     ms.mt_threshold = msort_mt_threshold;
     ms.parity = 0;
     ms.level = thread_depth;
-    msort_mt_main(&ms, lessthan);
+    msort_mt_main<true>(&ms, lessthan);
 }
 
 template <typename Iterator>
@@ -406,14 +407,153 @@ void msort_mt(Iterator work, Iterator left, ptrdiff_t n,
 	     thread_depth, msort_mt_threshold, msort_threshold);
 }
 
+template <typename Iterator, typename Lessthan>
+void msort_mt_mv(Iterator work, Iterator left, ptrdiff_t n, Lessthan lessthan,
+		 int thread_depth,
+		 int msort_mt_threshold = C7_MSORT_MT_THRESHOLD,
+		 int msort_threshold = C7_MSORT_THRESHOLD)
+{
+    msort_param_t<Iterator> ms;
+    ms.out = left;
+    ms.in = work;
+    ms.n = n;
+    ms.h = ms.n >> 1;
+    ms.threshold = msort_threshold;
+    ms.mt_threshold = msort_mt_threshold;
+    ms.parity = 0;
+    ms.level = thread_depth;
+    msort_mt_main<false>(&ms, lessthan);
+}
+
+template <typename Iterator>
+void msort_mt_mv(Iterator work, Iterator left, ptrdiff_t n,
+		 int thread_depth,
+		 int msort_mt_threshold = C7_MSORT_MT_THRESHOLD,
+		 int msort_threshold = C7_MSORT_THRESHOLD)
+{
+    msort_mt_mv(work,
+		left, n,
+		[](const decltype(*left)& p,
+		   const decltype(*left)& q) { return p < q; },
+		thread_depth, msort_mt_threshold, msort_threshold);
+}
+
 
 /*----------------------------------------------------------------------------
                           quick sort - single thread
 ----------------------------------------------------------------------------*/
 
 template <typename Iterator, typename Lessthan>
-static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
-			  int qsort_threshold)
+static Iterator qsort_partition_copy(Iterator left, Iterator right, Lessthan lessthan)
+{
+    std::remove_reference_t<decltype(*left)> s;
+    {
+	ptrdiff_t n = right - left;
+	auto& v0 = left [     1];
+	auto& v1 = left [n >> 1];
+	auto& v2 = right[    -1];
+	if (lessthan(v0, v1)) {
+	    if (lessthan(v1, v2))
+		s = v1;
+	    else if (lessthan(v0, v2))
+		s = v2;
+	    else
+		s = v0;
+	} else {
+	    if (lessthan(v0, v2))
+		s = v0;
+	    else if (lessthan(v1, v2))
+		s = v2;
+	    else
+		s = v1;
+	}
+    }
+
+    Iterator p = left;
+    Iterator q = right;
+    do {
+	while (lessthan(*p, s))
+	    p++;
+	while (lessthan(s, *q))
+	    q--;
+	if (p <= q) {
+	    using std::swap;
+	    swap(*p, *q);
+	    p++;
+	    q--;
+	}
+    } while (p <= q);
+    return p;
+}
+
+template <typename Iterator, typename Lessthan>
+static Iterator qsort_partition_move(Iterator left, Iterator right, Lessthan lessthan)
+{
+    using std::swap;
+
+    Iterator sp;
+    {
+	ptrdiff_t n = right - left;
+	auto v0 = left  + 1;
+	auto v1 = left  + (n >> 1);
+	auto v2 = right - 1;
+	if (lessthan(*v0, *v1)) {
+	    if (lessthan(*v1, *v2))
+		sp = v1;
+	    else if (lessthan(*v0, *v2))
+		sp = v2;
+	    else
+		sp = v0;
+	} else {
+	    if (lessthan(*v0, *v2))
+		sp = v0;
+	    else if (lessthan(*v1, *v2))
+		sp = v2;
+	    else
+		sp = v1;
+	}
+	if (sp != v1) {
+	    swap(*sp, *v1);
+	    sp = v1;
+	}
+    }
+
+    Iterator p = left;
+    Iterator q = right;
+
+    while (lessthan(*p, *sp))
+	p++;
+    while (lessthan(*sp, *q))
+	q--;
+    if (sp == p) {
+	sp = q;
+    } else if (sp == q) {
+	sp = p;
+    } else {
+	swap(*p, *sp);
+	sp = q;
+    }
+    swap(*p, *q);
+    p++;
+    q--;
+
+    while (p <= q) {
+	while (lessthan(*p, *sp))
+	    p++;
+	while (lessthan(*sp, *q))
+	    q--;
+	if (p <= q) {
+	    swap(*p, *q);
+	    p++;
+	    q--;
+	}
+    }
+    return p;
+}
+
+template <bool StdPartition, typename Iterator, typename Lessthan>
+static void qsort_st_main(Iterator left, Iterator right,
+			  Lessthan lessthan, int qsort_threshold)
 {
     struct {
 	Iterator left;
@@ -433,43 +573,12 @@ static void qsort_st_main(Iterator left, Iterator right, Lessthan lessthan,
 	    continue;
 	}
 
-	// right - left >= C7_QSORT_THRESHOLD
-
-	typename std::iterator_traits<Iterator>::value_type s;
-	{
-	    auto v0 = left [     1];
-	    auto v1 = left [n >> 1];
-	    auto v2 = right[    -1];
-	    if (lessthan(v0, v1)) {
-		if (lessthan(v1, v2))
-		    s = v1;
-		else if (lessthan(v0, v2))
-		    s = v2;
-		else
-		    s = v0;
-	    } else {
-		if (lessthan(v0, v2))
-		    s = v0;
-		else if (lessthan(v1, v2))
-		    s = v2;
-		else
-		    s = v1;
-	    }
+	Iterator p;
+	if constexpr (StdPartition) {
+	    p = qsort_partition_copy(left, right, lessthan);
+	} else {
+	    p = qsort_partition_move(left, right, lessthan);
 	}
-
-	Iterator p = left;
-	Iterator q = right;
-	do {
-	    while (lessthan(*p, s))
-		p++;
-	    while (lessthan(s, *q))
-		q--;
-	    if (p <= q) {
-		std::swap(*p, *q);
-		p++;
-		q--;
-	    }
-	} while (p <= q);
 
 	if (stack_idx == c7_numberof(stack)) {
 	    hsort_st(left, p - left, lessthan);
@@ -490,17 +599,38 @@ template <typename Iterator, typename Lessthan>
 void qsort_st(Iterator left, ptrdiff_t n, Lessthan lessthan,
 	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
-    qsort_st_main(left, (left + n) -1, lessthan, qsort_threshold);
+    qsort_st_main<true>(left, (left + n) -1,
+			lessthan,
+			qsort_threshold);
 }
 
 template <typename Iterator>
 void qsort_st(Iterator left, ptrdiff_t n,
 	      int qsort_threshold = C7_QSORT_THRESHOLD)
 {
-    qsort_st_main(left, (left + n) -1,
-		  [](const decltype(*left)& p,
-		     const decltype(*left)& q) { return p < q; },
-		  qsort_threshold);
+    qsort_st_main<true>(left, (left + n) -1,
+			[](const decltype(*left)& p,
+			   const decltype(*left)& q) { return p < q; },
+			qsort_threshold);
+}
+
+template <typename Iterator, typename Lessthan>
+void qsort_st_mv(Iterator left, ptrdiff_t n, Lessthan lessthan,
+		 int qsort_threshold = C7_QSORT_THRESHOLD)
+{
+    qsort_st_main<false>(left, (left + n) -1,
+			 lessthan,
+			 qsort_threshold);
+}
+
+template <typename Iterator>
+void qsort_st_mv(Iterator left, ptrdiff_t n,
+		 int qsort_threshold = C7_QSORT_THRESHOLD)
+{
+    qsort_st_main<false>(left, (left + n) -1,
+			 [](const decltype(*left)& p,
+			    const decltype(*left)& q) { return p < q; },
+			 qsort_threshold);
 }
 
 
@@ -517,52 +647,24 @@ struct qsort_param_t {
     int level;
 };
 
-template <typename Iterator, typename Lessthan>
-static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan lessthan)
+template <bool StdPartition, typename Iterator, typename Lessthan>
+static void qsort_mt_main(const qsort_param_t<Iterator>* const qs,
+			  Lessthan lessthan)
 {
     ptrdiff_t n = qs->right - qs->left;
     if (qs->level == 0 || n < qs->mt_threshold) {
-	qsort_st_main(qs->left, qs->right, lessthan, qs->threshold);
+	qsort_st_main<StdPartition>(qs->left, qs->right, lessthan, qs->threshold);
 	return;
     }
 
     // right - left >= C7_QSORT_THRESHOLD
 
-    typename std::iterator_traits<Iterator>::value_type s;
-    {
-	auto v0 = qs->left [     1];
-	auto v1 = qs->left [n >> 1];
-	auto v2 = qs->right[    -1];
-	if (lessthan(v0, v1)) {
-	    if (lessthan(v1, v2))
-		s = v1;
-	    else if (lessthan(v0, v2))
-		s = v2;
-	    else
-		s = v0;
-	} else {
-	    if (lessthan(v0, v2))
-		s = v0;
-	    else if (lessthan(v1, v2))
-		s = v2;
-	    else
-		s = v1;
-	}
+    Iterator p;
+    if constexpr (StdPartition) {
+	p = qsort_partition_copy(qs->left, qs->right, lessthan);
+    } else {
+	p = qsort_partition_move(qs->left, qs->right, lessthan);
     }
-
-    Iterator p = qs->left;
-    Iterator q = qs->right;
-    do {
-	while (lessthan(*p, s))
-	    p++;
-	while (lessthan(s, *q))
-	    q--;
-	if (p <= q) {
-	    std::swap(*p, *q);
-	    p++;
-	    q--;
-	}
-    } while (p <= q);
 
     std::thread th;
     qsort_param_t<Iterator> qs1, qs2;
@@ -573,7 +675,7 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	qs1.threshold = qs->threshold;
 	qs1.mt_threshold = qs->mt_threshold;
 	qs1.level = qs->level - 1;
-	th = std::thread(qsort_mt_main<Iterator, Lessthan>, &qs1, lessthan);
+	th = std::thread(qsort_mt_main<StdPartition, Iterator, Lessthan>, &qs1, lessthan);
     }
     if (p < qs->right) {
 	qs2.left = p;
@@ -581,7 +683,7 @@ static void qsort_mt_main(const qsort_param_t<Iterator>* const qs, Lessthan less
 	qs2.threshold = qs->threshold;
 	qs2.mt_threshold = qs->mt_threshold;
 	qs2.level = qs->level - 1;
-	qsort_mt_main(&qs2, lessthan);
+	qsort_mt_main<StdPartition>(&qs2, lessthan);
     }
     if (qs->left < (p - 1)) {
 	th.join();
@@ -600,7 +702,7 @@ void qsort_mt(Iterator left, ptrdiff_t n, Lessthan lessthan,
     qs.threshold = qsort_threshold;
     qs.mt_threshold = qsort_mt_threshold;
     qs.level = thread_depth;
-    qsort_mt_main(&qs, lessthan);
+    qsort_mt_main<true>(&qs, lessthan);
 }
 
 template <typename Iterator>
@@ -613,6 +715,33 @@ void qsort_mt(Iterator left, ptrdiff_t n,
 	     [](const decltype(*left)& p,
 		const decltype(*left)& q) { return p < q; },
 	     thread_depth, qsort_mt_threshold, qsort_threshold);
+}
+
+template <typename Iterator, typename Lessthan>
+void qsort_mt_mv(Iterator left, ptrdiff_t n, Lessthan lessthan,
+		 int thread_depth,
+		 int qsort_mt_threshold = C7_QSORT_MT_THRESHOLD,
+		 int qsort_threshold = C7_QSORT_THRESHOLD)
+{
+    qsort_param_t<Iterator> qs;
+    qs.left = left;
+    qs.right = left + (n - 1);
+    qs.threshold = qsort_threshold;
+    qs.mt_threshold = qsort_mt_threshold;
+    qs.level = thread_depth;
+    qsort_mt_main<false>(&qs, lessthan);
+}
+
+template <typename Iterator>
+void qsort_mt_mv(Iterator left, ptrdiff_t n,
+		 int thread_depth,
+		 int qsort_mt_threshold = C7_QSORT_MT_THRESHOLD,
+		 int qsort_threshold = C7_QSORT_THRESHOLD)
+{
+    qsort_mt_mv(left, n,
+		[](const decltype(*left)& p,
+		   const decltype(*left)& q) { return p < q; },
+		thread_depth, qsort_mt_threshold, qsort_threshold);
 }
 
 
@@ -662,7 +791,8 @@ static void rsort_st_main(Iterator left, Iterator right,
 	while (p <= q && (getkey(*q) & tstmask) != 0)
 	    q--;
 	while (p < q) {
-	    std::swap(*p, *q);
+	    using std::swap;
+	    swap(*p, *q);
 	    p++;
 	    q--;
 	    while ((getkey(*p) & tstmask) == 0)
@@ -734,7 +864,8 @@ static void rsort_mt_main(const rsort_prm_t<Iterator, Masktype> *rs, Getkey getk
     while (p <= q && (getkey(*q) & tstmask) != 0)
 	q--;
     while (p < q) {
-	std::swap(*p, *q);
+	using std::swap;
+	swap(*p, *q);
 	p++;
 	q--;
 	while ((getkey(*p) & tstmask) == 0)

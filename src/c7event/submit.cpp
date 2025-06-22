@@ -36,6 +36,12 @@ submit_provider::make_and_manage()
 c7::result<std::shared_ptr<submit_provider>>
 submit_provider::make_and_manage(c7::event::monitor& mon)
 {
+    static c7::thread::mutex m;
+    auto unlock = m.lock();
+
+    if (auto res = mon.find<submit_provider>(manage_key); res) {
+	return res;
+    }
     if (auto res = make(); !res) {
 	return res;
     } else {

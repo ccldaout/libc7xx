@@ -264,4 +264,10 @@ extern mlog_writer mlog;
 } // namespace c7
 
 
+// convenient logger macro for libc7++ implementation (require including c7dconf.hpp)
+#define c7mlog_(lv_, ...) \
+    ((C7_LOG_##lv_ <= c7::dconf[C7_DCONF_MLOG_LIBC7].i) &&			\
+     (c7::mlog.format(__FILE__, __LINE__, C7_LOG_##lv_, C7_MLOG_C_MAX, 0, __VA_ARGS__), true))
+
+
 #endif // c7mlog.hpp
