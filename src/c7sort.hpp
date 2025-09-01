@@ -15,10 +15,10 @@
 #include <c7common.hpp>
 
 
-#include <any>		// std::swap
 #include <functional>	// std::function
 #include <iterator>	// std::iterator_traits
 #include <thread>
+#include <utility>	// std::swap
 
 
 #define C7_MSORT_MAX_DEPTH	(64)
