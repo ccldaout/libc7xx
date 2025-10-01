@@ -15,6 +15,7 @@
 
 
 #include <vector>
+#include <c7slice.hpp>
 #include <c7thread/thread.hpp>
 #include <c7thread/mask.hpp>
 
@@ -71,8 +72,8 @@ protected:
 	out_items_.resize(n);
 	for (size_t i = th_idx; i < n; i += n_thread) {
 	    static_cast<Derived*>(this)->datapara_main_process(th_idx,
-								in_items_[i],
-								out_items_[i]);
+							       in_items_[i],
+							       out_items_[i]);
 	}
     }
 
@@ -109,7 +110,7 @@ protected:
 	size_t n = items_.size();
 	for (size_t i = th_idx; i < n; i += n_thread) {
 	    static_cast<Derived*>(this)->datapara_main_process(th_idx,
-								items_[i]);
+							       items_[i]);
 	}
     }
 
@@ -128,8 +129,9 @@ private:
 // void Derived::datapara_main_process(int th_idx, ItemIn&, ItemOut&);	// ItemIn != ItemOut
 // void Derived::datapara_main_process(int th_idx, ItemIn&);		// ItemIn == ItemOut
 // void Derived::datapara_post_process(ItemOut&);
+//      or       datapara_post_process(c7::slice<ItemOut>);
 // void Derived::datapara_logger(const char *src_name, int src_line,
-//	    		          uint32_t level, const std::string& s);
+//	    		         uint32_t level, const std::string& s);
 //
 template <typename Derived, typename ItemIn, typename ItemOut = ItemIn>
 class driver: public driver_for_main<Derived, ItemIn, ItemOut> {
@@ -382,8 +384,13 @@ driver<Derived, ItemIn, ItemOut>::post_thread(const int th_idx)
 	    return;
 	}
 
-	for (auto& data: snd_items_) {
-	    static_cast<Derived*>(this)->datapara_post_process(data);
+	if constexpr (std::is_invocable_v<decltype(&Derived::datapara_post_process), Derived, ItemOut&>) {
+	    for (auto& data: snd_items_) {
+		static_cast<Derived*>(this)->datapara_post_process(data);
+	    }
+	} else {
+	    auto slice = c7::make_slice(snd_items_.data(), snd_items_.size());
+	    static_cast<Derived*>(this)->datapara_post_process(slice);
 	}
     }
 }
