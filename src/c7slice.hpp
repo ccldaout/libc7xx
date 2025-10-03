@@ -48,7 +48,7 @@ public:
     }
 
     reference operator[](ptrdiff_t n) const {
-	return *(top_ + n * gap_);
+	return *(top_ + (idx_ + n) * gap_);
     }
 
     reference operator*() const {
