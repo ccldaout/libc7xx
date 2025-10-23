@@ -19,6 +19,7 @@
 
 
 #define C7_SLICE_API_COPY_TO_		(1)
+#define C7_SLICE_API_CTOR_		(1)
 
 
 namespace c7 {
@@ -166,11 +167,19 @@ public:
 
     slice() {}
 
-    slice(T *top, size_t n, ptrdiff_t gap):
+    slice(T *top, size_t n, ptrdiff_t gap=1):
 	top_(top), n_(static_cast<ptrdiff_t>(n)), gap_(gap) {}
 
     slice(const slice& o):
 	top_(o.top_), n_(o.n_), gap_(o.gap_) {}
+
+    // C7_SLICE_API_CTOR_ (1)
+    slice(std::vector<T>& o):
+	top_(o.data()), n_(o.size()), gap_(1) {}
+
+    // C7_SLICE_API_CTOR_ (1)
+    slice(T& o):
+	top_(&o), n_(1), gap_(1) {}
 
     slice& operator=(const slice& o) {
 	top_ = o.top_;
