@@ -45,13 +45,14 @@ class rec_reader {
 public:
     using info_t = mlog_reader::info_t;
 
-    rec_reader(rbuffer& rbuf, int part);
+    rec_reader(c7::usec_t log_beg, rbuffer& rbuf, int part);
     std::optional<rec_desc_t> get(std::function<bool(const info_t&)>& choice,
 				  raddr_t order_min,
 				  c7::usec_t time_us_min,
 				  std::vector<char>& dbuf);
 
 private:
+    c7::usec_t log_beg_;
     rbuffer& rbuf_;
     int part_;
     raddr_t recaddr_;
@@ -100,7 +101,8 @@ make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
 }
 
 
-rec_reader::rec_reader(rbuffer& rbuf, int part):
+rec_reader::rec_reader(c7::usec_t log_beg, rbuffer& rbuf, int part):
+    log_beg_(log_beg << 20),
     rbuf_(rbuf),
     part_(part),
     recaddr_(rbuf.nextaddr() + rbuf.size() * 2),
@@ -117,6 +119,8 @@ rec_reader::get(std::function<bool(const info_t&)>& choice,
 {
     info_t info;
     rec_t rec;
+
+    time_us_min = std::max(time_us_min, log_beg_);
 
     for (;;) {
 	raddr_t size;
@@ -276,7 +280,7 @@ mlog_reader7::prescan(size_t maxcount,
     std::vector<char> dbuf;
 
     for (size_t i = 0; i < rbufs_.size(); i++) {
-	auto& rd = readers.emplace_back(rbufs_[i], i);
+	auto& rd = readers.emplace_back(hdr_->log_beg, rbufs_[i], i);
 	if (auto desc = rd.get(choice, order_min, time_us_min, dbuf); desc) {
 	    prioq.push(desc.value());
 	}
@@ -284,16 +288,9 @@ mlog_reader7::prescan(size_t maxcount,
 
     recs_.clear();
 
-    uint32_t order_lim = maxcount;
-
     while (maxcount > 0 && !prioq.empty()) {
 	auto desc = prioq.top();
 	prioq.pop();
-
-	if (order_lim < desc.order) {
-	    continue;
-	}
-	order_lim = desc.order;
 
 	recs_.push_back(desc.idx);
 	maxcount--;

@@ -43,6 +43,7 @@ c7::result<> mlog_clear(const std::string& name)
     if (rev >= 7) {
 	hdr7_t *h = static_cast<hdr7_t*>(top.get());
 	h->cnt = 0;
+	h->log_beg = c7::time_us() >> 20;
     } else {
 	hdr6_t *h = static_cast<hdr6_t*>(top.get());
 	h->cnt = 0;

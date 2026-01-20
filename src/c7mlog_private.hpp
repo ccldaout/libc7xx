@@ -68,7 +68,7 @@ struct hdr7_t {
     uint32_t rev;
     volatile uint32_t cnt;
     uint32_t hdrsize_b;		// user header size
-    uint32_t __pad;
+    uint32_t log_beg;
     char hint[64];
     partition7_t part[_PART_CNT];
 };
