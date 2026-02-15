@@ -1,5 +1,5 @@
 /*
- * c7mlog_private.hpp
+ * c7mlog/private.hpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -11,20 +11,23 @@
 
 
 #include <cstring>
+#include <optional>
 #include <c7mlog.hpp>
 
 
 // BEGIN: same definition with libc7/c7mlog_private.h
 
 // _REVISION history:
-// 1: initial
-// 2: lnk data lnk -> lnk data thread_name lnk
-// 3: thread name, source name
-// 4: record max length for thread name and source name
-// 5: new linkage format & enable inter process lock
-// 6: lock free, no max_{tn|sn}_size
-// 7: multi partition
-#define _REVISION		(7)
+//  1: initial
+//  2: lnk data lnk -> lnk data thread_name lnk
+//  3: thread name, source name
+//  4: record max length for thread name and source name
+//  5: new linkage format & enable inter process lock
+//  6: lock free, no max_{tn|sn}_size
+//  7: multi partition
+//     8..11 skip
+// 12: log_beg: uint32_t -> uint64_t
+#define _REVISION		(12)
 
 #define _IHDRSIZE		c7_align(sizeof(hdr_t), 16)
 #define _DUMMY_LOG_SIZE		(16)
@@ -41,7 +44,7 @@
 // END
 
 
-namespace c7 {
+namespace c7::mlog_impl {
 
 
 using raddr_t = uint32_t;
@@ -63,7 +66,7 @@ struct hdr6_t {
     char hint[64];
 };
 
-// file header (rev7..)
+// file header (rev7)
 struct hdr7_t {
     uint32_t rev;
     volatile uint32_t cnt;
@@ -71,6 +74,17 @@ struct hdr7_t {
     uint32_t log_beg;
     char hint[64];
     partition7_t part[_PART_CNT];
+};
+
+// file header (rev12..)
+struct hdr12_t {
+    uint32_t rev;
+    volatile uint32_t cnt;
+    uint32_t hdrsize_b;		// user header size
+    uint32_t _unused;
+    char hint[64];
+    partition7_t part[_PART_CNT];
+    uint64_t log_beg;
 };
 
 // record header (rev5..)
@@ -101,20 +115,9 @@ private:
 
 public:
     rbuffer7() {}
+    rbuffer7(void *headaddr, uint64_t off, partition7_t *part);
 
-    rbuffer7(void *headaddr, uint64_t off, partition7_t *part):
-	part_(part),
-	top_(static_cast<char*>(headaddr) + off),
-	end_(top_ + part->size_b),
-	size_(part->size_b) {
-    }
-
-    void clear() {
-	if (size_ > 0) {
-	    raddr_t addr = 0;
-	    part_->nextaddr = put(addr, sizeof(addr), &addr);
-	}
-    }
+    void clear();
 
     raddr_t size() {
 	return size_;
@@ -124,66 +127,62 @@ public:
 	return part_->nextaddr;
     }
 
-    raddr_t reserve(raddr_t size_b) {
-	// check size to be written
-	if ((size_b + 32) > size_) {	// (C) ensure rechdr.size < hdr_->logsize_b
-	    return _TOO_LARGE;		// data size too large
-	}
+    raddr_t reserve(raddr_t size_b);
 
-	volatile raddr_t * const nextaddr_p = &part_->nextaddr;
-	raddr_t addr, next;
-	do {
-	    addr = *nextaddr_p;
-	    next = (addr + size_b) % size_;
-	    // addr != next is ensured by above check (C)
-	} while (__sync_val_compare_and_swap(nextaddr_p, addr, next) != addr);
-	return addr;
-    }
+    void get(raddr_t addr, raddr_t size, void *_ubuf);
 
-    void get(raddr_t addr, raddr_t size, void *_ubuf) {
-	char *ubuf = static_cast<char*>(_ubuf);
-	char *rbuf = top_ + (addr % size_);
-	raddr_t rrest = end_ - rbuf;
-
-	while (size > 0) {
-	    raddr_t cpsize = std::min(size, rrest);
-
-	    std::memcpy(ubuf, rbuf, cpsize);
-	    ubuf += cpsize;
-	    size -= cpsize;
-
-	    rbuf = top_;
-	    rrest = size_;
-	}
-    }
-
-    raddr_t put(raddr_t addr, raddr_t size, const void *_ubuf) {
-	const raddr_t ret_addr = addr + size;
-
-	const char *ubuf = static_cast<const char*>(_ubuf);
-	char *rbuf = top_ + (addr % size_);
-	raddr_t rrest = end_ - rbuf;
-
-	while (size > 0) {
-	    raddr_t cpsize = (size < rrest) ? size : rrest;
-
-	    std::memcpy(rbuf, ubuf, cpsize);
-	    ubuf += cpsize;
-	    size -= cpsize;
-
-	    rbuf = top_;
-	    rrest = size_;
-	}
-
-	return ret_addr;
-    }
+    raddr_t put(raddr_t addr, raddr_t size, const void *_ubuf);
 };
 
 
+struct rec_index_t {
+    int part;
+    raddr_t addr;
+};
+
+struct rec_desc_t {
+    c7::usec_t time_us;
+    uint32_t order;
+    rec_index_t idx;
+    int tn_size;
+    int sn_size;
+};
+
+class rec_reader {
+public:
+    using info_t = mlog_reader::info_t;
+
+    rec_reader(c7::usec_t log_beg, rbuffer7& rbuf, int part);
+    std::optional<rec_desc_t> get(std::function<bool(const info_t&)>& choice,
+				  raddr_t order_min,
+				  c7::usec_t time_us_min,
+				  std::vector<char>& dbuf);
+
+private:
+    c7::usec_t log_beg_;
+    rbuffer7& rbuf_;
+    int part_;
+    raddr_t recaddr_;
+    raddr_t brkaddr_;
+};
+
+
+void
+make_info(mlog_reader::info_t& info, const rec5_t& rec, const char *data);
+
+static inline bool operator<(const rec_desc_t& a, const rec_desc_t& b)
+{
+    return (a.time_us < b.time_us ||
+	    (a.time_us == b.time_us && a.order < b.order));
+}
+
+
 std::unique_ptr<mlog_reader::impl> make_mlog_reader6();
+std::unique_ptr<mlog_reader::impl> make_mlog_reader7();
+std::unique_ptr<mlog_reader::impl> make_mlog_reader12();
 
 
-} // namespace c7
+} // namespace c7::mlog_impl
 
 
 #endif // c7mlog_private.hpp

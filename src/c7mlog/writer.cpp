@@ -1,5 +1,5 @@
 /*
- * c7mlog_w.cpp
+ * c7mlog/writer.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -13,14 +13,17 @@
 #include <c7file.hpp>
 #include <c7path.hpp>
 #include <c7thread.hpp>
-#include "c7mlog_private.hpp"
+#include "c7mlog/private.hpp"
 
 
 namespace c7 {
 
 
+using namespace mlog_impl;
+
+
 using partition_t = partition7_t;
-using hdr_t = hdr7_t;
+using hdr_t = hdr12_t;
 using rec_t = rec5_t;
 using rbuffer = rbuffer7;
 
@@ -43,7 +46,7 @@ c7::result<> mlog_clear(const std::string& name)
     if (rev >= 7) {
 	hdr7_t *h = static_cast<hdr7_t*>(top.get());
 	h->cnt = 0;
-	h->log_beg = c7::time_us() >> 20;
+	h->log_beg = c7::time_us();
     } else {
 	hdr6_t *h = static_cast<hdr6_t*>(top.get());
 	h->cnt = 0;
@@ -107,7 +110,7 @@ public:
 
     bool put(c7::usec_t time_us, const char *src_name, int src_line,
 	     uint32_t level, uint32_t category, uint64_t minidata,
-	     const void *logaddr, size_t logsize_b);
+	     const ::iovec *iov, size_t ioc);
 
     void clear();
 
@@ -305,11 +308,16 @@ mlog_writer::impl::make_rechdr(size_t logsize, size_t tn_size, size_t sn_size, i
 bool
 mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 		       uint32_t level, uint32_t category, uint64_t minidata,
-		       const void *logaddr, size_t logsize_b)
+		       const ::iovec *iov, size_t ioc)
 {
+    size_t logsize_b = 0;
+    for (size_t i = 0; i < ioc; i++) {
+	logsize_b += iov[i].iov_len;
+    }
+
     if (callback_) {
 	callback_(time_us, src_name, src_line, level, category,
-		  minidata, logaddr, logsize_b);
+		  minidata, iov[0].iov_base, iov[0].iov_len);
     }
 
     // thread name size
@@ -355,7 +363,9 @@ mlog_writer::impl::put(c7::usec_t time_us, const char *src_name, int src_line,
 
     // write whole record: log data -> thread name -> source name	// (A) cf.(B)
     addr = rbuf->put(addr, sizeof(rechdr), &rechdr);			// record header
-    addr = rbuf->put(addr, logsize_b, logaddr);				// log data
+    for (size_t i = 0; i < ioc; i++) {
+	addr = rbuf->put(addr, iov[i].iov_len, iov[i].iov_base);	// log data
+    }
     if (tn_size > 0) {
 	addr = rbuf->put(addr, tn_size+1, th_name);			// +1 : null character
     }
@@ -455,11 +465,19 @@ void mlog_writer::post_forked()
 
 bool mlog_writer::put(c7::usec_t time_us, const char *src_name, int src_line,
 		      uint32_t level, uint32_t category, uint64_t minidata,
+		      const ::iovec *iov, size_t ioc)
+{
+    return pimpl->put(time_us, src_name, src_line, level, category, minidata,
+		      iov, ioc);
+}
+
+bool mlog_writer::put(c7::usec_t time_us, const char *src_name, int src_line,
+		      uint32_t level, uint32_t category, uint64_t minidata,
 		      const void *logaddr, size_t logsize_b)
 {
-    return pimpl->put(time_us, src_name, src_line,
-		      level, category, minidata,
-		      logaddr, logsize_b);
+    ::iovec iov{const_cast<void*>(logaddr), logsize_b};
+    return put(time_us, src_name, src_line, level, category, minidata,
+	       &iov, 1);
 }
 
 bool mlog_writer::put(const char *src_name, int src_line,

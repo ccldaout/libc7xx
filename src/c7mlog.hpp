@@ -14,6 +14,7 @@
 #include <c7common.hpp>
 
 
+#include <sys/uio.h>
 #include <string>
 #include <c7format.hpp>
 #include <c7result.hpp>
@@ -25,6 +26,7 @@
 
 #define C7_MLOG_API_set_callback	(1U)		// set_callback, enable_stdout
 #define C7_MLOG_API_partition		(1U)		// init(..., logsize_b_v, ...)
+#define C7_MLOG_API_iovec		(1U)		// put(..., ::iovec, ioc)
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -110,6 +112,11 @@ public:
     bool put(const char *src_name, int src_line,
 	     uint32_t level, uint32_t category, uint64_t minidata,
 	     const char *s);
+
+    // C7_MLOG_API_iovec
+    bool put(c7::usec_t time_us, const char *src_name, int src_line,
+	     uint32_t level, uint32_t category, uint64_t minidata,
+	     const ::iovec *iov, size_t ioc);
 
     // default c7::format
 

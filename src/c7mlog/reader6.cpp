@@ -1,5 +1,5 @@
 /*
- * c7mlog_r6.cpp
+ * c7mlog/reader6.cpp
  *
  * Copyright (c) 2020 ccldaout@gmail.com
  *
@@ -18,14 +18,23 @@
 #include <c7thread.hpp>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "c7mlog_private.hpp"
+#include "c7mlog/private.hpp"
 
 
 #undef  _REVISION
 #define _REVISION		(6)
 
+#undef  _IHDRSIZE
+#define _IHDRSIZE		c7_align(sizeof(hdr6_t), 16)
 
-namespace c7 {
+
+namespace c7::mlog_impl {
+
+
+class rbuffer6;
+using hdr_t	= hdr6_t;
+using rec_t	= rec5_t;
+using rbuffer	= rbuffer6;
 
 
 class rbuffer6 {
@@ -81,15 +90,6 @@ public:
 };
 
 
-using hdr_t	= hdr6_t;
-using rec_t	= rec5_t;
-using rbuffer	= rbuffer6;
-
-
-/*----------------------------------------------------------------------------
-                                 mlog_reader6
-----------------------------------------------------------------------------*/
-
 class mlog_reader6: public mlog_reader::impl {
 private:
     rbuffer rbuf_;
@@ -129,39 +129,6 @@ public:
 	return hdr_->hint;
     }
 };
-
-static void
-make_info(mlog_reader::info_t& info, const rec_t& rec, const char *data)
-{
-    info.thread_id   = rec.th_id;
-    info.source_line = rec.src_line;
-    info.weak_order  = rec.order;
-    info.size_b      = rec.size;
-    info.time_us     = rec.time_us;
-    info.level       = rec.level;
-    info.category    = rec.category;
-    info.minidata    = rec.minidata;
-    info.pid         = rec.pid;
-
-    // (B) cf.(A)
-
-    info.size_b -= sizeof(rec);
-    info.size_b -= sizeof(raddr_t);
-
-    if (rec.sn_size > 0) {
-	info.size_b -= (rec.sn_size + 1);
-	info.source_name = std::string_view{data + info.size_b, rec.sn_size};
-    } else {
-	info.source_name = "";
-    }
-
-    if (rec.tn_size > 0) {
-	info.size_b -= (rec.tn_size + 1);
-	info.thread_name = std::string_view{data + info.size_b, rec.tn_size};
-    } else {
-	info.thread_name = "";
-    }
-}
 
 result<>
 mlog_reader6::load(const std::string& path)
@@ -263,8 +230,4 @@ make_mlog_reader6()
 }
 
 
-/*----------------------------------------------------------------------------
-----------------------------------------------------------------------------*/
-
-
-} // namespace c7
+} // namespace c7::mlog_impl
