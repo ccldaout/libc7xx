@@ -176,6 +176,12 @@ static inline bool operator<(const rec_desc_t& a, const rec_desc_t& b)
 	    (a.time_us == b.time_us && a.order < b.order));
 }
 
+static inline std::string suffix(const std::string& name)
+{
+    auto sfx = c7::path::suffix(name);
+    return sfx.empty() ? ".mlog" : sfx;
+}
+
 
 std::unique_ptr<mlog_reader::impl> make_mlog_reader6();
 std::unique_ptr<mlog_reader::impl> make_mlog_reader7();

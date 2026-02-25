@@ -217,7 +217,7 @@ mlog_reader& mlog_reader::operator=(mlog_reader&& o)
 result<>
 mlog_reader::load(const std::string& name)
 {
-    auto path = c7::path::find_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+    auto path = c7::path::find_c7spec(name, mlog_impl::suffix(name), C7_MLOG_DIR_ENV);
 
     uint32_t rev;
     if (auto res = c7::file::read_into(path, rev); !res) {

@@ -35,7 +35,7 @@ using rbuffer = rbuffer7;
 c7::result<> mlog_clear(const std::string& name)
 {
     c7::file::unique_mmap<> top;
-    auto path = c7::path::find_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+    auto path = c7::path::find_c7spec(name, suffix(name), C7_MLOG_DIR_ENV);
     if (auto res = c7::file::mmap_rw(path); !res) {
 	return res.as_error();
     } else {
@@ -423,7 +423,7 @@ mlog_writer::init(const std::string& name,
 		  size_t hdrsize_b, size_t logsize_b,
 		  uint32_t w_flags, const char *hint)
 {
-    auto path = c7::path::init_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+    auto path = c7::path::init_c7spec(name, suffix(name), C7_MLOG_DIR_ENV);
 
     std::vector<size_t> size_b_v(_PART_CNT);
     size_b_v[C7_LOG_MIN] = logsize_b;
@@ -436,7 +436,7 @@ mlog_writer::init(const std::string& name,
 		  size_t hdrsize_b, std::vector<size_t> logsize_b_v,
 		  uint32_t w_flags, const char *hint)
 {
-    auto path = c7::path::init_c7spec(name, ".mlog", C7_MLOG_DIR_ENV);
+    auto path = c7::path::init_c7spec(name, suffix(name), C7_MLOG_DIR_ENV);
 
     logsize_b_v.resize(_PART_CNT);
 
