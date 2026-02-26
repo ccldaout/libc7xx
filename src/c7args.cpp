@@ -573,7 +573,17 @@ parser::impl::parse(char **argv)
 	    c7::strvec prms;
 	    if (prm) {
 		if (handler->prmc_max() > 1) {
-		    prms = c7::str::split(prm, ',');
+		    auto& dsc = handler->desc();
+		    char sep = ',';
+		    if ((dsc.type == opt_desc::prm_type::INT  ||
+			 dsc.type == opt_desc::prm_type::UINT ||
+			 dsc.type == opt_desc::prm_type::REAL ||
+			 dsc.type == opt_desc::prm_type::DATE) &&
+			handler->prmc_max() == 2 &&
+			std::strchr(prm, ':') != nullptr) {
+			sep = ':';
+		    }
+		    prms = c7::str::split(prm, sep);
 		} else {
 		    prms += prm;
 		}
