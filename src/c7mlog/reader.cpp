@@ -246,6 +246,11 @@ mlog_reader::scan(size_t maxcount,
     pimpl->scan(maxcount, order_min, time_us_min, choice, access);
 }
 
+void *mlog_reader::hdraddr(size_t *hdrsize_b_op)
+{
+    return pimpl->hdraddr(hdrsize_b_op);
+}
+
 const char *mlog_reader::hint()
 {
     return pimpl->hint();

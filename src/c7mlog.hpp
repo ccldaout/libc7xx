@@ -260,7 +260,7 @@ public:
 	      std::function<bool(const info_t& info)> choice,
 	      std::function<bool(const info_t& info, void *data)> access);
 
-    void *hdraddr();
+    void *hdraddr(size_t *hdrsize_b_op = nullptr);
     const char *hint();
 };
 
