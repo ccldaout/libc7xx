@@ -443,6 +443,30 @@ mlog_writer::init(const std::string& name,
     return pimpl->init(path.c_str(), hdrsize_b, logsize_b_v, w_flags, hint);
 }
 
+result<>
+mlog_writer::attach(const std::string& name, uint32_t w_flags)
+{
+    auto path = c7::path::init_c7spec(name, suffix(name), C7_MLOG_DIR_ENV);
+
+    hdr12_t hdr;
+    if (auto res = c7::file::read_into(path, hdr); !res) {
+	return res.as_error();
+    } else if (res.value() != 0) {
+	return c7result_err(EINVAL, "Invalid mlog format");
+    } else if (hdr.rev != _REVISION) {
+	return c7result_err(EINVAL, "Revision mismatch: header:%{}, library:%{}",
+			    hdr.rev, _REVISION);
+    }
+
+    size_t hdrsize_b = hdr.hdrsize_b;
+    std::vector<size_t> logsize_b_v;
+    for (decltype(_PART_CNT) i = 0; i < _PART_CNT; i++) {
+	logsize_b_v.push_back(hdr.part[i].size_b);
+    }
+
+    return pimpl->init(path.c_str(), hdrsize_b, logsize_b_v, w_flags, nullptr);
+}
+
 void mlog_writer::set_callback(callback_t callback)
 {
     return pimpl->set_callback(callback);

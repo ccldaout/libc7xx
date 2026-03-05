@@ -27,6 +27,7 @@
 #define C7_MLOG_API_set_callback	(1U)		// set_callback, enable_stdout
 #define C7_MLOG_API_partition		(1U)		// init(..., logsize_b_v, ...)
 #define C7_MLOG_API_iovec		(1U)		// put(..., ::iovec, ioc)
+#define C7_MLOG_API_attach		(1U)		// attach(...)
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -88,6 +89,9 @@ public:
 		  std::vector<size_t> logsize_b_v,	// partition size
 		  uint32_t w_flags,
 		  const char *hint = nullptr);
+
+    // C7_MLOG_API_attach
+    result<> attach(const std::string& name, uint32_t w_flags);
 
     void set_callback(callback_t);
 
