@@ -136,6 +136,8 @@ private:
 template <typename Derived, typename ItemIn, typename ItemOut = ItemIn>
 class driver: public driver_for_main<Derived, ItemIn, ItemOut> {
 public:
+    using driver_base = driver_for_main<Derived, ItemIn, ItemOut>;
+
     void init(const configure& cfg);
     void start_round();
     inline c7::result<> put(const ItemIn& item);
@@ -143,8 +145,6 @@ public:
     void end();
 
 private:
-    using driver_base = driver_for_main<Derived, ItemIn, ItemOut>;
-
     size_t max_items_;
     std::vector<ItemIn> rcv_items_;
     std::vector<ItemOut> snd_items_;
