@@ -28,6 +28,7 @@
 #define C7_MLOG_API_partition		(1U)		// init(..., logsize_b_v, ...)
 #define C7_MLOG_API_iovec		(1U)		// put(..., ::iovec, ioc)
 #define C7_MLOG_API_attach		(1U)		// attach(...)
+#define C7_MLOG_API_sizes		(1U)		// sizes(...)
 
 
 // BEGIN: same definition with c7mlog.[ch]
@@ -98,6 +99,9 @@ public:
     void enable_stdout();	// set_callback with internal print function
 
     void *hdraddr(size_t *hdrsize_b_op = nullptr);
+
+    // C7_MLOG_API_sizes
+    std::vector<size_t> sizes();
 
     void post_forked();
 

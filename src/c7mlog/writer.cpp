@@ -121,6 +121,14 @@ public:
 	return (char *)hdr_ + _IHDRSIZE;
     }
 
+    std::vector<size_t> sizes() {
+	std::vector<size_t> sz;
+	for (decltype(_PART_CNT) i = 0; i < _PART_CNT; i++) {
+	    sz.push_back(rbufobj_[i].size());
+	}
+	return sz;
+    }
+
     void post_forked() {
 	pid_ = getpid();
     }
@@ -480,6 +488,11 @@ void mlog_writer::enable_stdout()
 void *mlog_writer::hdraddr(size_t *hdrsize_b_op)
 {
     return pimpl->hdraddr(hdrsize_b_op);
+}
+
+std::vector<size_t> mlog_writer::sizes()
+{
+    return pimpl->sizes();
 }
 
 void mlog_writer::post_forked()
