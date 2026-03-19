@@ -43,10 +43,14 @@ c7::result<> mlog_clear(const std::string& name)
     }
 
     uint32_t rev = *static_cast<uint32_t*>(top.get());
-    if (rev >= 7) {
-	hdr7_t *h = static_cast<hdr7_t*>(top.get());
+    if (rev >= 12) {
+	hdr12_t *h = static_cast<hdr12_t*>(top.get());
 	h->cnt = 0;
 	h->log_beg = c7::time_us();
+    } else if (rev >= 7) {
+	hdr7_t *h = static_cast<hdr7_t*>(top.get());
+	h->cnt = 0;
+	h->log_beg = c7::time_us() >> 20;
     } else {
 	hdr6_t *h = static_cast<hdr6_t*>(top.get());
 	h->cnt = 0;
