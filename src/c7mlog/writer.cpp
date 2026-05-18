@@ -95,14 +95,14 @@ public:
 	for (auto& rbp: rbuf_) {
 	    rbp = &rbufobj_[0];
 	}
-	init_default();
+	init_default(0);
     }
 
     ~impl() {
 	free_storage();
     }
 
-    void init_default();
+    void init_default(size_t hdrsize_b);
 
     result<> init(const char *path, size_t hdrsize_b,
 		  std::vector<size_t> size_b_v,
@@ -155,14 +155,21 @@ static void print_stdout(c7::usec_t time_us, const char *src_name, int src_line,
 // constructor/destructor -----------------------------------------
 
 void
-mlog_writer::impl::init_default()
+mlog_writer::impl::init_default(size_t hdrsize_b)
 {
     std::vector<size_t> size_v(_PART_CNT);
     size_v[0]   = _DUMMY_LOG_SIZE;
-    hdr_        = reinterpret_cast<hdr_t*>(_DummyBuffer);
-    mmapsize_b_ = 0;
-    callback_   = print_stdout;
-    setup_context(nullptr, 0, size_v);
+    if (hdrsize_b) {
+	mmapsize_b_ = _IHDRSIZE + hdrsize_b + size_v[0];
+	void *p = ::mmap(nullptr, mmapsize_b_, PROT_WRITE|PROT_READ,
+			 MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
+	hdr_        = static_cast<hdr_t*>(p);
+    } else {
+	mmapsize_b_ = 0;
+	hdr_        = reinterpret_cast<hdr_t*>(_DummyBuffer);
+	callback_   = print_stdout;
+    }
+    setup_context(nullptr, hdrsize_b, size_v);
 }
 
 result<>
@@ -171,8 +178,10 @@ mlog_writer::impl::init(const char *path,
 			std::vector<size_t> size_b_v,
 			uint32_t w_flags, const char *hint)
 {
+    free_storage();	// unmap previous map
+
     if (auto res = setup_storage(path, hdrsize_b, size_b_v); !res) {
-	init_default();
+	init_default(hdrsize_b);
 	return res;
     }
 
@@ -187,8 +196,6 @@ mlog_writer::impl::setup_storage(const char *path,
 				 size_t hdrsize_b,
 				 const std::vector<size_t>& size_b_v)
 {
-    free_storage();	// unmap previous map
-
     if (size_b_v[0] == 0) {
 	return c7result_err(EINVAL, "size_b_v[0] must not be zero");
     }
