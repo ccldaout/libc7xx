@@ -25,8 +25,17 @@ namespace c7::event {
 template <typename Port = socket_port>
 class portgroup {
 private:
-    std::vector<Port*> ports_;
+    using delegate_id = shared_port::delegate_id;
+
+    std::vector<std::pair<Port*, delegate_id>> ports_;
     std::vector<std::pair<Port*, io_result>> errs_;
+
+    static auto extract(std::pair<Port*, delegate_id>& v) {
+	return v.first;
+    }
+    static auto cextract(const std::pair<Port*, delegate_id>& v) {
+	return v.first;
+    }
 
 public:
     portgroup() = default;
@@ -36,16 +45,21 @@ public:
     portgroup& operator=(portgroup&&) = default;
 
     void add(Port& port) {
-	ports_.push_back(&port);
-	port.add_on_close([this, fd=port.fd_number()]() { remove(fd); });
+	auto id = port.add_on_close(
+	    [this, fd=port.fd_number()]() { remove(fd); });
+	ports_.emplace_back(&port, id);
     }
     void remove(Port& port) {
 	remove(port.fd_number());
     }
     void remove(int fd) {
 	auto it = std::find_if(ports_.begin(), ports_.end(),
-			       [fd](auto p){ return (p->fd_number() == fd); });
+			       [fd](auto p){
+				   return (p.first->fd_number() == fd);
+			       });
 	if (it != ports_.end()) {
+	    auto& [port, id] = *it;
+	    port->remove_on_close(id);
 	    ports_.erase(it);
 	}
     }
@@ -56,10 +70,19 @@ public:
     auto size() const {
 	return ports_.size();
     }
-    auto begin() { return ports_.begin(); }
-    auto end() { return ports_.end(); }
-    auto begin() const { return ports_.begin(); }
-    auto end() const { return ports_.end(); }
+
+    auto begin() {
+	return make_convert_iter(ports_.begin(), portgroup::extract);
+    }
+    auto end() {
+	return make_convert_iter(ports_.end(), portgroup::extract);
+    }
+    auto begin() const {
+	return make_convert_iter(ports_.cbegin(), portgroup::cextract);
+    }
+    auto end() const {
+	return make_convert_iter(ports_.cend(), portgroup::cextract);
+    }
 
     void clear_errors() {
 	errs_.clear();
