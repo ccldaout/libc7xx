@@ -38,6 +38,12 @@ private:
     }
 
 public:
+    ~portgroup() {
+	for (auto [port, id]: ports_) {
+	    port->remove_on_close(id);
+	}
+    }
+
     portgroup() = default;
     portgroup(const portgroup&) = delete;
     portgroup(portgroup&&) = default;
@@ -58,7 +64,7 @@ public:
 				   return (p.first->fd_number() == fd);
 			       });
 	if (it != ports_.end()) {
-	    auto& [port, id] = *it;
+	    auto [port, id] = *it;
 	    port->remove_on_close(id);
 	    ports_.erase(it);
 	}
