@@ -53,7 +53,7 @@ private:
     void start_timer(monitor& mon, int prvfd);
     void retry_connect(monitor& mon);
     result<> do_connect(monitor& mon);
-    Port make_port();
+    static Port make_port(const sockaddr_gen&);
 };
 
 
@@ -67,7 +67,6 @@ auto make_connector(const sockaddr_gen& addr,
     return connector<msgbuf_type, port_type>::make(addr, svc, hint);
 }
 
-
 template <typename Service>
 result<> manage_connector(const sockaddr_gen& addr,
 			  std::shared_ptr<Service> svc,
@@ -75,7 +74,6 @@ result<> manage_connector(const sockaddr_gen& addr,
 {
     return manage(make_connector(addr, svc, hint));
 }
-
 
 template <typename Service>
 result<> manage_connector(monitor& mon,

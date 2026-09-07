@@ -160,7 +160,6 @@ public:
     //       receiver call Port::close.
     virtual void on_error(monitor&, port_type&, io_result&) {}
 
-
     // interface for connector
     // ----------------------
 
@@ -170,6 +169,13 @@ public:
     //          to set SO_RCVBUF option after connection is established.
     //
     virtual void on_pre_connect(monitor&, port_type&) {}
+
+    // interface for connector, acceptor
+    // ----------------------
+
+    // - 'on_connected' is never called from ext/delegate.
+    // - 'on_connected' is called prio to 'on_attached'.
+    virtual c7::result<> on_connected(port_type&, provider_hint) { return c7result_ok(); }
 
 private:
     using base_type = service_interface<Msgbuf, Port>;

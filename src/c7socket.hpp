@@ -92,6 +92,8 @@ public:
     result<sockaddr_gen> self() const;
     result<sockaddr_gen> peer() const;
 
+    result<socket> remake();				// return old socket
+
     result<> getsockopt(int level, int optname, void *optval, socklen_t *optlen) const;
     result<> setsockopt(int level, int optname, const void *optval, socklen_t optlen);
 
