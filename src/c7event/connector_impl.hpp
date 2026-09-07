@@ -31,9 +31,8 @@ connector<Msgbuf, Port>::~connector() = default;
 
 template <typename Msgbuf, typename Port>
 connector<Msgbuf, Port>::connector(const sockaddr_gen& addr, service_ptr&& svc, provider_hint hint):
-    provider_interface(), addr_(addr), svc_(std::move(svc)), hint_(hint)
+    provider_interface(), addr_(addr), svc_(std::move(svc)), port_(make_port(addr)), hint_(hint)
 {
-    port_ = make_port();
 }
 
 
@@ -116,21 +115,17 @@ void connector<Msgbuf, Port>::start_timer(monitor& mon, int prvfd)
 template <typename Msgbuf, typename Port>
 void connector<Msgbuf, Port>::retry_connect(monitor& mon)
 {
-    // [BUG] Following original codes has potential problem on multi thread.
-    //       Old descriptor of port_ is closed by assignment at [1]. If other
-    //       thread create descriptor and manage it before [2], mon.change_fd
-    //       cause broken association of descriptor and provider object.
-    //
-    //   [0] auto oldfd = port_.fd_number();
-    //   [1] port_ = make_port();
-    //   [2] mon.change_fd(oldfd, port_.fd_number());
+    auto res = port_.remake();
+    if (!res) {
+	on_error(port_, res);
+	mon.unmanage(port_.fd_number());
+	return;
+    }
 
-    auto new_port = make_port();
-    mon.change_fd(port_.fd_number(), new_port.fd_number());
-    port_ = std::move(new_port);
-    port_.set_nonblocking(true);
-
+    auto old_sock = std::move(res.value());
     auto prvfd = port_.fd_number();
+    mon.change_fd(int(old_sock), prvfd);
+    port_.set_nonblocking(true);
 
     if (auto res = do_connect(mon); !res && !res.has_what(EINPROGRESS)) {
 	start_timer(mon, prvfd);
@@ -149,11 +144,11 @@ result<> connector<Msgbuf, Port>::do_connect(monitor& mon)
 
 
 template <typename Msgbuf, typename Port>
-Port connector<Msgbuf, Port>::make_port()
+Port connector<Msgbuf, Port>::make_port(const sockaddr_gen& addr)
 {
-    if (addr_.is_ipv4()) {
+    if (addr.is_ipv4()) {
 	return Port::tcp();
-    } else if (addr_.is_unix()) {
+    } else if (addr.is_unix()) {
 	return Port::unix();
     } else {
 	return Port();

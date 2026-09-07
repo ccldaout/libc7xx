@@ -14,48 +14,6 @@
 namespace c7::event {
 
 
-shared_port::impl::impl(c7::socket&& sock):
-    port(std::move(sock))
-{
-}
-
-
-shared_port::impl::impl(int fd):
-    port(fd)
-{
-}
-
-
-shared_port::impl::impl(socket_port&& port):
-    port(std::move(port))
-{
-}
-
-
-shared_port::shared_port(std::shared_ptr<impl>&& pimpl):
-    pimpl_(std::move(pimpl))
-{
-}
-
-
-shared_port::shared_port(c7::socket&& sock):
-    pimpl_(new impl(std::move(sock)))
-{
-}
-
-
-shared_port::shared_port(int fd):
-    pimpl_(new impl(fd))
-{
-}
-
-
-shared_port::shared_port(socket_port&& port):
-    pimpl_(new impl(std::move(port)))
-{
-}
-
-
 shared_port
 shared_port::tcp()
 {
@@ -76,22 +34,11 @@ shared_port::unix()
 }
 
 
-result<shared_port>
-shared_port::accept()
-{
-    if (auto res = pimpl_->port.accept(); !res) {
-	return c7result_err(std::move(res));
-    } else {
-	return c7result_ok(shared_port(std::move(res.value())));
-    }
-}
-
-
 void
 shared_port::print(std::ostream& out, const std::string&) const
 {
-    if (pimpl_) {
-	c7::format(out, "shared<%{}>", *(pimpl_->port.operator->()));
+    if (ops_) {
+	c7::format(out, "shared<%{}>", ops_->socket());
     } else {
 	out << "shared<nullptr>";
     }
@@ -101,9 +48,9 @@ shared_port::print(std::ostream& out, const std::string&) const
 void
 weak_port::print(std::ostream& out, const std::string&) const
 {
-    auto spimpl = w_pimpl_.lock();
+    auto spimpl = w_ops_.lock();
     if (spimpl) {
-	c7::format(out, "weak<%{}>", *(spimpl->port.operator->()));
+	c7::format(out, "weak<%{}>", spimpl->socket());
     } else {
 	out << "weak<nullptr>";
     }

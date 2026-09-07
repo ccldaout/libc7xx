@@ -127,7 +127,7 @@ multipart_msgbuf<Header, N>::recv(Port& port)
 {
     internal_header header;
 
-    auto iores = port.read_n(&header, sizeof(header));
+    auto iores = port.read_header(&header, sizeof(header));
     if (!iores) {
 	return iores;
     }
@@ -143,7 +143,7 @@ multipart_msgbuf<Header, N>::recv(Port& port)
     }
     for (int i = 1; i <= N; i++) {
 	if (iov_[i].iov_len > 0) {
-	    iores = port.read_n(iov_[i].iov_base, iov_[i].iov_len);
+	    iores = port.read_part(iov_[i].iov_base, iov_[i].iov_len);
 	    if (!iores) {
 		return iores;
 	    }
@@ -176,14 +176,14 @@ multipart_msgbuf<Header, N>::send(Port& port, const Header& h) const
 	}
     }
 
-    // [CAUTION] port.write_v change contents of iov and ioc
+    // [CAUTION] port.write_entire change contents of iov and ioc
     int ioc = N + 1;
     ::iovec iov[N + 1];
     ::iovec *iovp = iov;
     std::memcpy(iov, iov_, sizeof(iov));
     {
 	auto unlock = lock_traits<Port>::lock_ifimpl(port);
-	auto res = port.write_v(iovp, ioc);
+	auto res = port.write_entire(iovp, ioc);
 	return res;
     }
 }

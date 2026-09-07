@@ -297,6 +297,28 @@ result<sockaddr_gen> socket::peer() const
     return c7result_ok(addr);
 }
 
+result<socket> socket::remake()
+{
+    int domain, type, protocol;
+    socklen_t len = sizeof(int);
+    if (auto res = getsockopt(SOL_SOCKET, SO_DOMAIN, &domain, &len); !res) {
+	return res.as_error();
+    }
+    if (auto res = getsockopt(SOL_SOCKET, SO_TYPE, &type, &len); !res) {
+	return res.as_error();
+    }
+    if (auto res = getsockopt(SOL_SOCKET, SO_PROTOCOL, &protocol, &len); !res) {
+	return res.as_error();
+    }
+    int new_fd = ::socket(domain, type, protocol);
+    if (new_fd == C7_SYSERR) {
+	return c7result_err(errno, "renew socket(%{}, %{}, %{}) failed", domain, type, protocol);
+    }
+    int old_fd = fdnum_;
+    fdnum_ = new_fd;
+    return c7result_ok(c7::socket(old_fd));
+}
+
 result<> socket::getsockopt(int level, int optname, void *optval, socklen_t *optlen) const
 {
     int ret = ::getsockopt(fdnum_, level, optname, optval, optlen);
