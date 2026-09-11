@@ -84,8 +84,16 @@ void connector<Msgbuf, Port>::on_event(monitor& mon, int prvfd, uint32_t)
 	return;
     }
 
-    // SUCCESS
+    // connection is established
+
     port_.set_nonblocking(false);
+
+    if (auto res = svc_->on_connected(port_, hint_); !res) {
+	on_error(port_, res);
+	start_timer(mon, prvfd);
+	return;
+    }
+
     auto rcv = make_receiver(std::move(port_), svc_, hint_);
     mon.change_provider(prvfd, std::move(rcv));
     mon.change_event(prvfd, EPOLLIN);
