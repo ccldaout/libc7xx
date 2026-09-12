@@ -90,6 +90,7 @@ void connector<Msgbuf, Port>::on_event(monitor& mon, int prvfd, uint32_t)
 
     if (auto res = svc_->on_connected(port_, hint_); !res) {
 	on_error(port_, res);
+	port_.shutdown_rw();	// DON'T close
 	start_timer(mon, prvfd);
 	return;
     }
