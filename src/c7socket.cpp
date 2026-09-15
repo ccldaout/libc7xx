@@ -218,6 +218,7 @@ result<> socket::bind(const std::string& path)	// UNIX domain
 
 result<> socket::connect(const sockaddr_gen& addr)
 {
+    name_.clear();
     (void)tcp_keepalive(true);			// called here for non-blocking connect.
     if (::connect(fdnum_, &addr.base, addr.socklen()) == C7_SYSERR) {
 	return c7result_err(errno, "connect(%{}, %{}) failed", fdnum_, addr);
